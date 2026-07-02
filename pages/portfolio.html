@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Портфоліо | InkBeat</title>
+  <meta name="description" content="Найкращі роботи InkBeat — приклади текстів, лірики, кейси та досягнення."/>
+  <link rel="icon" href="../public/favicon.ico"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="../css/style.css"/>
+</head>
+<body>
+
+<div class="cursor-dot"></div>
+<div class="cursor-ring"></div>
+
+<div id="loading-screen">
+  <div class="loading-letters">
+    <span class="loading-letter gradient-text" style="animation-delay:.3s">I</span>
+    <span class="loading-letter gradient-text" style="animation-delay:.35s">N</span>
+    <span class="loading-letter gradient-text" style="animation-delay:.4s">K</span>
+    <span class="loading-letter gradient-text" style="animation-delay:.45s">B</span>
+    <span class="loading-letter gradient-text" style="animation-delay:.5s">E</span>
+    <span class="loading-letter gradient-text" style="animation-delay:.55s">A</span>
+    <span class="loading-letter gradient-text" style="animation-delay:.6s">T</span>
+  </div>
+  <div class="loading-bar-wrap"><div class="loading-bar" style="width:0%"></div></div>
+  <div class="loading-pct">0%</div>
+</div>
+
+<nav id="navbar">
+  <div class="nav-inner">
+    <a href="../index.html" class="nav-logo gradient-text">INKBEAT</a>
+    <div class="nav-links">
+      <a href="../index.html" data-i18n="nav.home">Головна</a>
+      <a href="about.html" data-i18n="nav.about">Про мене</a>
+      <a href="discography.html" data-i18n="nav.discography">Дискографія</a>
+      <a href="services.html" data-i18n="nav.services">Послуги</a>
+      <a href="portfolio.html" class="active" data-i18n="nav.portfolio">Портфоліо</a>
+      <a href="contact.html" data-i18n="nav.contact">Контакти</a>
+    </div>
+    <div class="nav-right">
+      <div class="lang-btn">
+        <span class="lang-ua lang-toggle active" data-lang="uk">UA</span>
+        <span class="lang-sep">|</span>
+        <span class="lang-en lang-toggle" data-lang="en">EN</span>
+      </div>
+      <a href="contact.html" class="nav-order" data-i18n="nav.order">Замовити</a>
+    </div>
+    <button class="burger"><svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+  </div>
+</nav>
+
+<div class="mobile-menu">
+  <button class="mobile-close"><svg width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+  <a href="../index.html" data-i18n="nav.home">Головна</a>
+  <a href="about.html" data-i18n="nav.about">Про мене</a>
+  <a href="discography.html" data-i18n="nav.discography">Дискографія</a>
+  <a href="services.html" data-i18n="nav.services">Послуги</a>
+  <a href="portfolio.html" data-i18n="nav.portfolio">Портфоліо</a>
+  <a href="contact.html" data-i18n="nav.contact">Контакти</a>
+</div>
+
+<section class="page-header">
+  <div class="page-header-orb" style="top:30%;left:25%;width:500px;height:500px;background:radial-gradient(circle,#00FFE5,transparent 70%)"></div>
+  <div class="container">
+    <div class="reveal">
+      <div class="page-label" style="color:var(--cyan)">— Портфоліо</div>
+      <h1 class="page-title">Мої <span class="gradient-text">роботи</span></h1>
+      <p class="page-sub">Приклади текстів, лірики, кейси та досягнення. Кожна робота — унікальна історія.</p>
+    </div>
+  </div>
+</section>
+
+<section class="section" style="background:var(--s100)">
+  <div class="container">
+    <div class="masonry reveal">
+
+      <div class="masonry-item">
+        <div class="portfolio-card">
+          <span class="portfolio-badge" style="color:var(--blue);border-color:rgba(0,191,255,.4);background:rgba(0,191,255,.08)">Текст пісні</span>
+          <div class="portfolio-title">Нічне місто</div>
+          <div class="portfolio-excerpt">Вогні мерехтять у темряві ночі,
+Твій силует — мій єдиний маяк.
+Ми — два вогника в цьому морі...</div>
+          <div class="portfolio-tags">
+            <span class="portfolio-tag">#поп</span>
+            <span class="portfolio-tag">#лірика</span>
+            <span class="portfolio-tag">#ніч</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="masonry-item">
+        <div class="portfolio-card">
+          <span class="portfolio-badge" style="color:var(--purple);border-color:rgba(191,95,255,.4);background:rgba(191,95,255,.08)">Поезія</span>
+          <div class="portfolio-title">Між рядками</div>
+          <div class="portfolio-excerpt">Між словами — тиша,
+Між нами — відстань.
+Але музика — вище
+Будь-яких перешкод...</div>
+          <div class="portfolio-tags">
+            <span class="portfolio-tag">#поезія</span>
+            <span class="portfolio-tag">#почуття</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="masonry-item">
+        <div class="portfolio-card">
+          <span class="portfolio-badge" style="color:var(--cyan);border-color:rgba(0,255,229,.4);background:rgba(0,255,229,.08)">Реп-текст</span>
+          <div class="portfolio-title">Перший крок</div>
+          <div class="portfolio-excerpt">Починав з нуля, мав лише мрію в кишені,
+Мій шлях — не рівний, але кожен крок — мій.
+Не шукав схвалення — робив своє...</div>
+          <div class="portfolio-tags">
+            <span class="portfolio-tag">#реп</span>
+            <span class="portfolio-tag">#мотивація</span>
+            <span class="portfolio-tag">#хіп-хоп</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="masonry-item">
+        <div class="portfolio-card">
+          <span class="portfolio-badge" style="color:var(--blue);border-color:rgba(0,191,255,.4);background:rgba(0,191,255,.08)">Текст пісні</span>
+          <div class="portfolio-title">Осінній дощ</div>
+          <div class="portfolio-excerpt">Краплі б'ються об вікно,
+Як слова, що я не сказав.
+Осінь знову принесла
+Те, що я так довго ховав...</div>
+          <div class="portfolio-tags">
+            <span class="portfolio-tag">#акустика</span>
+            <span class="portfolio-tag">#осінь</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="masonry-item">
+        <div class="portfolio-card">
+          <span class="portfolio-badge" style="color:var(--purple);border-color:rgba(191,95,255,.4);background:rgba(191,95,255,.08)">Кейс — Колаборація</span>
+          <div class="portfolio-title">Спільний проект</div>
+          <div class="portfolio-excerpt">Написав текст для спільного треку з локальним артистом. Результат: 10K+ стримів за перший місяць. Взаємна промоція дала +500 підписників обом авторам.</div>
+          <div class="portfolio-tags">
+            <span class="portfolio-tag">#кейс</span>
+            <span class="portfolio-tag">#колаборація</span>
+            <span class="portfolio-tag">#результат</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="masonry-item">
+        <div class="portfolio-card">
+          <span class="portfolio-badge" style="color:var(--cyan);border-color:rgba(0,255,229,.4);background:rgba(0,255,229,.08)">Поезія</span>
+          <div class="portfolio-title">Свобода</div>
+          <div class="portfolio-excerpt">Свобода — не відсутність меж,
+А вміння танцювати в них.
+Я вільний, бо обрав свій шлях...</div>
+          <div class="portfolio-tags">
+            <span class="portfolio-tag">#поезія</span>
+            <span class="portfolio-tag">#свобода</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="masonry-item">
+        <div class="portfolio-card">
+          <span class="portfolio-badge" style="color:var(--blue);border-color:rgba(0,191,255,.4);background:rgba(0,191,255,.08)">Текст для бренду</span>
+          <div class="portfolio-title">Корпоративний гімн</div>
+          <div class="portfolio-excerpt">Ми разом будуємо — крок за кроком,
+Наша сила — в єдності та мрії спільній...</div>
+          <div class="portfolio-tags">
+            <span class="portfolio-tag">#корпоратив</span>
+            <span class="portfolio-tag">#бренд</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="masonry-item">
+        <div class="portfolio-card">
+          <span class="portfolio-badge" style="color:var(--purple);border-color:rgba(191,95,255,.4);background:rgba(191,95,255,.08)">Реліз</span>
+          <div class="portfolio-title">Spotify — перший сингл</div>
+          <div class="portfolio-excerpt">Дебютний сингл набрав 5000+ стримів органічно за 2 тижні. Потрапив до кількох редакційних плейлистів. Відгуки слухачів перевищили очікування.</div>
+          <div class="portfolio-tags">
+            <span class="portfolio-tag">#досягнення</span>
+            <span class="portfolio-tag">#Spotify</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <div class="stats-grid reveal">
+      <div class="stat-item">
+        <div class="stat-num gradient-text">50+</div>
+        <div class="stat-label">Написаних текстів</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num gradient-text">20+</div>
+        <div class="stat-label">Релізів на Spotify</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num gradient-text">5</div>
+        <div class="stat-label">Типів послуг</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num gradient-text">100%</div>
+        <div class="stat-label">Задоволені клієнти</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="cta-section">
+  <div class="cta-orb"></div>
+  <div class="container" style="position:relative;z-index:10;text-align:center">
+    <div class="reveal">
+      <div class="cta-label" style="color:var(--blue)">— Почнімо</div>
+      <h2 class="cta-title">Готові до<br><span class="gradient-text">співпраці?</span></h2>
+      <p class="cta-sub">Розкажіть мені про ваш проєкт. Разом ми створимо щось неймовірне.</p>
+      <div class="cta-btns">
+        <a href="contact.html" class="btn-primary">Написати мені</a>
+        <a href="services.html" class="btn-outline">Переглянути послуги</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <div class="footer-brand-name gradient-text">INKBEAT</div>
+        <p class="footer-desc">Музичний артист • Автор пісень • Автор текстів. Музика, яка залишає слід.</p>
+        <a href="mailto:inkbeat.mail@gmail.com" class="footer-email">inkbeat.mail@gmail.com</a>
+      </div>
+      <div>
+        <div class="footer-col-title">Навігація</div>
+        <ul class="footer-links">
+          <li><a href="../index.html">Головна</a></li>
+          <li><a href="about.html">Про мене</a></li>
+          <li><a href="discography.html">Дискографія</a></li>
+          <li><a href="services.html">Послуги</a></li>
+          <li><a href="portfolio.html">Портфоліо</a></li>
+          <li><a href="contact.html">Контакти</a></li>
+        </ul>
+      </div>
+      <div>
+        <div class="footer-col-title">Соцмережі</div>
+        <ul class="footer-links footer-social-links">
+          <li><a href="https://open.spotify.com/artist/6hkNwIjIfDcMDp5AObEbO9" target="_blank" rel="noopener">Spotify</a></li>
+          <li><a href="https://www.instagram.com/_.inkbeat._/" target="_blank" rel="noopener">Instagram</a></li>
+          <li><a href="https://www.youtube.com/@1nkBeat12/shorts" target="_blank" rel="noopener">YouTube</a></li>
+          <li><a href="https://www.tiktok.com/@inkbeat_" target="_blank" rel="noopener">TikTok</a></li>
+          <li><a href="https://music.apple.com/ua/artist/inkbeat/1850263830?l=uk" target="_blank" rel="noopener">Apple Music</a></li>
+          <li><a href="https://soundcloud.com/akabbvwcbvle" target="_blank" rel="noopener">SoundCloud</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p class="footer-copy">© <span id="year"></span> InkBeat. Всі права захищені.</p>
+      <p class="footer-copy">Зроблено з ♥ в Україні</p>
+    </div>
+  </div>
+</footer>
+
+<script src="../js/main.js"></script>
+<script>document.getElementById('year').textContent = new Date().getFullYear()</script>
+</body>
+</html>
