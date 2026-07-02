@@ -290,8 +290,8 @@ function formatDate(dateStr) {
   })
 }
 
-function createReleaseCard(track) {
-  const img = track.album?.images?.[0]?.url
+function createReleaseCard(album) {
+  const img = album.images?.[0]?.url
 
   return `
     <div class="release-card">
@@ -301,14 +301,14 @@ function createReleaseCard(track) {
             ? `<img src="${img}" alt="${album.name}" loading="lazy">`
             : `<div class="release-placeholder">♪</div>`
         }
-        <span class="release-type-badge">Сингл</span>
+        <span class="release-type-badge">${album.album_type === 'single' ? 'Сингл' : 'Альбом'}</span>
       </div>
 
       <div class="release-info">
         <div class="release-name">${album.name}</div>
 
         <div class="release-date">
-          ${formatDate(album.album.release_date)}
+          ${formatDate(album.release_date)}
         </div>
 
         <button
@@ -319,7 +319,7 @@ function createReleaseCard(track) {
 
         <div id="embed-${album.id}" style="display:none;margin-bottom:12px">
           <iframe
-            src="https://open.spotify.com/embed/track/${album.id}?utm_source=generator&theme=0"
+            src="https://open.spotify.com/embed/album/${album.id}?utm_source=generator&theme=0"
             width="100%"
             height="80"
             frameborder="0"
