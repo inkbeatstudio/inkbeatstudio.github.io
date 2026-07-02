@@ -290,41 +290,56 @@ function formatDate(dateStr) {
   })
 }
 
-function createReleaseCard(album) {
-  const img = album.images?.[0]?.url
-  const typeMap = { album:'Альбом', single:'Сингл', compilation:'EP' }
-  const typeLabel = typeMap[album.album_type] || album.album_type
+function createReleaseCard(track) {
+  const img = track.album?.images?.[0]?.url
 
   return `
     <div class="release-card">
       <div class="release-img">
-        ${img
-          ? `<img src="${img}" alt="${album.name}" loading="lazy">`
-          : `<div class="release-placeholder">♪</div>`
+        ${
+          img
+            ? `<img src="${img}" alt="${track.name}" loading="lazy">`
+            : `<div class="release-placeholder">♪</div>`
         }
-        <span class="release-type-badge">${typeLabel}</span>
+        <span class="release-type-badge">Сингл</span>
       </div>
+
       <div class="release-info">
-        <div class="release-name">${album.name}</div>
-        <div class="release-date">${formatDate(album.release_date)}</div>
-        <button onclick="toggleEmbed('${album.id}',this)"
+        <div class="release-name">${track.name}</div>
+
+        <div class="release-date">
+          ${formatDate(track.album.release_date)}
+        </div>
+
+        <button
+          onclick="toggleEmbed('${track.id}', this)"
           style="background:none;border:none;cursor:pointer;color:var(--blue);font-size:.75rem;margin-bottom:12px;padding:0;font-family:inherit">
           Слухати ▶
         </button>
-        <div id="embed-${album.id}" style="display:none;margin-bottom:12px">
+
+        <div id="embed-${track.id}" style="display:none;margin-bottom:12px">
           <iframe
-            src="https://open.spotify.com/embed/album/${album.id}?utm_source=generator&theme=0"
-            width="100%" height="80" frameborder="0"
-            allow="autoplay;clipboard-write;encrypted-media;fullscreen;picture-in-picture"
-            loading="lazy" style="border-radius:12px;display:block">
+            src="https://open.spotify.com/embed/track/${track.id}?utm_source=generator&theme=0"
+            width="100%"
+            height="80"
+            frameborder="0"
+            allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+            loading="lazy"
+            style="border-radius:12px">
           </iframe>
         </div>
-        <a href="${album.external_urls.spotify}" target="_blank" rel="noopener noreferrer"
+
+        <a
+          href="${track.external_urls.spotify}"
+          target="_blank"
+          rel="noopener noreferrer"
           class="release-spotify-link">
+
           Відкрити в Spotify ↗
         </a>
       </div>
-    </div>`
+    </div>
+  `
 }
 
 function toggleEmbed(id, btn) {
@@ -332,6 +347,23 @@ function toggleEmbed(id, btn) {
   const isOpen = embed.style.display !== 'none'
   embed.style.display = isOpen ? 'none' : 'block'
   btn.textContent = isOpen ? 'Слухати ▶' : 'Сховати ↑'
+}
+
+async function loadSpotify() {
+  const container = document.getElementById('spotify-releases')
+
+  if (!container) return
+
+  const data = await fetchSpotify()
+
+  if (!data || !data.tracks) {
+    container.innerHTML = '<p>Не вдалося завантажити музику.</p>'
+    return
+  }
+
+  container.innerHTML = data.tracks
+    .map(createReleaseCard)
+    .join('')
 }
 
 // ── INIT ──────────────────────────────────────────────────
