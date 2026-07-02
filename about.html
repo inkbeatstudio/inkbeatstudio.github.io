@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Про мене | InkBeat</title>
+  <meta name="description" content="InkBeat — незалежний музичний артист з України. Дізнайтесь більше про мою музику та творчий шлях."/>
+  <link rel="icon" href="../public/favicon.ico"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="../css/style.css"/>
+</head>
+<body>
+
+<div class="cursor-dot"></div>
+<div class="cursor-ring"></div>
+
+<!-- Loading -->
+<div id="loading-screen">
+  <div class="loading-letters">
+    <span class="loading-letter gradient-text" style="animation-delay:.3s">I</span>
+    <span class="loading-letter gradient-text" style="animation-delay:.35s">N</span>
+    <span class="loading-letter gradient-text" style="animation-delay:.4s">K</span>
+    <span class="loading-letter gradient-text" style="animation-delay:.45s">B</span>
+    <span class="loading-letter gradient-text" style="animation-delay:.5s">E</span>
+    <span class="loading-letter gradient-text" style="animation-delay:.55s">A</span>
+    <span class="loading-letter gradient-text" style="animation-delay:.6s">T</span>
+  </div>
+  <div class="loading-bar-wrap"><div class="loading-bar" style="width:0%"></div></div>
+  <div class="loading-pct">0%</div>
+</div>
+
+<!-- Navbar -->
+<nav id="navbar">
+  <div class="nav-inner">
+    <a href="../index.html" class="nav-logo gradient-text">INKBEAT</a>
+    <div class="nav-links">
+      <a href="../index.html" data-i18n="nav.home">Головна</a>
+      <a href="about.html" class="active" data-i18n="nav.about">Про мене</a>
+      <a href="discography.html" data-i18n="nav.discography">Дискографія</a>
+      <a href="services.html" data-i18n="nav.services">Послуги</a>
+      <a href="portfolio.html" data-i18n="nav.portfolio">Портфоліо</a>
+      <a href="contact.html" data-i18n="nav.contact">Контакти</a>
+    </div>
+    <div class="nav-right">
+      <div class="lang-btn">
+        <span class="lang-ua lang-toggle active" data-lang="uk">UA</span>
+        <span class="lang-sep">|</span>
+        <span class="lang-en lang-toggle" data-lang="en">EN</span>
+      </div>
+      <a href="contact.html" class="nav-order" data-i18n="nav.order">Замовити</a>
+    </div>
+    <button class="burger"><svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+  </div>
+</nav>
+
+<div class="mobile-menu">
+  <button class="mobile-close"><svg width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+  <a href="../index.html" data-i18n="nav.home">Головна</a>
+  <a href="about.html" data-i18n="nav.about">Про мене</a>
+  <a href="discography.html" data-i18n="nav.discography">Дискографія</a>
+  <a href="services.html" data-i18n="nav.services">Послуги</a>
+  <a href="portfolio.html" data-i18n="nav.portfolio">Портфоліо</a>
+  <a href="contact.html" data-i18n="nav.contact">Контакти</a>
+</div>
+
+<!-- ── PAGE HEADER ── -->
+<section class="page-header">
+  <div class="page-header-orb" style="top:30%;right:25%;width:500px;height:500px;background:radial-gradient(circle,#BF5FFF,transparent 70%)"></div>
+  <div class="container">
+    <div class="reveal">
+      <div class="page-label" style="color:var(--purple)">— <span data-i18n="nav.about">Про мене</span></div>
+      <h1 class="page-title">Музика — це<br><span class="gradient-text">мова душі</span></h1>
+    </div>
+  </div>
+</section>
+
+<!-- ── BIO ── -->
+<section class="section" style="background:var(--s100)">
+  <div class="container">
+    <div class="about-grid">
+      <div class="reveal-left">
+        <div class="about-photo">
+          <div class="about-photo-inner">
+            <div class="about-initials gradient-text">IB</div>
+            <div class="about-name-sub">INKBEAT</div>
+          </div>
+        </div>
+        <div class="about-border"></div>
+      </div>
+      <div class="reveal-right">
+        <h2 class="about-greeting">Привіт, я — InkBeat</h2>
+        <p class="about-bio">Я незалежний музичний артист з України, який пише музику, яка торкається серця. Моє ім'я — InkBeat — відображає суть того, що я роблю: чорнило слів + пульс ритму.</p>
+        <p class="about-bio">Починаючи з 2024 року я активно випускаю авторську музику на всіх стримінгових платформах — Spotify, Apple Music, YouTube Music, SoundCloud. Кожен трек — це особиста історія, емоція або послання.</p>
+        <p class="about-bio">Паралельно я допомагаю іншим артистам та брендам знаходити своє звучання через слова. Написання пісень, текстів, поезії на замовлення — це частина моєї творчої місії.</p>
+        <div class="about-skills">
+          <div class="skill-card">
+            <div class="skill-icon" style="background:rgba(0,191,255,.1);border:1px solid rgba(0,191,255,.2)">🎵</div>
+            <span class="skill-label">Музика</span>
+          </div>
+          <div class="skill-card">
+            <div class="skill-icon" style="background:rgba(191,95,255,.1);border:1px solid rgba(191,95,255,.2)">🎤</div>
+            <span class="skill-label">Вокал</span>
+          </div>
+          <div class="skill-card">
+            <div class="skill-icon" style="background:rgba(0,255,229,.1);border:1px solid rgba(0,255,229,.2)">✍️</div>
+            <span class="skill-label">Тексти</span>
+          </div>
+          <div class="skill-card">
+            <div class="skill-icon" style="background:rgba(0,191,255,.1);border:1px solid rgba(0,191,255,.2)">⭐</div>
+            <span class="skill-label">Оригінальність</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── TIMELINE ── -->
+<section class="section">
+  <div class="container" style="max-width:900px">
+    <div style="text-align:center;margin-bottom:64px" class="reveal">
+      <div class="page-label" style="color:var(--blue)">— Шлях</div>
+      <h2 class="section-title">Творчий шлях</h2>
+    </div>
+    <div class="timeline">
+      <div class="timeline-item reveal">
+        <div class="timeline-dot"></div>
+        <div class="timeline-content">
+          <div class="timeline-year">2024</div>
+          <div class="timeline-title">Перший реліз</div>
+          <div class="timeline-desc">Вихід першого синглу на всіх стримінгових платформах.</div>
+        </div>
+      </div>
+      <div class="timeline-item reveal" style="transition-delay:.1s">
+        <div class="timeline-dot"></div>
+        <div class="timeline-content">
+          <div class="timeline-year">2024</div>
+          <div class="timeline-title">Spotify for Artists</div>
+          <div class="timeline-desc">Верифікація профілю на Spotify та перші слухачі.</div>
+        </div>
+      </div>
+      <div class="timeline-item reveal" style="transition-delay:.2s">
+        <div class="timeline-dot"></div>
+        <div class="timeline-content">
+          <div class="timeline-year">2025</div>
+          <div class="timeline-title">Зростання аудиторії</div>
+          <div class="timeline-desc">Тисячі прослуховувань та активна присутність у соцмережах.</div>
+        </div>
+      </div>
+      <div class="timeline-item reveal" style="transition-delay:.3s">
+        <div class="timeline-dot"></div>
+        <div class="timeline-content">
+          <div class="timeline-year">2025</div>
+          <div class="timeline-title">Розширення послуг</div>
+          <div class="timeline-desc">Початок написання пісень та текстів на замовлення.</div>
+        </div>
+      </div>
+      <div class="timeline-item reveal" style="transition-delay:.4s">
+        <div class="timeline-dot"></div>
+        <div class="timeline-content">
+          <div class="timeline-year">2026</div>
+          <div class="timeline-title">Новий рівень</div>
+          <div class="timeline-desc">Активна студійна робота та колаборації з іншими артистами.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── CTA ── -->
+<section class="cta-section">
+  <div class="cta-orb"></div>
+  <div class="container" style="position:relative;z-index:10;text-align:center">
+    <div class="reveal">
+      <div class="cta-label" style="color:var(--blue)">— Почнімо</div>
+      <h2 class="cta-title">Готові до<br><span class="gradient-text">співпраці?</span></h2>
+      <p class="cta-sub">Розкажіть мені про ваш проєкт. Разом ми створимо щось неймовірне.</p>
+      <div class="cta-btns">
+        <a href="contact.html" class="btn-primary">Написати мені</a>
+        <a href="services.html" class="btn-outline">Переглянути послуги</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── FOOTER ── -->
+<footer>
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <div class="footer-brand-name gradient-text">INKBEAT</div>
+        <p class="footer-desc">Музичний артист • Автор пісень • Автор текстів. Музика, яка залишає слід.</p>
+        <a href="mailto:inkbeat.mail@gmail.com" class="footer-email">inkbeat.mail@gmail.com</a>
+      </div>
+      <div>
+        <div class="footer-col-title">Навігація</div>
+        <ul class="footer-links">
+          <li><a href="../index.html">Головна</a></li>
+          <li><a href="about.html">Про мене</a></li>
+          <li><a href="discography.html">Дискографія</a></li>
+          <li><a href="services.html">Послуги</a></li>
+          <li><a href="portfolio.html">Портфоліо</a></li>
+          <li><a href="contact.html">Контакти</a></li>
+        </ul>
+      </div>
+      <div>
+        <div class="footer-col-title">Соцмережі</div>
+        <ul class="footer-links footer-social-links">
+          <li><a href="https://open.spotify.com/artist/6hkNwIjIfDcMDp5AObEbO9" target="_blank" rel="noopener">Spotify</a></li>
+          <li><a href="https://www.instagram.com/_.inkbeat._/" target="_blank" rel="noopener">Instagram</a></li>
+          <li><a href="https://www.youtube.com/@1nkBeat12/shorts" target="_blank" rel="noopener">YouTube</a></li>
+          <li><a href="https://www.tiktok.com/@inkbeat_" target="_blank" rel="noopener">TikTok</a></li>
+          <li><a href="https://music.apple.com/ua/artist/inkbeat/1850263830?l=uk" target="_blank" rel="noopener">Apple Music</a></li>
+          <li><a href="https://soundcloud.com/akabbvwcbvle" target="_blank" rel="noopener">SoundCloud</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p class="footer-copy">© <span id="year"></span> InkBeat. Всі права захищені.</p>
+      <p class="footer-copy">Зроблено з ♥ в Україні</p>
+    </div>
+  </div>
+</footer>
+
+<script src="../js/main.js"></script>
+<script>document.getElementById('year').textContent = new Date().getFullYear()</script>
+</body>
+</html>
