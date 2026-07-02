@@ -63,6 +63,7 @@
   <a href="contact.html" data-i18n="nav.contact">Контакти</a>
 </div>
 
+<!-- Header -->
 <section class="page-header">
   <div class="page-header-orb" style="top:40%;left:30%;width:600px;height:400px;background:radial-gradient(ellipse,#00BFFF,transparent 70%)"></div>
   <div class="container">
@@ -74,6 +75,7 @@
   </div>
 </section>
 
+<!-- Controls -->
 <div class="disco-controls">
   <div class="container">
     <div class="disco-controls-inner">
@@ -91,9 +93,11 @@
   </div>
 </div>
 
+<!-- Grid -->
 <section class="section" style="background:var(--s100)">
   <div class="container">
     <div id="disco-grid" class="disco-grid">
+      <!-- Skeleton -->
       <div class="release-card"><div class="skeleton" style="aspect-ratio:1"></div><div style="padding:20px"><div class="skeleton" style="height:20px;width:75%;margin-bottom:8px"></div><div class="skeleton" style="height:14px;width:50%"></div></div></div>
       <div class="release-card"><div class="skeleton" style="aspect-ratio:1"></div><div style="padding:20px"><div class="skeleton" style="height:20px;width:75%;margin-bottom:8px"></div><div class="skeleton" style="height:14px;width:50%"></div></div></div>
       <div class="release-card"><div class="skeleton" style="aspect-ratio:1"></div><div style="padding:20px"><div class="skeleton" style="height:20px;width:75%;margin-bottom:8px"></div><div class="skeleton" style="height:14px;width:50%"></div></div></div>
@@ -102,7 +106,7 @@
   </div>
 </section>
 
-
+<!-- Footer -->
 <footer>
   <div class="container">
     <div class="footer-grid">
@@ -207,6 +211,7 @@ async function loadDiscography() {
   initReveal()
 }
 
+// Filters
 document.querySelectorAll('.filter-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'))
@@ -216,6 +221,7 @@ document.querySelectorAll('.filter-btn').forEach(btn => {
   })
 })
 
+// Search
 document.getElementById('disco-search').addEventListener('input', e => {
   currentSearch = e.target.value
   renderGrid()

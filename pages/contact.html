@@ -49,12 +49,23 @@
       </div>
       <a href="contact.html" class="nav-order" data-i18n="nav.order">Замовити</a>
     </div>
-    <button class="burger"><svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+    <button class="burger">
+      <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <line x1="3" y1="6" x2="21" y2="6"/>
+        <line x1="3" y1="12" x2="21" y2="12"/>
+        <line x1="3" y1="18" x2="21" y2="18"/>
+      </svg>
+    </button>
   </div>
 </nav>
 
 <div class="mobile-menu">
-  <button class="mobile-close"><svg width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+  <button class="mobile-close">
+    <svg width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <line x1="18" y1="6" x2="6" y2="18"/>
+      <line x1="6" y1="6" x2="18" y2="18"/>
+    </svg>
+  </button>
   <a href="../index.html" data-i18n="nav.home">Головна</a>
   <a href="about.html" data-i18n="nav.about">Про мене</a>
   <a href="discography.html" data-i18n="nav.discography">Дискографія</a>
@@ -63,6 +74,7 @@
   <a href="contact.html" data-i18n="nav.contact">Контакти</a>
 </div>
 
+<!-- Header -->
 <section class="page-header">
   <div class="page-header-orb" style="top:40%;right:30%;width:500px;height:500px;background:radial-gradient(circle,#00BFFF,transparent 70%)"></div>
   <div class="container">
@@ -73,10 +85,12 @@
   </div>
 </section>
 
+<!-- Content -->
 <section class="section" style="background:var(--s100)">
   <div class="container">
     <div class="contact-grid">
 
+      <!-- Left: info -->
       <div class="reveal-left">
         <div style="margin-bottom:48px">
           <div class="footer-col-title" style="margin-bottom:16px">Email</div>
@@ -91,7 +105,10 @@
             <div class="status-dot"></div>
             <span class="status-active">Активний</span>
           </div>
-          <p class="status-text">Відповідаю протягом <strong style="color:#fff">24 годин</strong>. Для термінових замовлень напишіть "ТЕРМІНОВО" у темі листа.</p>
+          <p class="status-text">
+            Відповідаю протягом <strong style="color:#fff">24 годин</strong>.
+            Для термінових замовлень напишіть "ТЕРМІНОВО" у темі.
+          </p>
         </div>
 
         <div style="margin-top:48px">
@@ -125,9 +142,9 @@
         </div>
       </div>
 
+      <!-- Right: Form -->
       <div class="reveal-right">
         <form class="contact-form" id="contact-form" onsubmit="handleSubmit(event)">
-          <input type="text" name="website" style="display:none" tabindex="-1" autocomplete="off"/>
 
           <div id="form-status" style="display:none"></div>
 
@@ -155,9 +172,13 @@
           </div>
 
           <button type="submit" class="form-submit" id="submit-btn">
-            <span>✉</span>
+            <span>✈</span>
             <span id="submit-text">Надіслати повідомлення</span>
           </button>
+
+          <p style="text-align:center;margin-top:16px;font-size:.75rem;color:rgba(255,255,255,.3)">
+            Повідомлення надійде напряму в Telegram
+          </p>
         </form>
       </div>
 
@@ -165,6 +186,7 @@
   </div>
 </section>
 
+<!-- Footer -->
 <footer>
   <div class="container">
     <div class="footer-grid">
@@ -207,16 +229,18 @@
 <script>
 document.getElementById('year').textContent = new Date().getFullYear()
 
-function showError(id, msg) {
-  const el = document.getElementById(id)
-  el.textContent = msg
-  el.style.display = 'block'
-  document.getElementById(id.replace('err-','f-')).classList.add('error')
+function showError(fieldId, msg) {
+  const errEl = document.getElementById('err-' + fieldId)
+  const inputEl = document.getElementById('f-' + fieldId)
+  errEl.textContent = msg
+  errEl.style.display = 'block'
+  inputEl.classList.add('error')
 }
+
 function clearErrors() {
   ['name','email','message'].forEach(f => {
-    document.getElementById('err-'+f).style.display = 'none'
-    document.getElementById('f-'+f).classList.remove('error')
+    document.getElementById('err-' + f).style.display = 'none'
+    document.getElementById('f-' + f).classList.remove('error')
   })
 }
 
@@ -224,49 +248,53 @@ async function handleSubmit(e) {
   e.preventDefault()
   clearErrors()
 
-  const name = document.getElementById('f-name').value.trim()
-  const email = document.getElementById('f-email').value.trim()
+  const name    = document.getElementById('f-name').value.trim()
+  const email   = document.getElementById('f-email').value.trim()
   const subject = document.getElementById('f-subject').value.trim()
   const message = document.getElementById('f-message').value.trim()
 
+  // Валідація
   let valid = true
-  if (!name) { showError('err-name', "Введіть ваше ім'я"); valid = false }
-  if (!email) { showError('err-email', 'Введіть email'); valid = false }
-  else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showError('err-email', 'Невірний формат email'); valid = false }
-  if (!message) { showError('err-message', 'Введіть повідомлення'); valid = false }
-  else if (message.length < 10) { showError('err-message', 'Повідомлення занадто коротке'); valid = false }
+  if (!name)    { showError('name', "Введіть ваше ім'я"); valid = false }
+  if (!email)   { showError('email', 'Введіть email'); valid = false }
+  else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    showError('email', 'Невірний формат email'); valid = false
+  }
+  if (!message) { showError('message', 'Введіть повідомлення'); valid = false }
+  else if (message.length < 10) {
+    showError('message', 'Повідомлення занадто коротке (мінімум 10 символів)'); valid = false
+  }
   if (!valid) return
 
-  const btn = document.getElementById('submit-btn')
-  const btnText = document.getElementById('submit-text')
-  btn.disabled = true
-  btnText.textContent = 'Надсилаємо...'
-
+  const btn      = document.getElementById('submit-btn')
+  const btnText  = document.getElementById('submit-text')
   const statusEl = document.getElementById('form-status')
 
-  try {
-    const res = await fetch('https://inkbeat-api.vercel.app/api/contact', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, email, subject, message })
-    })
-    const data = await res.json()
+  btn.disabled = true
+  btnText.textContent = 'Надсилаємо...'
+  statusEl.style.display = 'none'
 
-    if (res.ok) {
-      statusEl.className = 'form-status success'
-      statusEl.innerHTML = '✓ ' + (data.message || 'Повідомлення надіслано! Відповімо протягом 24 годин.')
-      statusEl.style.display = 'flex'
-      document.getElementById('contact-form').reset()
-    } else {
-      throw new Error(data.error || 'Помилка сервера')
-    }
-  } catch (err) {
-    statusEl.className = 'form-status'
-    statusEl.style.background = 'rgba(251,191,36,.1)'
-    statusEl.style.border = '1px solid rgba(251,191,36,.3)'
-    statusEl.style.color = '#fbbf24'
-    statusEl.innerHTML = '⚠ API недоступний. Напишіть напряму: <a href="mailto:inkbeat.mail@gmail.com" style="color:var(--blue)">inkbeat.mail@gmail.com</a>'
+  try {
+    await sendToTelegram(name, email, subject, message)
+
+    statusEl.className = 'form-status success'
+    statusEl.innerHTML = '✓ Повідомлення надіслано в Telegram! Відповімо протягом 24 годин.'
     statusEl.style.display = 'flex'
+    document.getElementById('contact-form').reset()
+
+  } catch (err) {
+    console.error('Telegram error:', err)
+
+    // Якщо токен не налаштований — показуємо email
+    if (TELEGRAM_BOT_TOKEN === 'ВАШ_ТОКЕН_СЮДИ') {
+      statusEl.className = 'form-status'
+      statusEl.style.cssText = 'display:flex;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.3);color:#fbbf24;padding:16px;border-radius:12px;gap:12px;margin-bottom:20px'
+      statusEl.innerHTML = '⚠ Telegram бот не налаштований. Напишіть напряму: <a href="mailto:inkbeat.mail@gmail.com" style="color:var(--blue);margin-left:4px">inkbeat.mail@gmail.com</a>'
+    } else {
+      statusEl.className = 'form-status error'
+      statusEl.innerHTML = '✗ Помилка відправки. Напишіть напряму: inkbeat.mail@gmail.com'
+      statusEl.style.display = 'flex'
+    }
   } finally {
     btn.disabled = false
     btnText.textContent = 'Надіслати повідомлення'
