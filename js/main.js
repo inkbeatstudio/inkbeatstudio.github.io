@@ -1,11 +1,23 @@
+// ── НАЛАШТУВАННЯ ─────────────────────────────────────────
+// Після деплою Vercel API — вставте сюди свій URL
 const SPOTIFY_API = 'https://inkbeat-api.vercel.app'
 
+// ── TELEGRAM BOT ─────────────────────────────────────────
+// Замініть на свої дані:
+// 1. Створіть бота через @BotFather в Telegram
+// 2. Отримайте токен і вставте сюди
+// 3. Напишіть боту /start щоб отримати chat_id
+// 4. Отримайте chat_id: https://api.telegram.org/bot<TOKEN>/getUpdates
+const TELEGRAM_BOT_TOKEN = 'ВАШ_ТОКЕН_СЮДИ'
+const TELEGRAM_CHAT_ID = 'ВАШ_CHAT_ID_СЮДИ'
+
+// ── ПЕРЕКЛАДИ ─────────────────────────────────────────────
 const translations = {
   uk: {
     nav: { home:'Головна', about:'Про мене', discography:'Дискографія', services:'Послуги', portfolio:'Портфоліо', contact:'Контакти', order:'Замовити' },
     hero: { badge:'Незалежний артист', subtitle:'Музичний артист • Автор пісень • Автор текстів', listen:'Слухати музику', order:'Замовити пісню', contact:"Зв'язатися →" },
     stats: { releases:'Релізів', streams:'Прослуховувань', since:'Рік початку', platforms:'Платформ' },
-    releases: { label:'Останні релізи', title:'Моя музика', all:'Вся дискографія →', spotify:'Відкрити в Spotify', error:'Не вдалося завантажити релізи.', errorHint:'Перевірте налаштування Spotify API.' },
+    releases: { label:'Останні релізи', title:'Моя музика', all:'Вся дискографія →', spotify:'Відкрити в Spotify', error:'Не вдалося завантажити релізи.', errorHint:'Spotify API недоступний.' },
     services: { label:'Послуги', title:'Творчі послуги', subtitle:'Допомагаю артистам та брендам знаходити своє звучання', more:'Детальніше про послуги →' },
     testimonials: { label:'Відгуки', title:'Що кажуть клієнти' },
     faq: { label:'FAQ', title:'Часті питання' },
@@ -17,7 +29,7 @@ const translations = {
     nav: { home:'Home', about:'About', discography:'Discography', services:'Services', portfolio:'Portfolio', contact:'Contact', order:'Order' },
     hero: { badge:'Independent Artist', subtitle:'Music Artist • Songwriter • Lyricist', listen:'Listen to Music', order:'Order a Song', contact:'Contact →' },
     stats: { releases:'Releases', streams:'Streams', since:'Started', platforms:'Platforms' },
-    releases: { label:'Latest Releases', title:'My Music', all:'Full Discography →', spotify:'Open in Spotify', error:'Failed to load releases.', errorHint:'Check Spotify API settings.' },
+    releases: { label:'Latest Releases', title:'My Music', all:'Full Discography →', spotify:'Open in Spotify', error:'Failed to load releases.', errorHint:'Spotify API unavailable.' },
     services: { label:'Services', title:'Creative Services', subtitle:'Helping artists and brands find their sound', more:'View all services →' },
     testimonials: { label:'Testimonials', title:'What Clients Say' },
     faq: { label:'FAQ', title:'Frequently Asked Questions' },
@@ -51,6 +63,7 @@ function updateLangBtn() {
   document.querySelectorAll('.lang-en').forEach(el => el.classList.toggle('active', currentLang === 'en'))
 }
 
+// ── LOADING SCREEN ────────────────────────────────────────
 function initLoading() {
   const screen = document.getElementById('loading-screen')
   if (!screen) return
@@ -69,6 +82,7 @@ function initLoading() {
   }, 80)
 }
 
+// ── CURSOR ────────────────────────────────────────────────
 function initCursor() {
   if (window.innerWidth <= 768) return
   const dot = document.querySelector('.cursor-dot')
@@ -94,24 +108,50 @@ function initCursor() {
   animRing()
 }
 
+// ── NAVBAR + MOBILE MENU ──────────────────────────────────
 function initNavbar() {
   const navbar = document.getElementById('navbar')
   if (!navbar) return
 
+  // Scroll effect
   window.addEventListener('scroll', () => {
     navbar.classList.toggle('scrolled', window.scrollY > 40)
   })
 
+  // ── MOBILE MENU FIX ──
   const burger = document.querySelector('.burger')
   const mobileMenu = document.querySelector('.mobile-menu')
   const mobileClose = document.querySelector('.mobile-close')
 
-  burger?.addEventListener('click', () => mobileMenu?.classList.add('open'))
-  mobileClose?.addEventListener('click', () => mobileMenu?.classList.remove('open'))
+  function openMenu() {
+    mobileMenu.classList.add('open')
+    document.body.style.overflow = 'hidden' // Блокуємо скрол
+  }
+
+  function closeMenu() {
+    mobileMenu.classList.remove('open')
+    document.body.style.overflow = '' // Повертаємо скрол
+  }
+
+  burger?.addEventListener('click', openMenu)
+  mobileClose?.addEventListener('click', closeMenu)
+
+  // Закриваємо при кліку на посилання
   mobileMenu?.querySelectorAll('a').forEach(a => {
-    a.addEventListener('click', () => mobileMenu.classList.remove('open'))
+    a.addEventListener('click', closeMenu)
   })
 
+  // Закриваємо при кліку поза меню (на темний фон)
+  mobileMenu?.addEventListener('click', function(e) {
+    if (e.target === mobileMenu) closeMenu()
+  })
+
+  // Закриваємо клавішею Escape
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeMenu()
+  })
+
+  // Lang switcher
   document.querySelectorAll('.lang-toggle').forEach(btn => {
     btn.addEventListener('click', () => setLang(btn.dataset.lang))
   })
@@ -120,6 +160,7 @@ function initNavbar() {
   setLang(currentLang)
 }
 
+// ── SCROLL REVEAL ─────────────────────────────────────────
 function initReveal() {
   const obs = new IntersectionObserver(entries => {
     entries.forEach(e => {
@@ -133,6 +174,7 @@ function initReveal() {
   document.querySelectorAll('.reveal, .reveal-left, .reveal-right').forEach(el => obs.observe(el))
 }
 
+// ── COUNTERS ──────────────────────────────────────────────
 function initCounters() {
   const obs = new IntersectionObserver(entries => {
     entries.forEach(e => {
@@ -156,6 +198,7 @@ function initCounters() {
   document.querySelectorAll('[data-to]').forEach(el => obs.observe(el))
 }
 
+// ── TESTIMONIALS ──────────────────────────────────────────
 function initSlider() {
   const cards = document.querySelectorAll('.testimonial-card')
   const dots = document.querySelectorAll('.dot')
@@ -176,6 +219,7 @@ function initSlider() {
   setInterval(() => show((idx + 1) % cards.length), 5000)
 }
 
+// ── FAQ ───────────────────────────────────────────────────
 function initFAQ() {
   document.querySelectorAll('.faq-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -194,13 +238,48 @@ function initFAQ() {
   })
 }
 
+// ── TELEGRAM FORM ─────────────────────────────────────────
+async function sendToTelegram(name, email, subject, message) {
+  const text = `
+🎵 *Нове повідомлення з сайту InkBeat*
+
+👤 *Ім'я:* ${name}
+📧 *Email:* ${email}
+📌 *Тема:* ${subject || '—'}
+💬 *Повідомлення:*
+${message}
+  `.trim()
+
+  const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      chat_id: TELEGRAM_CHAT_ID,
+      text: text,
+      parse_mode: 'Markdown'
+    })
+  })
+
+  const data = await res.json()
+  if (!data.ok) throw new Error(data.description || 'Telegram error')
+  return data
+}
+
+// ── SPOTIFY ───────────────────────────────────────────────
 async function fetchSpotify() {
   try {
-    const res = await fetch(`${SPOTIFY_API}/api/spotify`)
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 10000) // 10 сек таймаут
+
+    const res = await fetch(`${SPOTIFY_API}/api/spotify`, {
+      signal: controller.signal
+    })
+    clearTimeout(timeout)
+
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     return await res.json()
   } catch (err) {
-    console.error('Spotify fetch error:', err)
+    console.error('Spotify fetch error:', err.message)
     return null
   }
 }
@@ -255,6 +334,7 @@ function toggleEmbed(id, btn) {
   btn.textContent = isOpen ? 'Слухати ▶' : 'Сховати ↑'
 }
 
+// ── INIT ──────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   initLoading()
   initCursor()
