@@ -166,7 +166,7 @@ body::after {
 .mobile-menu {
   display: none;
   position: fixed; inset: 0;
-  z-index: 999;
+  z-index: 1001;
   background: rgba(0,0,0,.95);
   backdrop-filter: blur(20px);
   flex-direction: column;
@@ -924,8 +924,63 @@ footer::before {
 .reveal-right.visible { opacity: 1; transform: none; }
 
 /* ── SKELETON ── */
-.skeleton { background: var(--s300); border-radius: 8px; animation: shimmer 1.5s infinite; }
-@keyframes shimmer { 0%,100%{opacity:1} 50%{opacity:.5} }
+.skeleton {
+  position: relative;
+  background: var(--s300);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.skeleton::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(100deg,
+    transparent 30%,
+    rgba(0,191,255,.12) 45%,
+    rgba(191,95,255,.16) 50%,
+    rgba(0,255,229,.12) 55%,
+    transparent 70%);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+}
+@keyframes shimmer {
+  0% { background-position: 150% 0; }
+  100% { background-position: -50% 0; }
+}
+
+/* Еквалайзер-заглушка на місці обкладинки, поки трек ще не завантажився */
+.skeleton-eq {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center; gap: 5px;
+  z-index: 1;
+}
+.skeleton-eq span {
+  width: 4px; height: 16px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, var(--blue), var(--purple));
+  animation: eqBounce 1s ease-in-out infinite;
+  opacity: .8;
+}
+.skeleton-eq span:nth-child(1) { animation-delay: -.9s; }
+.skeleton-eq span:nth-child(2) { animation-delay: -.6s; }
+.skeleton-eq span:nth-child(3) { animation-delay: -.3s; }
+.skeleton-eq span:nth-child(4) { animation-delay: -.75s; }
+.skeleton-eq span:nth-child(5) { animation-delay: -.15s; }
+@keyframes eqBounce {
+  0%, 100% { height: 8px; }
+  50% { height: 26px; }
+}
+
+/* Текст-підказка під сіткою релізів, поки триває фонове завантаження */
+.releases-loading-label {
+  grid-column: 1 / -1;
+  text-align: center;
+  margin-top: 4px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: .75rem;
+  letter-spacing: .05em;
+  color: rgba(255,255,255,.35);
+}
+.releases-loading-label.hidden { display: none; }
 
 /* ── RESPONSIVE ── */
 @media (max-width: 1024px) {
