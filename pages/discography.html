@@ -11,8 +11,6 @@
   <link rel="preconnect" href="https://inkbeat-api.vercel.app"/>
   <link rel="dns-prefetch" href="https://w.soundcloud.com"/>
   <script>
-    // Стартуємо запит до SoundCloud API щойно почався розбір сторінки —
-    // так само, як на index.html, для однакової поведінки на обох сторінках.
     window.__soundcloudDataPromise = (function () {
       var controller = new AbortController()
       var timeout = setTimeout(function () { controller.abort() }, 10000)
@@ -88,7 +86,6 @@
   </div>
 </div>
 
-<!-- Header -->
 <section class="page-header">
   <div class="page-header-orb" style="top:40%;left:30%;width:600px;height:400px;background:radial-gradient(ellipse,#00BFFF,transparent 70%)"></div>
   <div class="container">
@@ -100,7 +97,6 @@
   </div>
 </section>
 
-<!-- Controls -->
 <div class="disco-controls">
   <div class="container">
     <div class="disco-controls-inner">
@@ -112,11 +108,9 @@
   </div>
 </div>
 
-<!-- Grid -->
 <section class="section" style="background:var(--s100)">
   <div class="container">
     <div id="disco-grid" class="disco-grid">
-      <!-- Завантаження: та ж візуальна мова, що й у головному прелоадері -->
       <div class="releases-loading" id="disco-loading">
         <div class="skeleton-eq skeleton-eq-standalone"><span></span><span></span><span></span><span></span><span></span></div>
         <div class="loading-bar-wrap"><div class="loading-bar" style="width:0%"></div></div>
@@ -127,7 +121,6 @@
   </div>
 </section>
 
-<!-- Footer -->
 <footer>
   <div class="container">
     <div class="footer-grid">
@@ -213,7 +206,6 @@ async function loadDiscography() {
   if (window.__contentReadyResolve) window.__contentReadyResolve()
 }
 
-// Search
 document.getElementById('disco-search').addEventListener('input', e => {
   currentSearch = e.target.value
   renderGrid()
