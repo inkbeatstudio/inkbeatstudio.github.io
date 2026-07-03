@@ -8,6 +8,22 @@ const API_BASE = 'https://inkbeat-api.vercel.app'
 window.__contentReadyResolve = null
 window.__contentReadyPromise = new Promise(resolve => { window.__contentReadyResolve = resolve })
 
+// Стартуємо запит до SoundCloud API одразу, як тільки цей скрипт
+// виконується — не чекаючи DOMContentLoaded і решти ініціалізації.
+// Це паралелить мережевий запит із рештою завантаження сторінки,
+// замість того щоб починати його вже після того, як усе інше
+// відпрацювало. Проміс мемоізується, тож і index.html, і
+// discography.html використовують один і той самий запит, а не
+// роблять по одному кожен.
+window.__soundcloudDataPromise = null
+function getSoundCloudData() {
+  if (!window.__soundcloudDataPromise) {
+    window.__soundcloudDataPromise = fetchSoundCloud()
+  }
+  return window.__soundcloudDataPromise
+}
+getSoundCloudData()
+
 // ── TELEGRAM BOT ─────────────────────────────────────────
 // Замініть на свої дані:
 // 1. Створіть бота через @BotFather в Telegram
@@ -417,6 +433,34 @@ function toggleEmbed(id, widgetUrl) {
   embed.appendChild(iframe)
 }
 
+// ── ІНЛАЙН-ЗАВАНТАЖУВАЧ БЛОКУ МУЗИКИ ───────────────────────
+// Той самий принцип, що й у #loading-screen: плавно повзе до 90%,
+// поки чекаємо реальних даних, і застрибує на 100%, коли вони прийшли.
+function initInlineLoader(scope) {
+  const bar = scope.querySelector('.loading-bar')
+  const pct = scope.querySelector('.loading-pct')
+  let progress = 0
+  let stopped = false
+
+  function setProgress(p) {
+    progress = p
+    if (bar) bar.style.width = progress + '%'
+    if (pct) pct.textContent = Math.round(progress) + '%'
+  }
+
+  function trickle() {
+    if (stopped) return
+    setProgress(Math.min(progress + (90 - progress) * 0.06 + 0.3, 90))
+    requestAnimationFrame(trickle)
+  }
+  requestAnimationFrame(trickle)
+
+  return function finish() {
+    stopped = true
+    setProgress(100)
+  }
+}
+
 async function loadSoundCloud() {
   const container = document.getElementById('releases-grid')
 
@@ -428,9 +472,14 @@ async function loadSoundCloud() {
   // весь сайт за екраном завантаження в очікуванні зовнішнього API —
   // просто підвантажуємо треки у фоні й підміняємо скелетон, коли
   // дані прийдуть (або покажемо повідомлення про помилку).
-  const data = await fetchSoundCloud()
+  const loaderEl = document.getElementById('releases-loading')
+  const finishLoader = loaderEl ? initInlineLoader(loaderEl) : null
+
+  const data = await getSoundCloudData()
+  if (finishLoader) finishLoader()
 
   if (!data || !data.tracks || !data.tracks.length) {
+    await new Promise(r => setTimeout(r, 150))
     container.innerHTML = `
       <p style="color:#888;text-align:center">
         Музика поки недоступна.
@@ -439,6 +488,7 @@ async function loadSoundCloud() {
     return
   }
 
+  await new Promise(r => setTimeout(r, 150))
   container.innerHTML = data.tracks
     .slice(0, 6)
     .map(track => createReleaseCard(track))
