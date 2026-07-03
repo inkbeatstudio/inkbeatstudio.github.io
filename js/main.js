@@ -2,6 +2,12 @@
 // API розгорнутий на Vercel (inkbeat-api)
 const API_BASE = 'https://inkbeat-api.vercel.app'
 
+// Проміс, який резолвиться, коли динамічний контент сторінки
+// (список релізів на головній/дискографії) реально завантажився.
+// Екран завантаження чекає саме на нього, а не на фейковий таймер.
+window.__contentReadyResolve = null
+window.__contentReadyPromise = new Promise(resolve => { window.__contentReadyResolve = resolve })
+
 // ── TELEGRAM BOT ─────────────────────────────────────────
 // Замініть на свої дані:
 // 1. Створіть бота через @BotFather в Telegram
@@ -70,16 +76,43 @@ function initLoading() {
   const bar = screen.querySelector('.loading-bar')
   const pct = screen.querySelector('.loading-pct')
   let progress = 0
+  let finished = false
 
-  const interval = setInterval(() => {
-    progress = Math.min(progress + Math.random() * 15 + 5, 100)
+  function setProgress(p) {
+    progress = p
     if (bar) bar.style.width = progress + '%'
     if (pct) pct.textContent = Math.round(progress) + '%'
-    if (progress >= 100) {
-      clearInterval(interval)
-      setTimeout(() => screen.classList.add('hidden'), 400)
-    }
-  }, 80)
+  }
+
+  // Плавно повзе до 90%, поки чекаємо реальних подій завантаження —
+  // так смуга прогресу не виглядає "застряглою", навіть якщо
+  // мережа повільна
+  function trickle() {
+    if (finished) return
+    setProgress(Math.min(progress + (90 - progress) * 0.06 + 0.3, 90))
+    requestAnimationFrame(trickle)
+  }
+  requestAnimationFrame(trickle)
+
+  const windowLoaded = new Promise(resolve => {
+    if (document.readyState === 'complete') resolve()
+    else window.addEventListener('load', () => resolve(), { once: true })
+  })
+
+  const contentReady = window.__contentReadyPromise || Promise.resolve()
+
+  // Запобіжник: якщо щось пішло не так і контент завис —
+  // все одно ховаємо екран завантаження через 15 сек
+  const safetyTimeout = new Promise(resolve => setTimeout(resolve, 15000))
+
+  Promise.race([
+    Promise.all([windowLoaded, contentReady]),
+    safetyTimeout
+  ]).then(() => {
+    finished = true
+    setProgress(100)
+    setTimeout(() => screen.classList.add('hidden'), 350)
+  })
 }
 
 // ── CURSOR ────────────────────────────────────────────────
@@ -316,50 +349,87 @@ function createReleaseCard(track) {
           ${formatDate(track.createdAt)}
         </div>
 
-        <button
-          onclick="toggleEmbed('${track.id}', this)"
-          style="background:none;border:none;cursor:pointer;color:var(--blue);font-size:.75rem;margin-bottom:12px;padding:0;font-family:inherit">
-          Слухати ▶
-        </button>
+        <div id="embed-${track.id}" class="release-embed" style="display:none"></div>
 
-        <div id="embed-${track.id}" style="display:none;margin-bottom:12px">
-          <iframe
-            src="${scWidgetUrl(track)}"
-            width="100%"
-            height="166"
-            frameborder="0"
-            allow="autoplay"
-            loading="lazy"
-            style="border-radius:12px">
-          </iframe>
+        <div class="release-actions">
+          <button
+            class="release-play-btn"
+            id="play-btn-${track.id}"
+            onclick="toggleEmbed('${track.id}', '${scWidgetUrl(track).replace(/'/g, "\\'")}')">
+            <svg class="play-icon" width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            <span class="spinner"></span>
+            <span class="play-btn-label">Слухати</span>
+          </button>
+
+          <a
+            href="${track.permalinkUrl}"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="release-listen-link">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6"/><path d="M10 14 21 3"/></svg>
+            SoundCloud
+          </a>
         </div>
-
-        <a
-          href="${track.permalinkUrl}"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="release-spotify-link">
-
-          Слухати на SoundCloud ↗
-        </a>
       </div>
     </div>
   `
 }
 
-function toggleEmbed(id, btn) {
+function toggleEmbed(id, widgetUrl) {
   const embed = document.getElementById('embed-' + id)
-  if (!embed) return
+  const btn = document.getElementById('play-btn-' + id)
+  if (!embed || !btn) return
 
-  const isOpen = embed.style.display !== 'none'
-  embed.style.display = isOpen ? 'none' : 'block'
-  btn.textContent = isOpen ? 'Слухати ▶' : 'Сховати ↑'
+  const label = btn.querySelector('.play-btn-label')
+  const isOpen = embed.style.display !== 'none' && embed.dataset.loaded === 'true'
+
+  if (isOpen) {
+    embed.style.display = 'none'
+    if (label) label.textContent = 'Слухати'
+    return
+  }
+
+  if (embed.dataset.loaded === 'true') {
+    embed.style.display = 'block'
+    if (label) label.textContent = 'Сховати'
+    return
+  }
+
+  // Перший клік: показуємо завантаження, поки плеєр не підвантажиться
+  btn.classList.add('is-loading')
+  btn.disabled = true
+
+  const iframe = document.createElement('iframe')
+  iframe.width = '100%'
+  iframe.height = '166'
+  iframe.frameBorder = '0'
+  iframe.allow = 'autoplay'
+  iframe.style.display = 'block'
+  iframe.style.borderRadius = '12px'
+
+  iframe.onload = () => {
+    embed.dataset.loaded = 'true'
+    embed.style.display = 'block'
+    btn.classList.remove('is-loading')
+    btn.disabled = false
+    if (label) label.textContent = 'Сховати'
+  }
+
+  iframe.src = widgetUrl
+  embed.appendChild(iframe)
 }
 
 async function loadSoundCloud() {
   const container = document.getElementById('releases-grid')
 
-  if (!container) return
+  if (!container) {
+    // На сторінках з власним завантаженням списку (напр. дискографія)
+    // проміс резолвить сама сторінка — тут нічого чекати не потрібно
+    if (!document.getElementById('disco-grid') && window.__contentReadyResolve) {
+      window.__contentReadyResolve()
+    }
+    return
+  }
 
   const data = await fetchSoundCloud()
 
@@ -369,6 +439,7 @@ async function loadSoundCloud() {
         Музика поки недоступна.
       </p>
     `
+    if (window.__contentReadyResolve) window.__contentReadyResolve()
     return
   }
 
@@ -376,6 +447,8 @@ async function loadSoundCloud() {
     .slice(0, 6)
     .map(track => createReleaseCard(track))
     .join('')
+
+  if (window.__contentReadyResolve) window.__contentReadyResolve()
 }
 
 // ── INIT ──────────────────────────────────────────────────
