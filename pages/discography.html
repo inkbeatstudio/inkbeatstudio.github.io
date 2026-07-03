@@ -5,9 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Дискографія | InkBeat</title>
   <meta name="description" content="Вся музика InkBeat — треки. Слухайте на SoundCloud."/>
-  <link rel="icon" href="../public/favicon.ico"/>
+  <link rel="icon" href="../public/favicon-optimized.jpg"/>
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link rel="preconnect" href="https://inkbeat-api.vercel.app"/>
+  <link rel="dns-prefetch" href="https://w.soundcloud.com"/>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="../css/style.css"/>
 </head>
@@ -61,6 +63,11 @@
   <a href="services.html" data-i18n="nav.services">Послуги</a>
   <a href="portfolio.html" data-i18n="nav.portfolio">Портфоліо</a>
   <a href="contact.html" data-i18n="nav.contact">Контакти</a>
+  <div class="mobile-lang-switch">
+    <span class="lang-ua lang-toggle active" data-lang="uk">UA</span>
+    <span class="lang-sep">|</span>
+    <span class="lang-en lang-toggle" data-lang="en">EN</span>
+  </div>
 </div>
 
 <!-- Header -->
@@ -157,33 +164,7 @@ function renderGrid() {
     return
   }
 
-  grid.innerHTML = filtered.map(t => {
-    const img = t.artwork
-    const widgetUrl = `https://w.soundcloud.com/player/?url=${encodeURIComponent(t.permalinkUrl)}&color=%230038ff&auto_play=false&hide_related=true&show_comments=false&show_user=true&show_reposts=false&visual=false`
-    return `
-      <div class="release-card">
-        <div class="release-img">
-          ${img ? `<img src="${img}" alt="${t.title}" loading="lazy">` : `<div class="release-placeholder">♪</div>`}
-          <span class="release-type-badge">SoundCloud</span>
-        </div>
-        <div class="release-info">
-          <div class="release-name">${t.title}</div>
-          <div class="release-date">${new Date(t.createdAt).toLocaleDateString('uk-UA',{year:'numeric',month:'long',day:'numeric'})}</div>
-          <button onclick="toggleEmbed('${t.id}',this)" style="background:none;border:none;cursor:pointer;color:var(--blue);font-size:.75rem;margin-bottom:12px;padding:0">Слухати ▶</button>
-          <div id="embed-${t.id}" style="display:none;margin-bottom:12px">
-            <iframe src="${widgetUrl}" width="100%" height="166" frameborder="0" allow="autoplay" loading="lazy" style="border-radius:12px;display:block"></iframe>
-          </div>
-          <a href="${t.permalinkUrl}" target="_blank" rel="noopener noreferrer" class="release-spotify-link">Слухати на SoundCloud ↗</a>
-        </div>
-      </div>`
-  }).join('')
-}
-
-function toggleEmbed(id, btn) {
-  const embed = document.getElementById('embed-' + id)
-  const isOpen = embed.style.display !== 'none'
-  embed.style.display = isOpen ? 'none' : 'block'
-  btn.textContent = isOpen ? 'Слухати ▶' : 'Сховати ↑'
+  grid.innerHTML = filtered.map(t => createReleaseCard(t)).join('')
 }
 
 async function loadDiscography() {
@@ -193,6 +174,7 @@ async function loadDiscography() {
   if (!data || !data.tracks) {
     document.getElementById('disco-grid').innerHTML = `<div class="disco-empty" style="grid-column:1/-1">♪<br><br>Не вдалося завантажити релізи.<br><small>Перевірте налаштування SoundCloud API.</small></div>`
     if (countEl) countEl.textContent = 'Помилка завантаження'
+    if (window.__contentReadyResolve) window.__contentReadyResolve()
     return
   }
 
@@ -200,6 +182,7 @@ async function loadDiscography() {
   if (countEl) countEl.textContent = `${allTracks.length} релізів • Автоматично з SoundCloud`
   renderGrid()
   initReveal()
+  if (window.__contentReadyResolve) window.__contentReadyResolve()
 }
 
 // Search
