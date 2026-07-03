@@ -10,6 +10,24 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link rel="preconnect" href="https://inkbeat-api.vercel.app"/>
   <link rel="dns-prefetch" href="https://w.soundcloud.com"/>
+  <script>
+    // Стартуємо запит до SoundCloud API щойно почався розбір сторінки —
+    // так само, як на index.html, для однакової поведінки на обох сторінках.
+    window.__soundcloudDataPromise = (function () {
+      var controller = new AbortController()
+      var timeout = setTimeout(function () { controller.abort() }, 10000)
+      return fetch('https://inkbeat-api.vercel.app/api/soundcloud', { signal: controller.signal })
+        .then(function (res) {
+          clearTimeout(timeout)
+          if (!res.ok) throw new Error('HTTP ' + res.status)
+          return res.json()
+        })
+        .catch(function (err) {
+          console.error('SoundCloud fetch error:', err.message)
+          return null
+        })
+    })()
+  </script>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="../css/style.css"/>
 </head>
@@ -173,7 +191,10 @@ async function loadDiscography() {
   const loaderEl = document.getElementById('disco-loading')
   const finishLoader = loaderEl ? initInlineLoader(loaderEl) : null
 
-  const data = await getSoundCloudData()
+  const [data] = await Promise.all([
+    getSoundCloudData(),
+    new Promise(r => setTimeout(r, 5000)) // мінімум 5 сек показуємо анімацію
+  ])
   const countEl = document.getElementById('disco-count')
   if (finishLoader) finishLoader()
   await new Promise(r => setTimeout(r, 150))
