@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Аудіо-студія — Мастеринг, Vocal Split, Equalizer | INKBEAT</title>
+  <meta name="description" content="Безкоштовні аудіо-інструменти від InkBeat: мастеринг треків, розділення вокалу та генератор відео-еквалайзера. Все працює прямо у браузері."/>
+  <link rel="icon" href="../../public/favicon-optimized.jpg"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="../../css/style.css"/>
+  <style>
+    .tool-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; margin-top: 24px; }
+    .tool-card {
+      background: var(--s100);
+      border: 1px solid rgba(255,255,255,.06);
+      border-radius: 24px;
+      padding: 36px 28px;
+      text-decoration: none;
+      color: inherit;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      transition: transform .3s, border-color .3s, box-shadow .3s;
+    }
+    .tool-card:hover { transform: translateY(-6px); border-color: rgba(0,191,255,.3); box-shadow: 0 20px 60px rgba(0,0,0,.5); }
+    .tool-icon { width: 56px; height: 56px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; }
+    .tool-title { font-family: 'Syne', sans-serif; font-size: 1.3rem; font-weight: 700; color: #fff; }
+    .tool-desc { color: rgba(255,255,255,.55); font-size: .9rem; line-height: 1.7; flex-grow: 1; }
+    .tool-cta { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; font-size: .875rem; }
+    .privacy-strip {
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      margin-top: 56px; padding: 16px 24px; border-radius: 999px;
+      background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.06);
+      color: rgba(255,255,255,.5); font-size: .8rem; text-align: center; max-width: 640px; margin-left: auto; margin-right: auto;
+    }
+    @media (max-width: 900px) { .tool-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+
+<div class="cursor-dot"></div>
+<div class="cursor-ring"></div>
+
+<div id="loading-screen">
+  <div class="loading-letters">
+    <span class="loading-letter gradient-text" style="animation-delay:.3s">I</span>
+    <span class="loading-letter gradient-text" style="animation-delay:.35s">N</span>
+    <span class="loading-letter gradient-text" style="animation-delay:.4s">K</span>
+    <span class="loading-letter gradient-text" style="animation-delay:.45s">B</span>
+    <span class="loading-letter gradient-text" style="animation-delay:.5s">E</span>
+    <span class="loading-letter gradient-text" style="animation-delay:.55s">A</span>
+    <span class="loading-letter gradient-text" style="animation-delay:.6s">T</span>
+  </div>
+  <div class="loading-bar-wrap"><div class="loading-bar" style="width:0%"></div></div>
+  <div class="loading-pct">0%</div>
+</div>
+
+<nav id="navbar">
+  <div class="nav-inner">
+    <a href="../../index.html" class="nav-logo gradient-text">INKBEAT</a>
+    <div class="nav-links">
+      <a href="../../index.html" data-i18n="nav.home">Головна</a>
+      <a href="../about.html" data-i18n="nav.about">Про мене</a>
+      <a href="../discography.html" data-i18n="nav.discography">Дискографія</a>
+      <a href="../services.html" data-i18n="nav.services">Послуги</a>
+      <a href="../portfolio.html" data-i18n="nav.portfolio">Портфоліо</a>
+      <a href="../contact.html" data-i18n="nav.contact">Контакти</a>
+    </div>
+    <div class="nav-right">
+      <div class="lang-btn">
+        <span class="lang-ua lang-toggle active" data-lang="uk">UA</span>
+        <span class="lang-sep">|</span>
+        <span class="lang-en lang-toggle" data-lang="en">EN</span>
+      </div>
+      <a href="index.html" class="nav-order nav-master active"><span class="nav-master-dot"></span><span data-i18n="nav.master">Мастеринг</span></a>
+    </div>
+    <button class="burger"><svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+  </div>
+</nav>
+
+<div class="mobile-menu">
+  <button class="mobile-close"><svg width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+  <a href="../../index.html" data-i18n="nav.home">Головна</a>
+  <a href="../about.html" data-i18n="nav.about">Про мене</a>
+  <a href="../discography.html" data-i18n="nav.discography">Дискографія</a>
+  <a href="../services.html" data-i18n="nav.services">Послуги</a>
+  <a href="../portfolio.html" data-i18n="nav.portfolio">Портфоліо</a>
+  <a href="../contact.html" data-i18n="nav.contact">Контакти</a>
+  <a href="index.html" data-i18n="nav.master">Мастеринг</a>
+  <div class="mobile-lang-switch">
+    <span class="lang-ua lang-toggle active" data-lang="uk">UA</span>
+    <span class="lang-sep">|</span>
+    <span class="lang-en lang-toggle" data-lang="en">EN</span>
+  </div>
+</div>
+
+<section class="page-header">
+  <div class="page-header-orb" style="top:20%;right:20%;width:600px;height:500px;background:radial-gradient(circle,#00BFFF,transparent 70%)"></div>
+  <div class="page-header-orb" style="bottom:0;left:10%;width:400px;height:400px;background:radial-gradient(circle,#BF5FFF,transparent 70%)"></div>
+  <div class="container">
+    <div class="reveal">
+      <div class="page-label" style="color:var(--cyan)">— Інструменти</div>
+      <h1 class="page-title">Аудіо-<span class="gradient-text">студія</span></h1>
+      <p class="page-sub">Безкоштовні інструменти для обробки звуку — прямо в браузері, без реєстрації та завантаження файлів на сервер.</p>
+    </div>
+  </div>
+</section>
+
+<section class="section" style="background:var(--s100);padding-top:0">
+  <div class="container">
+    <div class="tool-grid">
+
+      <a href="mastering.html" class="tool-card reveal">
+        <div class="tool-icon" style="background:rgba(0,191,255,.1);border:1px solid rgba(0,191,255,.3)">🎚</div>
+        <div class="tool-title">Мастеринг треків</div>
+        <p class="tool-desc">Підніми гучність, додай компресію та вирівняй баси й верхи. Порівнюй оригінал та результат наживо і завантаж готовий WAV.</p>
+        <span class="tool-cta" style="color:var(--blue)">Відкрити MASTER.WAV →</span>
+      </a>
+
+      <a href="vocal-split.html" class="tool-card reveal" style="transition-delay:.1s">
+        <div class="tool-icon" style="background:rgba(191,95,255,.1);border:1px solid rgba(191,95,255,.3)">🎤</div>
+        <div class="tool-title">Vocal Split</div>
+        <p class="tool-desc">Розділи трек на вокал та інструментал, виріж непотрібні фрагменти вокалу та зведи все назад в один файл.</p>
+        <span class="tool-cta" style="color:var(--purple)">Відкрити VOCAL SPLIT →</span>
+      </a>
+
+      <a href="equalizer-studio.html" class="tool-card reveal" style="transition-delay:.2s">
+        <div class="tool-icon" style="background:rgba(0,255,229,.1);border:1px solid rgba(0,255,229,.3)">🎛</div>
+        <div class="tool-title">Equalizer Studio</div>
+        <p class="tool-desc">Завантаж картинку чи відео та трек — отримай промо-відео зі спектр-еквалайзером для TikTok, Reels та Shorts.</p>
+        <span class="tool-cta" style="color:var(--cyan)">Відкрити EQUALIZER →</span>
+      </a>
+
+    </div>
+
+    <div class="privacy-strip reveal">
+      🔒 Уся обробка звуку та відео відбувається локально у вашому браузері через Web Audio API — жоден файл нікуди не завантажується.
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <div class="footer-brand-name gradient-text">INKBEAT</div>
+        <p class="footer-desc" data-i18n="footer.desc">Музичний артист • Автор пісень • Автор текстів. Музика, яка залишає слід.</p>
+        <a href="mailto:inkbeat.mail@gmail.com" class="footer-email">inkbeat.mail@gmail.com</a>
+      </div>
+      <div>
+        <div class="footer-col-title" data-i18n="footer.nav">Навігація</div>
+        <ul class="footer-links">
+          <li><a href="../../index.html" data-i18n="nav.home">Головна</a></li>
+          <li><a href="../about.html" data-i18n="nav.about">Про мене</a></li>
+          <li><a href="../discography.html" data-i18n="nav.discography">Дискографія</a></li>
+          <li><a href="../services.html" data-i18n="nav.services">Послуги</a></li>
+          <li><a href="../portfolio.html" data-i18n="nav.portfolio">Портфоліо</a></li>
+          <li><a href="../contact.html" data-i18n="nav.contact">Контакти</a></li>
+          <li><a href="index.html" data-i18n="nav.master">Мастеринг</a></li>
+        </ul>
+      </div>
+      <div>
+        <div class="footer-col-title" data-i18n="footer.socials">Соцмережі</div>
+        <ul class="footer-links footer-social-links">
+          <li><a href="https://open.spotify.com/artist/6hkNwIjIfDcMDp5AObEbO9" target="_blank" rel="noopener">Spotify</a></li>
+          <li><a href="https://www.instagram.com/_.inkbeat._/" target="_blank" rel="noopener">Instagram</a></li>
+          <li><a href="https://www.youtube.com/@1nkBeat12/shorts" target="_blank" rel="noopener">YouTube</a></li>
+          <li><a href="https://www.tiktok.com/@inkbeat_" target="_blank" rel="noopener">TikTok</a></li>
+          <li><a href="https://music.apple.com/ua/artist/inkbeat/1850263830?l=uk" target="_blank" rel="noopener">Apple Music</a></li>
+          <li><a href="https://soundcloud.com/akabbvwcbvle" target="_blank" rel="noopener">SoundCloud</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p class="footer-copy">© <span id="year"></span> InkBeat. <span data-i18n="footer.rights">Всі права захищені.</span></p>
+      <p class="footer-copy" data-i18n="footer.made">Зроблено з ♥ в Україні</p>
+    </div>
+  </div>
+</footer>
+
+<script src="../../js/main.js"></script>
+<script>document.getElementById('year').textContent = new Date().getFullYear()</script>
+</body>
+</html>
