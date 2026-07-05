@@ -138,6 +138,20 @@ body::after {
 }
 .nav-order:hover { border-color: var(--blue); color: var(--blue); }
 
+.nav-order.nav-master {
+  display: inline-flex; align-items: center; gap: 6px;
+  border: 1px solid rgba(0,191,255,.35);
+  background: linear-gradient(135deg, rgba(0,191,255,.12), rgba(191,95,255,.12));
+}
+.nav-order.nav-master:hover { border-color: var(--cyan); color: #fff; box-shadow: 0 0 20px rgba(0,191,255,.25); }
+.nav-order.nav-master .nav-master-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--blue), var(--purple));
+  box-shadow: 0 0 8px rgba(0,191,255,.8);
+  flex-shrink: 0;
+}
+.mobile-menu a.nav-master { color: var(--cyan); }
+
 .lang-btn {
   display: flex; align-items: center; gap: 4px;
   padding: 6px 12px;
