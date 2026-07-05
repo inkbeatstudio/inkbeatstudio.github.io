@@ -1,0 +1,873 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Vocal Split | INKBEAT</title>
+<meta name="description" content="Розділення вокалу та інструменталу онлайн від InkBeat. Обробка звуку прямо в браузері, файли нікуди не завантажуються."/>
+<link rel="icon" href="../../public/favicon-optimized.jpg"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="../../css/style.css"/>
+<style>
+  :root{
+    --bg:#000000;
+    --panel:#0F0F0F;
+    --panel-2:#161616;
+    --line:rgba(255,255,255,.08);
+    --text:#ffffff;
+    --muted:rgba(255,255,255,.45);
+    --pink:#BF5FFF;
+    --violet:#00BFFF;
+    --danger:#FF4D4D;
+    --font-display: 'Syne', sans-serif;
+    --font-body: 'Space Grotesk', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; background:var(--bg); color:var(--text); font-family:var(--font-body); }
+  body{ min-height:100vh; padding:0 18px 80px; cursor:none; }
+  .tool-wrap{ max-width:900px; margin:0 auto; }
+  .wrap{ max-width:900px; margin:0 auto; }
+
+  .rack{ background:linear-gradient(180deg,var(--panel),var(--panel-2)); border:1px solid var(--line); border-radius:14px; padding:22px; box-shadow:0 20px 50px -20px rgba(0,0,0,.6); }
+
+  .drop{ border:1.5px dashed var(--line); border-radius:10px; padding:34px 18px; text-align:center; cursor:pointer; transition:border-color .15s, background .15s; }
+  .drop:hover, .drop.drag{ border-color:var(--pink); background:rgba(191,95,255,0.08); }
+  .drop .slot{ font-family:var(--font-mono); font-size:12px; color:var(--muted); letter-spacing:.08em; text-transform:uppercase; margin-bottom:8px; }
+  .drop .cta{ font-family:var(--font-display); font-weight:700; font-size:17px; }
+  .drop .sub{ color:var(--muted); font-size:12.5px; margin-top:6px; }
+  input[type=file]{ display:none; }
+
+  .track-info{ display:none; align-items:center; justify-content:space-between; gap:10px; margin-top:16px; padding:10px 14px; background:var(--bg); border:1px solid var(--line); border-radius:8px; font-family:var(--font-mono); font-size:12.5px; color:var(--muted); }
+  .track-info b{ color:var(--text); font-weight:600; }
+  .track-info button{ background:none; border:1px solid var(--line); color:var(--muted); font-family:var(--font-mono); font-size:11px; padding:5px 10px; border-radius:6px; cursor:pointer; }
+  .track-info button:hover{ color:var(--text); border-color:var(--muted); }
+
+  canvas#wave{ width:100%; height:80px; display:block; margin-top:16px; border-radius:8px; background:var(--bg); border:1px solid var(--line); }
+
+  /* ---- progress ---- */
+  .progress{ display:none; margin-top:18px; padding:16px; background:var(--bg); border:1px solid var(--line); border-radius:10px; align-items:center; gap:14px; }
+  .progress.show{ display:flex; }
+  .spinner{ width:22px; height:22px; border-radius:50%; border:3px solid var(--line); border-top-color:var(--pink); flex:none; animation:spin .8s linear infinite; }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+  .progress .ptext{ flex:none; font-family:var(--font-mono); font-size:12px; color:var(--muted); min-width:150px; }
+  .progbar{ flex:1; height:8px; background:var(--panel-2); border-radius:4px; overflow:hidden; }
+  .progbar i{ display:block; height:100%; width:0%; background:linear-gradient(90deg,var(--violet),var(--pink)); transition:width .15s linear; }
+
+  .panel{ display:none; margin-top:22px; }
+  .panel.show{ display:block; }
+
+  .notebox{ background:var(--bg); border:1px solid var(--line); border-radius:10px; padding:14px 16px; font-size:12.5px; color:var(--muted); line-height:1.5; }
+  .notebox b{ color:var(--text); }
+
+  .intensityblock{ margin-top:14px; background:var(--bg); border:1px solid var(--line); border-radius:10px; padding:14px 16px; }
+  .intensityblock .ilabel{ font-family:var(--font-display); font-weight:700; font-size:13px; margin-bottom:8px; }
+  .intensityblock .ilabel b{ color:var(--pink); font-family:var(--font-mono); }
+  .intensityblock input[type=range]{ width:100%; }
+  .intensityblock .isub{ color:var(--muted); font-size:11.5px; margin-top:8px; line-height:1.4; }
+
+  /* ---- editor ---- */
+  .editor{ margin-top:20px; }
+  .elabel{ font-family:var(--font-display); font-weight:700; font-size:13.5px; margin-bottom:8px; }
+  .esub{ color:var(--muted); font-size:11.5px; margin-bottom:8px; }
+  .ecanvaswrap{ position:relative; }
+  canvas#vocalWave{ width:100%; height:110px; display:block; border-radius:8px; background:var(--bg); border:1px solid var(--line); cursor:crosshair; touch-action:none; }
+
+  .cutrow{ display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
+  .cutlist{ display:flex; gap:6px; flex-wrap:wrap; margin-top:10px; }
+  .chip{ font-family:var(--font-mono); font-size:11px; color:var(--pink); background:rgba(191,95,255,0.1); border:1px solid var(--pink); border-radius:999px; padding:5px 10px; display:flex; align-items:center; gap:6px; }
+  .chip b{ cursor:pointer; color:var(--pink); font-size:13px; line-height:1; }
+  .chip b:hover{ color:var(--text); }
+
+  .cards{ display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:14px; margin-top:20px; }
+  .card{ background:var(--bg); border:1px solid var(--line); border-radius:10px; padding:16px; display:flex; flex-direction:column; gap:10px; }
+  .card h3{ margin:0; font-family:var(--font-display); font-size:15px; }
+  .card h3 span{ display:block; font-family:var(--font-mono); font-size:10.5px; color:var(--muted); font-weight:400; margin-top:3px; }
+  .card.instr h3{ color:var(--violet); }
+  .card.vocal h3{ color:var(--pink); }
+  .card.merged h3{ color:#00FFE5; }
+  .card .btnrow{ display:flex; gap:8px; margin-top:auto; flex-wrap:wrap; }
+
+  .btn{ font-family:var(--font-display); font-weight:700; font-size:13px; padding:10px 14px; border-radius:8px; border:1px solid var(--line); background:var(--panel-2); color:var(--text); cursor:pointer; transition:transform .1s, border-color .15s; flex:1; min-width:110px; }
+  .btn:hover{ border-color:var(--muted); }
+  .btn:active{ transform:scale(0.98); }
+  .btn:disabled{ opacity:.45; cursor:not-allowed; }
+  .btn.violet{ border-color:var(--violet); color:var(--violet); }
+  .btn.pink{ border-color:var(--pink); color:var(--pink); }
+  .btn.amber{ border-color:#00FFE5; color:#00FFE5; }
+  .btn.solid-violet{ background:var(--violet); border-color:var(--violet); color:#000; }
+  .btn.solid-pink{ background:var(--pink); border-color:var(--pink); color:#000; }
+  .btn.solid-amber{ background:#00FFE5; border-color:#00FFE5; color:#001a17; }
+  .btn.ghost{ background:transparent; color:var(--muted); flex:none; }
+
+  .row{ display:flex; gap:10px; align-items:center; margin-top:18px; flex-wrap:wrap; }
+
+  .status{ font-family:var(--font-mono); font-size:12px; color:var(--muted); margin-top:14px; min-height:16px; }
+  .status.ok{ color:var(--violet); }
+  .status.err{ color:var(--danger); }
+  .status.busy{ color:var(--pink); }
+
+  .toolnav{ margin-top:16px; text-align:center; }
+  .toolnav a{ color:var(--muted); font-size:12px; text-decoration:none; border-bottom:1px dotted var(--muted); }
+  .toolnav a:hover{ color:var(--text); }
+</style>
+</head>
+<body>
+
+<div class="cursor-dot"></div>
+<div class="cursor-ring"></div>
+
+<div id="loading-screen">
+  <div class="loading-letters">
+    <span class="loading-letter gradient-text" style="animation-delay:.3s">I</span>
+    <span class="loading-letter gradient-text" style="animation-delay:.35s">N</span>
+    <span class="loading-letter gradient-text" style="animation-delay:.4s">K</span>
+    <span class="loading-letter gradient-text" style="animation-delay:.45s">B</span>
+    <span class="loading-letter gradient-text" style="animation-delay:.5s">E</span>
+    <span class="loading-letter gradient-text" style="animation-delay:.55s">A</span>
+    <span class="loading-letter gradient-text" style="animation-delay:.6s">T</span>
+  </div>
+  <div class="loading-bar-wrap"><div class="loading-bar" style="width:0%"></div></div>
+  <div class="loading-pct">0%</div>
+</div>
+
+<nav id="navbar">
+  <div class="nav-inner">
+    <a href="../../index.html" class="nav-logo gradient-text">INKBEAT</a>
+    <div class="nav-links">
+      <a href="../../index.html" data-i18n="nav.home">Головна</a>
+      <a href="../about.html" data-i18n="nav.about">Про мене</a>
+      <a href="../discography.html" data-i18n="nav.discography">Дискографія</a>
+      <a href="../services.html" data-i18n="nav.services">Послуги</a>
+      <a href="../portfolio.html" data-i18n="nav.portfolio">Портфоліо</a>
+      <a href="../contact.html" data-i18n="nav.contact">Контакти</a>
+    </div>
+    <div class="nav-right">
+      <div class="lang-btn">
+        <span class="lang-ua lang-toggle active" data-lang="uk">UA</span>
+        <span class="lang-sep">|</span>
+        <span class="lang-en lang-toggle" data-lang="en">EN</span>
+      </div>
+      <a href="index.html" class="nav-order nav-master active"><span class="nav-master-dot"></span><span data-i18n="nav.master">Мастеринг</span></a>
+    </div>
+    <button class="burger"><svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+  </div>
+</nav>
+
+<div class="mobile-menu">
+  <button class="mobile-close"><svg width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+  <a href="../../index.html" data-i18n="nav.home">Головна</a>
+  <a href="../about.html" data-i18n="nav.about">Про мене</a>
+  <a href="../discography.html" data-i18n="nav.discography">Дискографія</a>
+  <a href="../services.html" data-i18n="nav.services">Послуги</a>
+  <a href="../portfolio.html" data-i18n="nav.portfolio">Портфоліо</a>
+  <a href="../contact.html" data-i18n="nav.contact">Контакти</a>
+  <a href="index.html" data-i18n="nav.master">Мастеринг</a>
+  <div class="mobile-lang-switch">
+    <span class="lang-ua lang-toggle active" data-lang="uk">UA</span>
+    <span class="lang-sep">|</span>
+    <span class="lang-en lang-toggle" data-lang="en">EN</span>
+  </div>
+</div>
+
+<section class="page-header" style="padding-bottom:40px">
+  <div class="page-header-orb" style="top:20%;left:15%;width:500px;height:500px;background:radial-gradient(circle,#BF5FFF,transparent 70%)"></div>
+  <div class="container">
+    <div class="reveal">
+      <div class="page-label" style="color:var(--purple)">— <a href="index.html" style="color:inherit;text-decoration:none">Аудіо-студія</a> / Vocal Split</div>
+      <h1 class="page-title" style="font-size:clamp(2.2rem,6vw,4rem)">VOCAL<span class="gradient-text">SPLIT</span></h1>
+      <p class="page-sub">Розділення, вирізання та повторне зведення вокалу — усе прямо у браузері, нічого не завантажується на сервер.</p>
+    </div>
+  </div>
+</section>
+
+<div class="tool-wrap">
+
+  <div class="rack">
+
+    <div class="drop" id="drop">
+      <div class="slot">// audio in</div>
+      <div class="cta">Перетягніть трек сюди або натисніть, щоб обрати файл</div>
+      <div class="sub">MP3, WAV, M4A, OGG — потрібен стерео-файл, обробка повністю локальна</div>
+      <input type="file" id="file" accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg,.flac,.webm" />
+    </div>
+
+    <div class="track-info" id="trackInfo">
+      <span id="trackName">—</span>
+      <button id="clearBtn">Обрати інший файл</button>
+    </div>
+
+    <canvas id="wave" width="800" height="80" style="display:none"></canvas>
+
+    <div class="status" id="status"></div>
+
+    <div class="progress" id="progressBlock">
+      <div class="spinner"></div>
+      <div class="ptext" id="progText">Обробка… 0%</div>
+      <div class="progbar"><i id="progFill"></i></div>
+    </div>
+
+    <div class="panel" id="panel">
+      <div class="notebox">
+        <b>Як це працює:</b> розділення виконується через скасування фази центрального каналу в частотній смузі вокалу (бас і верхні частоти залишаються майже незмінними, щоб не втрачати «м'ясо» мікса) — це не повноцінний ШІ-сепаратор доріжок. Якість сильно залежить від конкретного треку: краще спрацьовує там, де вокал сухий і зведений рівно по центру; гірше — там, де є ревер, подвоєння вокалу чи стерео-розширення (тоді прибрати голос повністю фізично неможливо цим методом). Спробуйте підкрутити інтенсивність нижче — для різних пісень оптимальне значення відрізняється. На моно-файлах розділення недоступне.
+      </div>
+
+      <div class="intensityblock">
+        <div class="ilabel">Інтенсивність вирізання вокалу з мінусу <b id="intensityVal">85%</b></div>
+        <input type="range" id="intensity" min="30" max="100" step="5" value="85" />
+        <div class="isub">Менше — м'якше, більше басу й натуральності. Більше — агресивніше прибирає вокал, але може з'явитись «фейзовий» присмак звуку.</div>
+      </div>
+
+      <div class="editor">
+        <div class="elabel">Редагування вокалу</div>
+        <div class="esub">Виділіть ділянку мишкою на хвилі вокалу (наприклад, невдалий рядок чи ад-ліб) і натисніть «Вирізати». Вирізана ділянка просто замовкне — тайминг усієї доріжки не зміниться, тож при обʼєднанні з мінусом все залишиться синхронним, тільки без вокалу в цьому місці.</div>
+        <div class="ecanvaswrap">
+          <canvas id="vocalWave"></canvas>
+        </div>
+        <div class="cutrow">
+          <button class="btn pink" id="cutBtn" disabled>✂ Вирізати виділене</button>
+          <button class="btn ghost" id="undoCutBtn">Скасувати останню</button>
+          <button class="btn ghost" id="resetCutsBtn">Скинути всі вирізки</button>
+        </div>
+        <div class="cutlist" id="cutList"></div>
+      </div>
+
+      <div class="cards">
+        <div class="card instr">
+          <h3>Мінус <span>інструментал, без змін</span></h3>
+          <div class="btnrow">
+            <button class="btn violet" id="playInstr">▶ Прослухати</button>
+            <button class="btn solid-violet" id="dlInstr">Завантажити</button>
+          </div>
+        </div>
+        <div class="card vocal">
+          <h3>Вокал <span>з урахуванням вирізок</span></h3>
+          <div class="btnrow">
+            <button class="btn pink" id="playVocal">▶ Прослухати</button>
+            <button class="btn solid-pink" id="dlVocal">Завантажити</button>
+          </div>
+        </div>
+        <div class="card merged">
+          <h3>Обʼєднане <span>мінус + вокал з вирізками</span></h3>
+          <div class="btnrow">
+            <button class="btn amber" id="playMerged">▶ Прослухати</button>
+            <button class="btn solid-amber" id="dlMerged">Завантажити</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <button class="btn ghost" id="playOrig">▶ Оригінал</button>
+        <button class="btn ghost" id="stopBtn">■ Стоп</button>
+      </div>
+    </div>
+
+    <div class="toolnav">Потрібно ще й підняти гучність та вирівняти звук? → <a href="index.html">Окремий інструмент MASTER.WAV</a></div>
+    <div class="toolnav">← <a href="index.html">Усі аудіо-інструменти</a></div>
+
+  </div>
+
+  <p style="text-align:center;color:rgba(255,255,255,.3);font-size:12px;margin-top:26px">Обробка звуку виконується Web Audio API безпосередньо у вашому браузері. Файли не зберігаються і не передаються нікуди.</p>
+</div>
+
+<footer>
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <div class="footer-brand-name gradient-text">INKBEAT</div>
+        <p class="footer-desc" data-i18n="footer.desc">Музичний артист • Автор пісень • Автор текстів. Музика, яка залишає слід.</p>
+        <a href="mailto:inkbeat.mail@gmail.com" class="footer-email">inkbeat.mail@gmail.com</a>
+      </div>
+      <div>
+        <div class="footer-col-title" data-i18n="footer.nav">Навігація</div>
+        <ul class="footer-links">
+          <li><a href="../../index.html" data-i18n="nav.home">Головна</a></li>
+          <li><a href="../about.html" data-i18n="nav.about">Про мене</a></li>
+          <li><a href="../discography.html" data-i18n="nav.discography">Дискографія</a></li>
+          <li><a href="../services.html" data-i18n="nav.services">Послуги</a></li>
+          <li><a href="../portfolio.html" data-i18n="nav.portfolio">Портфоліо</a></li>
+          <li><a href="../contact.html" data-i18n="nav.contact">Контакти</a></li>
+          <li><a href="index.html" data-i18n="nav.master">Мастеринг</a></li>
+        </ul>
+      </div>
+      <div>
+        <div class="footer-col-title" data-i18n="footer.socials">Соцмережі</div>
+        <ul class="footer-links footer-social-links">
+          <li><a href="https://open.spotify.com/artist/6hkNwIjIfDcMDp5AObEbO9" target="_blank" rel="noopener">Spotify</a></li>
+          <li><a href="https://www.instagram.com/_.inkbeat._/" target="_blank" rel="noopener">Instagram</a></li>
+          <li><a href="https://www.youtube.com/@1nkBeat12/shorts" target="_blank" rel="noopener">YouTube</a></li>
+          <li><a href="https://www.tiktok.com/@inkbeat_" target="_blank" rel="noopener">TikTok</a></li>
+          <li><a href="https://music.apple.com/ua/artist/inkbeat/1850263830?l=uk" target="_blank" rel="noopener">Apple Music</a></li>
+          <li><a href="https://soundcloud.com/akabbvwcbvle" target="_blank" rel="noopener">SoundCloud</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p class="footer-copy">© <span id="year"></span> InkBeat. <span data-i18n="footer.rights">Всі права захищені.</span></p>
+      <p class="footer-copy" data-i18n="footer.made">Зроблено з ♥ в Україні</p>
+    </div>
+  </div>
+</footer>
+
+<script src="../../js/main.js"></script>
+<script>document.getElementById('year').textContent = new Date().getFullYear()</script>
+
+<script>
+(() => {
+  const dropEl = document.getElementById('drop');
+  const fileInput = document.getElementById('file');
+  const trackInfo = document.getElementById('trackInfo');
+  const trackName = document.getElementById('trackName');
+  const clearBtn = document.getElementById('clearBtn');
+  const waveCanvas = document.getElementById('wave');
+  const panel = document.getElementById('panel');
+  const statusEl = document.getElementById('status');
+
+  const progressBlock = document.getElementById('progressBlock');
+  const progText = document.getElementById('progText');
+  const progFill = document.getElementById('progFill');
+
+  const playOrigBtn = document.getElementById('playOrig');
+  const playInstrBtn = document.getElementById('playInstr');
+  const playVocalBtn = document.getElementById('playVocal');
+  const playMergedBtn = document.getElementById('playMerged');
+  const dlInstrBtn = document.getElementById('dlInstr');
+  const dlVocalBtn = document.getElementById('dlVocal');
+  const dlMergedBtn = document.getElementById('dlMerged');
+  const stopBtn = document.getElementById('stopBtn');
+
+  const vocalCanvas = document.getElementById('vocalWave');
+  const cutBtn = document.getElementById('cutBtn');
+  const undoCutBtn = document.getElementById('undoCutBtn');
+  const resetCutsBtn = document.getElementById('resetCutsBtn');
+  const cutListEl = document.getElementById('cutList');
+  const intensitySlider = document.getElementById('intensity');
+  const intensityVal = document.getElementById('intensityVal');
+
+  let audioCtx = null;
+  let originalBuffer = null;
+  let instrBuffer = null;   // separated instrumental (immutable once computed)
+  let vocalBuffer = null;   // separated raw vocal (immutable once computed)
+  let cuts = [];            // [{start,end}] in seconds, applied to vocalBuffer
+  let selection = null;     // {start,end} in seconds, in-progress selection
+  let fileNameBase = 'track';
+  let currentSource = null;
+  let instrIntensity = 0.85;
+
+  function setStatus(msg, cls){
+    statusEl.textContent = msg || '';
+    statusEl.className = 'status' + (cls ? ' ' + cls : '');
+  }
+
+  function setBusy(busy){
+    [playInstrBtn, playVocalBtn, playMergedBtn, dlInstrBtn, dlVocalBtn, dlMergedBtn, playOrigBtn, cutBtn, undoCutBtn, resetCutsBtn].forEach(b => b.disabled = busy);
+  }
+
+  function showProgress(show){
+    progressBlock.classList.toggle('show', show);
+    if (!show){ progFill.style.width = '0%'; }
+  }
+  function setProgress(pct, label){
+    progFill.style.width = Math.round(pct*100) + '%';
+    progText.textContent = (label || 'Обробка…') + ' ' + Math.round(pct*100) + '%';
+  }
+
+  intensitySlider.addEventListener('input', () => {
+    intensityVal.textContent = intensitySlider.value + '%';
+  });
+  intensitySlider.addEventListener('change', async () => {
+    instrIntensity = parseInt(intensitySlider.value) / 100;
+    if (!originalBuffer || originalBuffer.numberOfChannels < 2) return;
+    setBusy(true);
+    showProgress(true);
+    setProgress(0, 'Перерахунок мінусу…');
+    setStatus('Перераховую мінус із новою інтенсивністю…', 'busy');
+    try{
+      instrBuffer = await buildVariantWithProgress(originalBuffer, 'instrumental', p => setProgress(p, 'Перерахунок мінусу…'), { intensity: instrIntensity });
+      showProgress(false);
+      setStatus('Мінус перераховано з новою інтенсивністю.', 'ok');
+    }catch(err){
+      console.error(err);
+      showProgress(false);
+      setStatus('Не вдалося перерахувати мінус. Спробуйте ще раз.', 'err');
+    }finally{
+      setBusy(false);
+    }
+  });
+
+  // ---------- file loading ----------
+  dropEl.addEventListener('click', () => fileInput.click());
+  ['dragover','dragenter'].forEach(ev => dropEl.addEventListener(ev, e => { e.preventDefault(); dropEl.classList.add('drag'); }));
+  ['dragleave','drop'].forEach(ev => dropEl.addEventListener(ev, e => { e.preventDefault(); dropEl.classList.remove('drag'); }));
+  dropEl.addEventListener('drop', e => { const f = e.dataTransfer.files[0]; if (f) loadFile(f); });
+  fileInput.addEventListener('change', e => { const f = e.target.files[0]; if (f) loadFile(f); });
+  clearBtn.addEventListener('click', resetAll);
+
+  function resetAll(){
+    originalBuffer = null;
+    instrBuffer = null;
+    vocalBuffer = null;
+    cuts = [];
+    selection = null;
+    trackInfo.style.display = 'none';
+    waveCanvas.style.display = 'none';
+    panel.classList.remove('show');
+    showProgress(false);
+    fileInput.value = '';
+    setStatus('');
+    stopPlayback();
+    renderCutList();
+  }
+
+  function decode(ctx, arrayBuf){
+    return ctx.decodeAudioData(arrayBuf);
+  }
+
+  function withTimeout(promise, ms, msg){
+    return Promise.race([
+      promise,
+      new Promise((_, reject) => setTimeout(() => reject(new Error(msg)), ms))
+    ]);
+  }
+
+  // Blob.arrayBuffer() has no native progress event, but it's far more reliable
+  // across browsers than FileReader (which is known to sometimes stall forever
+  // on iOS Safari without ever firing onload/onprogress/onerror). We animate a
+  // smooth estimated progress bar instead, and always finish at 100% the moment
+  // the read actually completes.
+  function readFileWithSimulatedProgress(file, onProgress){
+    const sizeMb = file.size / (1024*1024);
+    const estimatedMs = Math.max(600, Math.min(15000, sizeMb * 180));
+    const start = Date.now();
+    let done = false;
+    const timer = setInterval(() => {
+      if (done) return;
+      const pct = Math.min(0.92, (Date.now() - start) / estimatedMs);
+      onProgress(pct);
+    }, 120);
+    const p = file.arrayBuffer();
+    p.then(() => { done = true; clearInterval(timer); onProgress(1); },
+           () => { done = true; clearInterval(timer); });
+    return p;
+  }
+
+  async function loadFile(file){
+    resetAll();
+    showProgress(true);
+    const sizeMb = (file.size / (1024*1024)).toFixed(1);
+    setProgress(0, `Читання файлу (${sizeMb} МБ)…`);
+    setStatus(`Читання файлу (${sizeMb} МБ)…`, 'busy');
+    try{
+      if (!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') await audioCtx.resume();
+      const arrayBuf = await withTimeout(
+        readFileWithSimulatedProgress(file, p => setProgress(p, `Читання файлу (${sizeMb} МБ)…`)),
+        30000,
+        'Читання файлу зайняло надто багато часу. Спробуйте закрити інші вкладки, перезавантажити сторінку або обрати інший файл.'
+      );
+      if (!arrayBuf || arrayBuf.byteLength === 0) throw new Error('Файл порожній або не вдалося його прочитати.');
+      setProgress(0, 'Декодування аудіо…');
+      setStatus('Декодування аудіо… (для великих файлів це може зайняти до хвилини)', 'busy');
+      const buf = await withTimeout(
+        decode(audioCtx, arrayBuf),
+        60000,
+        'Декодування зайняло надто багато часу. Спробуйте інший файл або інший браузер (Chrome зазвичай надійніший за Safari для MP3).'
+      );
+      originalBuffer = buf;
+      fileNameBase = file.name.replace(/\.[^/.]+$/, '');
+      trackName.innerHTML = `<b>${file.name}</b> · ${buf.numberOfChannels}ch · ${buf.sampleRate}Hz · ${buf.duration.toFixed(1)}s`;
+      trackInfo.style.display = 'flex';
+      waveCanvas.style.display = 'block';
+      drawStaticWaveform(waveCanvas, buf, '#8b8f96');
+
+      if (buf.numberOfChannels < 2){
+        showProgress(false);
+        setStatus('Це моно-файл — розділення вокалу недоступне (потрібен стерео-запис).', 'err');
+        return;
+      }
+
+      setProgress(0, 'Розрахунок мінусу…');
+      setStatus('Обробка триває…', 'busy');
+      instrBuffer = await buildVariantWithProgress(buf, 'instrumental', p => setProgress(p*0.5, 'Розрахунок мінусу…'), { intensity: instrIntensity });
+      setProgress(0.5, 'Розрахунок вокалу…');
+      vocalBuffer = await buildVariantWithProgress(buf, 'vocal', p => setProgress(0.5 + p*0.5, 'Розрахунок вокалу…'));
+      setProgress(1, 'Готово');
+      showProgress(false);
+
+      panel.classList.add('show');
+      drawEditor();
+      setStatus('Готово. Виділяйте ділянки вокалу для вирізання або одразу прослуховуйте/завантажуйте.', 'ok');
+    }catch(err){
+      console.error(err);
+      showProgress(false);
+      const reason = (err && (err.message || err.name)) ? (err.message || err.name) : 'невідома помилка';
+      setStatus(`Не вдалося обробити цей файл (${reason}). Спробуйте інший MP3/WAV-файл або інший браузер.`, 'err');
+    }
+  }
+
+  function drawStaticWaveform(canvas, buf, color){
+    const ctx = canvas.getContext('2d');
+    const w = canvas.width = canvas.clientWidth * 2;
+    const h = canvas.height = canvas.clientHeight * 2 || 160;
+    ctx.clearRect(0,0,w,h);
+    const data = buf.getChannelData(0);
+    const step = Math.ceil(data.length / w);
+    const mid = h/2;
+    ctx.fillStyle = color;
+    for (let x=0; x<w; x++){
+      let min=1, max=-1;
+      const start = x*step;
+      for (let i=0;i<step;i++){
+        const v = data[start+i] || 0;
+        if (v<min) min=v; if (v>max) max=v;
+      }
+      ctx.fillRect(x, mid + min*mid*0.9, 1, Math.max(1,(max-min)*mid*0.9));
+    }
+  }
+
+  // ---------- separation engine (phase-cancellation estimate) with progress via suspend/resume ----------
+  async function buildVariantWithProgress(buffer, mode, onProgress, params){
+    params = params || {};
+    const intensity = params.intensity != null ? params.intensity : 0.85;
+    const OfflineCtor = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+    const offline = new OfflineCtor(2, buffer.length, buffer.sampleRate);
+    const src = offline.createBufferSource();
+    src.buffer = buffer;
+    const splitter = offline.createChannelSplitter(2);
+    const merger = offline.createChannelMerger(2);
+    src.connect(splitter);
+
+    if (mode === 'instrumental'){
+      const LOW = 180, HIGH = 9000;
+
+      const lowL = offline.createBiquadFilter(); lowL.type='lowpass'; lowL.frequency.value=LOW;
+      const lowR = offline.createBiquadFilter(); lowR.type='lowpass'; lowR.frequency.value=LOW;
+      splitter.connect(lowL,0); splitter.connect(lowR,1);
+
+      const highL = offline.createBiquadFilter(); highL.type='highpass'; highL.frequency.value=HIGH;
+      const highR = offline.createBiquadFilter(); highR.type='highpass'; highR.frequency.value=HIGH;
+      splitter.connect(highL,0); splitter.connect(highR,1);
+
+      const midHL = offline.createBiquadFilter(); midHL.type='highpass'; midHL.frequency.value=LOW;
+      const midLL = offline.createBiquadFilter(); midLL.type='lowpass'; midLL.frequency.value=HIGH;
+      splitter.connect(midHL,0); midHL.connect(midLL);
+      const midL = midLL;
+
+      const midHR = offline.createBiquadFilter(); midHR.type='highpass'; midHR.frequency.value=LOW;
+      const midLR = offline.createBiquadFilter(); midLR.type='lowpass'; midLR.frequency.value=HIGH;
+      splitter.connect(midHR,1); midHR.connect(midLR);
+      const midR = midLR;
+
+      const invR = offline.createGain(); invR.gain.value = -1;
+      midR.connect(invR);
+      const cancelled = offline.createGain(); cancelled.gain.value = 1.5;
+      midL.connect(cancelled); invR.connect(cancelled);
+
+      const avgL = offline.createGain(); avgL.gain.value = 0.5;
+      const avgR = offline.createGain(); avgR.gain.value = 0.5;
+      midL.connect(avgL); midR.connect(avgR);
+      const midOriginal = offline.createGain();
+      avgL.connect(midOriginal); avgR.connect(midOriginal);
+
+      const midOrigScaled = offline.createGain(); midOrigScaled.gain.value = (1-intensity);
+      midOriginal.connect(midOrigScaled);
+      const midCancelScaled = offline.createGain(); midCancelScaled.gain.value = intensity;
+      cancelled.connect(midCancelScaled);
+
+      const midOut = offline.createGain();
+      midOrigScaled.connect(midOut); midCancelScaled.connect(midOut);
+
+      const outL = offline.createGain();
+      lowL.connect(outL); midOut.connect(outL); highL.connect(outL);
+      const outR = offline.createGain();
+      lowR.connect(outR); midOut.connect(outR); highR.connect(outR);
+
+      outL.connect(merger, 0, 0);
+      outR.connect(merger, 0, 1);
+    } else {
+      const gL = offline.createGain(); gL.gain.value = 0.5;
+      const gR = offline.createGain(); gR.gain.value = 0.5;
+      splitter.connect(gL, 0);
+      splitter.connect(gR, 1);
+      const mid = offline.createGain();
+      gL.connect(mid); gR.connect(mid);
+      const hp = offline.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 180;
+      const lp = offline.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 7500;
+      const presence = offline.createBiquadFilter(); presence.type = 'peaking'; presence.frequency.value = 2500; presence.Q.value = 1; presence.gain.value = 4;
+      mid.connect(hp); hp.connect(lp); lp.connect(presence);
+      presence.connect(merger, 0, 0);
+      presence.connect(merger, 0, 1);
+    }
+
+    merger.connect(offline.destination);
+
+    const duration = buffer.length / buffer.sampleRate;
+    const steps = 20;
+    if (typeof offline.suspend === 'function' && duration > 1){
+      for (let i=1;i<steps;i++){
+        const t = duration * i / steps;
+        offline.suspend(t).then(() => {
+          onProgress(i/steps);
+          offline.resume();
+        }).catch(()=>{});
+      }
+    }
+
+    src.start();
+    const rendered = await offline.startRendering();
+    onProgress(1);
+    return rendered;
+  }
+
+  // ---------- vocal waveform editor ----------
+  function drawEditor(){
+    const ctx = vocalCanvas.getContext('2d');
+    const cssW = vocalCanvas.clientWidth;
+    const cssH = vocalCanvas.clientHeight || 110;
+    const w = vocalCanvas.width = cssW * 2;
+    const h = vocalCanvas.height = cssH * 2;
+    ctx.clearRect(0,0,w,h);
+
+    const data = vocalBuffer.getChannelData(0);
+    const step = Math.ceil(data.length / w);
+    const mid = h/2;
+    ctx.fillStyle = '#BF5FFF';
+    for (let x=0; x<w; x++){
+      let min=1, max=-1;
+      const start = x*step;
+      for (let i=0;i<step;i++){
+        const v = data[start+i] || 0;
+        if (v<min) min=v; if (v>max) max=v;
+      }
+      ctx.fillRect(x, mid + min*mid*0.9, 1, Math.max(1,(max-min)*mid*0.9));
+    }
+
+    const duration = vocalBuffer.duration;
+    ctx.fillStyle = 'rgba(228,87,61,0.35)';
+    cuts.forEach(c => {
+      const x1 = (c.start/duration)*w;
+      const x2 = (c.end/duration)*w;
+      ctx.fillRect(x1, 0, Math.max(1,x2-x1), h);
+    });
+    if (selection){
+      const s = Math.min(selection.start, selection.end);
+      const e = Math.max(selection.start, selection.end);
+      const x1 = (s/duration)*w;
+      const x2 = (e/duration)*w;
+      ctx.fillStyle = 'rgba(167,113,224,0.35)';
+      ctx.fillRect(x1, 0, Math.max(1,x2-x1), h);
+    }
+  }
+
+  function pxToSec(clientX){
+    const rect = vocalCanvas.getBoundingClientRect();
+    const x = Math.min(rect.width, Math.max(0, clientX - rect.left));
+    return (x / rect.width) * (vocalBuffer ? vocalBuffer.duration : 0);
+  }
+
+  let dragging = false;
+  vocalCanvas.addEventListener('pointerdown', e => {
+    if (!vocalBuffer) return;
+    dragging = true;
+    vocalCanvas.setPointerCapture(e.pointerId);
+    const t = pxToSec(e.clientX);
+    selection = { start: t, end: t };
+    drawEditor();
+  });
+  vocalCanvas.addEventListener('pointermove', e => {
+    if (!dragging) return;
+    selection.end = pxToSec(e.clientX);
+    drawEditor();
+    cutBtn.disabled = Math.abs(selection.end - selection.start) < 0.05;
+  });
+  window.addEventListener('pointerup', () => {
+    if (!dragging) return;
+    dragging = false;
+    if (selection && Math.abs(selection.end - selection.start) < 0.05) selection = null;
+    else if (selection) {
+      const s = Math.min(selection.start, selection.end);
+      const e = Math.max(selection.start, selection.end);
+      selection = { start:s, end:e };
+    }
+    drawEditor();
+    cutBtn.disabled = !selection;
+  });
+
+  function fmtTime(t){
+    const m = Math.floor(t/60);
+    const s = Math.floor(t%60).toString().padStart(2,'0');
+    return m + ':' + s;
+  }
+
+  function renderCutList(){
+    cutListEl.innerHTML = '';
+    cuts.forEach((c, idx) => {
+      const chip = document.createElement('div');
+      chip.className = 'chip';
+      chip.innerHTML = `${fmtTime(c.start)}–${fmtTime(c.end)} <b data-idx="${idx}">×</b>`;
+      chip.querySelector('b').addEventListener('click', () => {
+        cuts.splice(idx, 1);
+        renderCutList();
+        drawEditor();
+      });
+      cutListEl.appendChild(chip);
+    });
+  }
+
+  cutBtn.addEventListener('click', () => {
+    if (!selection) return;
+    cuts.push({ start: selection.start, end: selection.end });
+    cuts.sort((a,b) => a.start - b.start);
+    selection = null;
+    cutBtn.disabled = true;
+    renderCutList();
+    drawEditor();
+    setStatus('Ділянку вирізано (замінено тишею). Можна прослухати результат нижче.', 'ok');
+  });
+  undoCutBtn.addEventListener('click', () => {
+    cuts.pop();
+    renderCutList();
+    drawEditor();
+  });
+  resetCutsBtn.addEventListener('click', () => {
+    cuts = [];
+    renderCutList();
+    drawEditor();
+  });
+
+  // ---------- buffer math: cuts + merge ----------
+  function applyCutsToBuffer(buffer, cutsList){
+    const sampleRate = buffer.sampleRate;
+    const fadeLen = Math.min(Math.floor(0.006*sampleRate), 400);
+    const out = audioCtx.createBuffer(buffer.numberOfChannels, buffer.length, sampleRate);
+    for (let ch=0; ch<buffer.numberOfChannels; ch++){
+      out.getChannelData(ch).set(buffer.getChannelData(ch));
+    }
+    cutsList.forEach(c => {
+      const startIdx = Math.max(0, Math.floor(c.start*sampleRate));
+      const endIdx = Math.min(buffer.length, Math.ceil(c.end*sampleRate));
+      for (let ch=0; ch<buffer.numberOfChannels; ch++){
+        const dst = out.getChannelData(ch);
+        for (let i=0;i<fadeLen;i++){
+          const idx = startIdx - fadeLen + i;
+          if (idx>=0 && idx<startIdx) dst[idx] *= (1 - i/fadeLen);
+        }
+        for (let i=startIdx;i<endIdx;i++) dst[i]=0;
+        for (let i=0;i<fadeLen;i++){
+          const idx = endIdx + i;
+          if (idx<buffer.length) dst[idx] *= (i/fadeLen);
+        }
+      }
+    });
+    return out;
+  }
+
+  function mixBuffers(a, b){
+    const length = Math.max(a.length, b.length);
+    const channels = Math.max(a.numberOfChannels, b.numberOfChannels);
+    const out = audioCtx.createBuffer(channels, length, a.sampleRate);
+    for (let ch=0; ch<channels; ch++){
+      const dst = out.getChannelData(ch);
+      const da = ch < a.numberOfChannels ? a.getChannelData(ch) : null;
+      const db = ch < b.numberOfChannels ? b.getChannelData(ch) : null;
+      for (let i=0;i<length;i++){
+        let v = 0;
+        if (da && i<da.length) v += da[i];
+        if (db && i<db.length) v += db[i];
+        dst[i] = v;
+      }
+    }
+    return out;
+  }
+
+  function getEditedVocal(){ return applyCutsToBuffer(vocalBuffer, cuts); }
+  function getMerged(){ return mixBuffers(instrBuffer, getEditedVocal()); }
+
+  // ---------- playback ----------
+  function stopPlayback(){
+    if (currentSource){ try{ currentSource.stop(); }catch(e){} currentSource=null; }
+  }
+  function playRawBuffer(buf){
+    stopPlayback();
+    if (!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const src = audioCtx.createBufferSource();
+    src.buffer = buf;
+    src.connect(audioCtx.destination);
+    src.start();
+    currentSource = src;
+  }
+
+  playOrigBtn.addEventListener('click', () => { if (originalBuffer) playRawBuffer(originalBuffer); });
+  playInstrBtn.addEventListener('click', () => { if (instrBuffer) playRawBuffer(instrBuffer); });
+  playVocalBtn.addEventListener('click', () => { if (vocalBuffer) playRawBuffer(getEditedVocal()); });
+  playMergedBtn.addEventListener('click', () => { if (instrBuffer && vocalBuffer) playRawBuffer(getMerged()); });
+  stopBtn.addEventListener('click', stopPlayback);
+
+  // ---------- export ----------
+  function encodeWav(buffer){
+    const numChannels = buffer.numberOfChannels;
+    const sampleRate = buffer.sampleRate;
+    const numFrames = buffer.length;
+    const blockAlign = numChannels * 2;
+    const dataSize = numFrames * blockAlign;
+    const arr = new ArrayBuffer(44 + dataSize);
+    const view = new DataView(arr);
+    function ws(o,s){ for(let i=0;i<s.length;i++) view.setUint8(o+i, s.charCodeAt(i)); }
+    ws(0,'RIFF'); view.setUint32(4,36+dataSize,true); ws(8,'WAVE');
+    ws(12,'fmt '); view.setUint32(16,16,true); view.setUint16(20,1,true);
+    view.setUint16(22,numChannels,true); view.setUint32(24,sampleRate,true);
+    view.setUint32(28,sampleRate*blockAlign,true); view.setUint16(32,blockAlign,true);
+    view.setUint16(34,16,true); ws(36,'data'); view.setUint32(40,dataSize,true);
+    const chans=[]; for(let c=0;c<numChannels;c++) chans.push(buffer.getChannelData(c));
+    let off=44;
+    for(let i=0;i<numFrames;i++){
+      for(let c=0;c<numChannels;c++){
+        let s = Math.max(-1, Math.min(1, chans[c][i]));
+        view.setInt16(off, s<0?s*0x8000:s*0x7FFF, true); off+=2;
+      }
+    }
+    return new Blob([arr], {type:'audio/wav'});
+  }
+
+  function downloadBuffer(buf, suffix){
+    const blob = encodeWav(buf);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileNameBase + suffix + '.wav';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+  }
+
+  dlInstrBtn.addEventListener('click', () => {
+    if (!instrBuffer) return;
+    setBusy(true); setStatus('Кодування WAV (мінус)…', 'busy');
+    try{ downloadBuffer(instrBuffer, '-minus'); setStatus('Готово! Файл завантажено.', 'ok'); }
+    catch(err){ console.error(err); setStatus('Помилка експорту. Спробуйте ще раз.', 'err'); }
+    finally{ setBusy(false); }
+  });
+  dlVocalBtn.addEventListener('click', () => {
+    if (!vocalBuffer) return;
+    setBusy(true); setStatus('Кодування WAV (вокал)…', 'busy');
+    try{ downloadBuffer(getEditedVocal(), '-vocal'); setStatus('Готово! Файл завантажено.', 'ok'); }
+    catch(err){ console.error(err); setStatus('Помилка експорту. Спробуйте ще раз.', 'err'); }
+    finally{ setBusy(false); }
+  });
+  dlMergedBtn.addEventListener('click', () => {
+    if (!instrBuffer || !vocalBuffer) return;
+    setBusy(true); setStatus('Кодування WAV (обʼєднане)…', 'busy');
+    try{ downloadBuffer(getMerged(), '-merged'); setStatus('Готово! Файл завантажено.', 'ok'); }
+    catch(err){ console.error(err); setStatus('Помилка експорту. Спробуйте ще раз.', 'err'); }
+    finally{ setBusy(false); }
+  });
+
+  window.addEventListener('resize', () => { if (vocalBuffer) drawEditor(); });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,556 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Мастеринг треків | INKBEAT</title>
+<meta name="description" content="Безкоштовний онлайн-мастеринг треків від InkBeat. Обробка звуку прямо в браузері, файли нікуди не завантажуються."/>
+<link rel="icon" href="../../public/favicon-optimized.jpg"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="../../css/style.css"/>
+<style>
+  :root{
+    --bg:#000000;
+    --panel:#0F0F0F;
+    --panel-2:#161616;
+    --line:rgba(255,255,255,.08);
+    --text:#ffffff;
+    --muted:rgba(255,255,255,.45);
+    --gold:#BF5FFF;
+    --teal:#00BFFF;
+    --danger:#FF4D4D;
+    --font-display: 'Syne', sans-serif;
+    --font-body: 'Space Grotesk', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; background:var(--bg); color:var(--text); font-family:var(--font-body); }
+  body{ min-height:100vh; padding:0 18px 80px; cursor:none; }
+  .tool-wrap{ max-width:860px; margin:0 auto; }
+  .wrap{ max-width:860px; margin:0 auto; }
+
+  .rack{ background:linear-gradient(180deg,var(--panel),var(--panel-2)); border:1px solid var(--line); border-radius:14px; padding:22px; box-shadow:0 20px 50px -20px rgba(0,0,0,.6); }
+
+  .drop{ border:1.5px dashed var(--line); border-radius:10px; padding:34px 18px; text-align:center; cursor:pointer; transition:border-color .15s, background .15s; }
+  .drop:hover, .drop.drag{ border-color:var(--gold); background:rgba(191,95,255,0.08); }
+  .drop .slot{ font-family:var(--font-mono); font-size:12px; color:var(--muted); letter-spacing:.08em; text-transform:uppercase; margin-bottom:8px; }
+  .drop .cta{ font-family:var(--font-display); font-weight:700; font-size:17px; }
+  .drop .sub{ color:var(--muted); font-size:12.5px; margin-top:6px; }
+  input[type=file]{ display:none; }
+
+  .track-info{ display:none; align-items:center; justify-content:space-between; gap:10px; margin-top:16px; padding:10px 14px; background:var(--bg); border:1px solid var(--line); border-radius:8px; font-family:var(--font-mono); font-size:12.5px; color:var(--muted); }
+  .track-info b{ color:var(--text); font-weight:600; }
+  .track-info button{ background:none; border:1px solid var(--line); color:var(--muted); font-family:var(--font-mono); font-size:11px; padding:5px 10px; border-radius:6px; cursor:pointer; }
+  .track-info button:hover{ color:var(--text); border-color:var(--muted); }
+
+  canvas#wave{ width:100%; height:80px; display:block; margin-top:16px; border-radius:8px; background:var(--bg); border:1px solid var(--line); }
+
+  .panel{ display:none; margin-top:22px; }
+  .panel.show{ display:block; }
+
+  .strip{ display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:16px; margin-top:18px; }
+  .fader{ background:var(--bg); border:1px solid var(--line); border-radius:10px; padding:14px 14px 16px; }
+  .fader .flabel{ display:flex; justify-content:space-between; align-items:baseline; font-family:var(--font-display); font-size:13px; font-weight:700; margin-bottom:10px; }
+  .fader .fval{ font-family:var(--font-mono); font-size:12px; color:var(--gold); }
+  input[type=range]{ -webkit-appearance:none; width:100%; height:4px; background:var(--line); border-radius:2px; outline:none; }
+  input[type=range]::-webkit-slider-thumb{ -webkit-appearance:none; width:16px; height:16px; border-radius:50%; background:var(--teal); cursor:pointer; border:2px solid var(--bg); box-shadow:0 0 0 1px var(--teal); }
+  input[type=range]::-moz-range-thumb{ width:16px; height:16px; border-radius:50%; background:var(--teal); cursor:pointer; border:2px solid var(--bg); }
+
+  .row{ display:flex; gap:10px; align-items:center; margin-top:20px; flex-wrap:wrap; }
+  .btn{ font-family:var(--font-display); font-weight:700; font-size:13.5px; padding:11px 16px; border-radius:8px; border:1px solid var(--line); background:var(--panel-2); color:var(--text); cursor:pointer; transition:transform .1s, border-color .15s; }
+  .btn:hover{ border-color:var(--muted); }
+  .btn:active{ transform:scale(0.98); }
+  .btn.ghost{ background:transparent; color:var(--muted); }
+  .btn.auto{ border-color:var(--gold); color:var(--gold); }
+  .btn.primary{ background:var(--teal); border-color:var(--teal); color:#000; margin-left:auto; }
+  .btn.primary:hover{ filter:brightness(1.08); }
+  .btn:disabled{ opacity:.5; cursor:not-allowed; }
+
+  .meter-block{ display:flex; align-items:center; gap:16px; margin-top:20px; padding:14px 16px; background:var(--bg); border:1px solid var(--line); border-radius:10px; }
+  .vu{ position:relative; flex:1; height:10px; background:var(--panel); border-radius:5px; overflow:hidden; }
+  .vu .fill{ position:absolute; left:0; top:0; bottom:0; width:0%; background:linear-gradient(90deg,var(--teal),var(--gold) 75%, var(--danger) 95%); transition:width .05s linear; }
+  .meter-num{ font-family:var(--font-mono); font-size:12px; color:var(--muted); min-width:76px; text-align:right; }
+
+  .status{ font-family:var(--font-mono); font-size:12px; color:var(--muted); margin-top:10px; min-height:16px; }
+  .status.ok{ color:var(--teal); }
+  .status.err{ color:var(--danger); }
+
+  .toolnav{ margin-top:16px; text-align:center; }
+  .toolnav a{ color:var(--muted); font-size:12px; text-decoration:none; border-bottom:1px dotted var(--muted); }
+  .toolnav a:hover{ color:var(--text); }
+</style>
+</head>
+<body>
+
+<div class="cursor-dot"></div>
+<div class="cursor-ring"></div>
+
+<div id="loading-screen">
+  <div class="loading-letters">
+    <span class="loading-letter gradient-text" style="animation-delay:.3s">I</span>
+    <span class="loading-letter gradient-text" style="animation-delay:.35s">N</span>
+    <span class="loading-letter gradient-text" style="animation-delay:.4s">K</span>
+    <span class="loading-letter gradient-text" style="animation-delay:.45s">B</span>
+    <span class="loading-letter gradient-text" style="animation-delay:.5s">E</span>
+    <span class="loading-letter gradient-text" style="animation-delay:.55s">A</span>
+    <span class="loading-letter gradient-text" style="animation-delay:.6s">T</span>
+  </div>
+  <div class="loading-bar-wrap"><div class="loading-bar" style="width:0%"></div></div>
+  <div class="loading-pct">0%</div>
+</div>
+
+<nav id="navbar">
+  <div class="nav-inner">
+    <a href="../../index.html" class="nav-logo gradient-text">INKBEAT</a>
+    <div class="nav-links">
+      <a href="../../index.html" data-i18n="nav.home">Головна</a>
+      <a href="../about.html" data-i18n="nav.about">Про мене</a>
+      <a href="../discography.html" data-i18n="nav.discography">Дискографія</a>
+      <a href="../services.html" data-i18n="nav.services">Послуги</a>
+      <a href="../portfolio.html" data-i18n="nav.portfolio">Портфоліо</a>
+      <a href="../contact.html" data-i18n="nav.contact">Контакти</a>
+    </div>
+    <div class="nav-right">
+      <div class="lang-btn">
+        <span class="lang-ua lang-toggle active" data-lang="uk">UA</span>
+        <span class="lang-sep">|</span>
+        <span class="lang-en lang-toggle" data-lang="en">EN</span>
+      </div>
+      <a href="index.html" class="nav-order nav-master active"><span class="nav-master-dot"></span><span data-i18n="nav.master">Мастеринг</span></a>
+    </div>
+    <button class="burger"><svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+  </div>
+</nav>
+
+<div class="mobile-menu">
+  <button class="mobile-close"><svg width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+  <a href="../../index.html" data-i18n="nav.home">Головна</a>
+  <a href="../about.html" data-i18n="nav.about">Про мене</a>
+  <a href="../discography.html" data-i18n="nav.discography">Дискографія</a>
+  <a href="../services.html" data-i18n="nav.services">Послуги</a>
+  <a href="../portfolio.html" data-i18n="nav.portfolio">Портфоліо</a>
+  <a href="../contact.html" data-i18n="nav.contact">Контакти</a>
+  <a href="index.html" data-i18n="nav.master">Мастеринг</a>
+  <div class="mobile-lang-switch">
+    <span class="lang-ua lang-toggle active" data-lang="uk">UA</span>
+    <span class="lang-sep">|</span>
+    <span class="lang-en lang-toggle" data-lang="en">EN</span>
+  </div>
+</div>
+
+<section class="page-header" style="padding-bottom:40px">
+  <div class="page-header-orb" style="top:20%;right:20%;width:500px;height:500px;background:radial-gradient(circle,#00BFFF,transparent 70%)"></div>
+  <div class="container">
+    <div class="reveal">
+      <div class="page-label" style="color:var(--blue)">— <a href="index.html" style="color:inherit;text-decoration:none">Аудіо-студія</a> / Мастеринг</div>
+      <h1 class="page-title" style="font-size:clamp(2.2rem,6vw,4rem)">MASTER<span class="gradient-text">.WAV</span></h1>
+      <p class="page-sub">Мастеринг треків прямо в браузері — гучність, компресія, баланс частот. Нічого не завантажується на сервер, усе відбувається на вашому пристрої.</p>
+    </div>
+  </div>
+</section>
+
+<div class="tool-wrap">
+
+  <div class="rack">
+
+    <div class="drop" id="drop">
+      <div class="slot">// audio in</div>
+      <div class="cta">Перетягніть трек сюди або натисніть, щоб обрати файл</div>
+      <div class="sub">MP3, WAV, M4A, OGG — обробка повністю локальна, файл нікуди не надсилається</div>
+      <input type="file" id="file" accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg,.flac,.webm" />
+    </div>
+
+    <div class="track-info" id="trackInfo">
+      <span id="trackName">—</span>
+      <button id="clearBtn">Обрати інший файл</button>
+    </div>
+
+    <canvas id="wave" width="800" height="80" style="display:none"></canvas>
+
+    <div class="panel" id="panel">
+      <div class="strip">
+        <div class="fader">
+          <div class="flabel">Гучність <span class="fval" id="vLoud">+6 дБ</span></div>
+          <input type="range" id="loud" min="-3" max="12" step="0.5" value="6" />
+        </div>
+        <div class="fader">
+          <div class="flabel">Компресія <span class="fval" id="vComp">40%</span></div>
+          <input type="range" id="comp" min="0" max="100" step="5" value="40" />
+        </div>
+        <div class="fader">
+          <div class="flabel">Бас <span class="fval" id="vBass">+2 дБ</span></div>
+          <input type="range" id="bass" min="-6" max="6" step="0.5" value="2" />
+        </div>
+        <div class="fader">
+          <div class="flabel">Верхи <span class="fval" id="vTreb">+2 дБ</span></div>
+          <input type="range" id="treb" min="-6" max="6" step="0.5" value="2" />
+        </div>
+      </div>
+
+      <div class="meter-block">
+        <div class="meter-num" id="meterLabel">РІВЕНЬ</div>
+        <div class="vu"><div class="fill" id="vuFill"></div></div>
+        <div class="meter-num" id="peakVal">-∞ дБ</div>
+      </div>
+
+      <div class="row">
+        <button class="btn auto" id="autoBtn">Авто-мастеринг</button>
+        <button class="btn" id="playOrig">▶ Оригінал</button>
+        <button class="btn" id="playMast">▶ Опрацьовано</button>
+        <button class="btn ghost" id="stopBtn">■ Стоп</button>
+        <button class="btn primary" id="exportBtn">Завантажити готовий трек</button>
+      </div>
+
+      <div class="status" id="status"></div>
+    </div>
+
+    <div class="toolnav">Потрібно прибрати або виділити вокал? → <a href="vocal-split.html">Окремий інструмент VOCAL SPLIT</a></div>
+    <div class="toolnav">Потрібно зробити візуалізацію пісні для відео? → <a href="equalizer-studio.html">Окремий інструмент EQUALIZER</a></div>
+    <div class="toolnav">← <a href="index.html">Усі аудіо-інструменти</a></div>
+
+  </div>
+
+  <p style="text-align:center;color:rgba(255,255,255,.3);font-size:12px;margin-top:26px">Обробка звуку виконується Web Audio API безпосередньо у вашому браузері. Файли не зберігаються і не передаються нікуди.</p>
+</div>
+
+<footer>
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <div class="footer-brand-name gradient-text">INKBEAT</div>
+        <p class="footer-desc" data-i18n="footer.desc">Музичний артист • Автор пісень • Автор текстів. Музика, яка залишає слід.</p>
+        <a href="mailto:inkbeat.mail@gmail.com" class="footer-email">inkbeat.mail@gmail.com</a>
+      </div>
+      <div>
+        <div class="footer-col-title" data-i18n="footer.nav">Навігація</div>
+        <ul class="footer-links">
+          <li><a href="../../index.html" data-i18n="nav.home">Головна</a></li>
+          <li><a href="../about.html" data-i18n="nav.about">Про мене</a></li>
+          <li><a href="../discography.html" data-i18n="nav.discography">Дискографія</a></li>
+          <li><a href="../services.html" data-i18n="nav.services">Послуги</a></li>
+          <li><a href="../portfolio.html" data-i18n="nav.portfolio">Портфоліо</a></li>
+          <li><a href="../contact.html" data-i18n="nav.contact">Контакти</a></li>
+          <li><a href="index.html" data-i18n="nav.master">Мастеринг</a></li>
+        </ul>
+      </div>
+      <div>
+        <div class="footer-col-title" data-i18n="footer.socials">Соцмережі</div>
+        <ul class="footer-links footer-social-links">
+          <li><a href="https://open.spotify.com/artist/6hkNwIjIfDcMDp5AObEbO9" target="_blank" rel="noopener">Spotify</a></li>
+          <li><a href="https://www.instagram.com/_.inkbeat._/" target="_blank" rel="noopener">Instagram</a></li>
+          <li><a href="https://www.youtube.com/@1nkBeat12/shorts" target="_blank" rel="noopener">YouTube</a></li>
+          <li><a href="https://www.tiktok.com/@inkbeat_" target="_blank" rel="noopener">TikTok</a></li>
+          <li><a href="https://music.apple.com/ua/artist/inkbeat/1850263830?l=uk" target="_blank" rel="noopener">Apple Music</a></li>
+          <li><a href="https://soundcloud.com/akabbvwcbvle" target="_blank" rel="noopener">SoundCloud</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p class="footer-copy">© <span id="year"></span> InkBeat. <span data-i18n="footer.rights">Всі права захищені.</span></p>
+      <p class="footer-copy" data-i18n="footer.made">Зроблено з ♥ в Україні</p>
+    </div>
+  </div>
+</footer>
+
+<script src="../../js/main.js"></script>
+<script>document.getElementById('year').textContent = new Date().getFullYear()</script>
+
+<script>
+(() => {
+  const dropEl = document.getElementById('drop');
+  const fileInput = document.getElementById('file');
+  const trackInfo = document.getElementById('trackInfo');
+  const trackName = document.getElementById('trackName');
+  const clearBtn = document.getElementById('clearBtn');
+  const waveCanvas = document.getElementById('wave');
+  const panel = document.getElementById('panel');
+  const statusEl = document.getElementById('status');
+
+  const loud = document.getElementById('loud'), vLoud = document.getElementById('vLoud');
+  const comp = document.getElementById('comp'), vComp = document.getElementById('vComp');
+  const bass = document.getElementById('bass'), vBass = document.getElementById('vBass');
+  const treb = document.getElementById('treb'), vTreb = document.getElementById('vTreb');
+
+  const playOrigBtn = document.getElementById('playOrig');
+  const playMastBtn = document.getElementById('playMast');
+  const stopBtn = document.getElementById('stopBtn');
+  const exportBtn = document.getElementById('exportBtn');
+  const autoBtn = document.getElementById('autoBtn');
+  const vuFill = document.getElementById('vuFill');
+  const peakVal = document.getElementById('peakVal');
+
+  let audioCtx = null;
+  let originalBuffer = null;
+  let fileNameBase = 'track';
+  let currentSource = null;
+  let currentAnalyser = null;
+  let rafId = null;
+
+  function setStatus(msg, cls){
+    statusEl.textContent = msg || '';
+    statusEl.className = 'status' + (cls ? ' ' + cls : '');
+  }
+
+  function dbToGain(db){ return Math.pow(10, db/20); }
+
+  dropEl.addEventListener('click', () => fileInput.click());
+  ['dragover','dragenter'].forEach(ev => dropEl.addEventListener(ev, e => { e.preventDefault(); dropEl.classList.add('drag'); }));
+  ['dragleave','drop'].forEach(ev => dropEl.addEventListener(ev, e => { e.preventDefault(); dropEl.classList.remove('drag'); }));
+  dropEl.addEventListener('drop', e => { const f = e.dataTransfer.files[0]; if (f) loadFile(f); });
+  fileInput.addEventListener('change', e => { const f = e.target.files[0]; if (f) loadFile(f); });
+  clearBtn.addEventListener('click', resetAll);
+
+  function resetAll(){
+    originalBuffer = null;
+    trackInfo.style.display = 'none';
+    waveCanvas.style.display = 'none';
+    panel.classList.remove('show');
+    fileInput.value = '';
+    setStatus('');
+    stopPlayback();
+  }
+
+  function decode(ctx, arrayBuf){
+    return new Promise((resolve, reject) => {
+      const maybePromise = ctx.decodeAudioData(arrayBuf, resolve, reject);
+      if (maybePromise && typeof maybePromise.then === 'function'){
+        maybePromise.then(resolve).catch(reject);
+      }
+    });
+  }
+
+  async function loadFile(file){
+    setStatus('Декодування аудіо…');
+    try{
+      if (!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') await audioCtx.resume();
+      const arrayBuf = await file.arrayBuffer();
+      if (!arrayBuf || arrayBuf.byteLength === 0){
+        throw new Error('Файл порожній або не вдалося його прочитати.');
+      }
+      const buf = await decode(audioCtx, arrayBuf.slice(0));
+      originalBuffer = buf;
+      fileNameBase = file.name.replace(/\.[^/.]+$/, '');
+      trackName.innerHTML = `<b>${file.name}</b> · ${buf.numberOfChannels}ch · ${buf.sampleRate}Hz · ${buf.duration.toFixed(1)}s`;
+      trackInfo.style.display = 'flex';
+      waveCanvas.style.display = 'block';
+      drawWaveform(buf);
+      panel.classList.add('show');
+      setStatus('Готово. Налаштуйте параметри й натисніть «Авто-мастеринг» або одразу завантажте.', 'ok');
+    }catch(err){
+      console.error(err);
+      const reason = (err && (err.message || err.name)) ? (err.message || err.name) : 'невідома помилка';
+      setStatus(`Не вдалося прочитати цей файл (${reason}). Спробуйте інший MP3/WAV-файл або інший браузер.`, 'err');
+    }
+  }
+
+  function drawWaveform(buf){
+    const ctx = waveCanvas.getContext('2d');
+    const w = waveCanvas.width = waveCanvas.clientWidth * 2;
+    const h = waveCanvas.height = 160;
+    ctx.clearRect(0,0,w,h);
+    const data = buf.getChannelData(0);
+    const step = Math.ceil(data.length / w);
+    const mid = h/2;
+    ctx.fillStyle = '#00BFFF';
+    for (let x=0; x<w; x++){
+      let min=1, max=-1;
+      const start = x*step;
+      for (let i=0;i<step;i++){
+        const v = data[start+i] || 0;
+        if (v<min) min=v; if (v>max) max=v;
+      }
+      ctx.fillRect(x, mid + min*mid*0.9, 1, Math.max(1,(max-min)*mid*0.9));
+    }
+  }
+
+  function refreshLabels(){
+    vLoud.textContent = (loud.value>=0?'+':'') + loud.value + ' дБ';
+    vComp.textContent = comp.value + '%';
+    vBass.textContent = (bass.value>=0?'+':'') + bass.value + ' дБ';
+    vTreb.textContent = (treb.value>=0?'+':'') + treb.value + ' дБ';
+  }
+  [loud,comp,bass,treb].forEach(el => el.addEventListener('input', refreshLabels));
+  refreshLabels();
+
+  autoBtn.addEventListener('click', () => {
+    loud.value = 7; comp.value = 45; bass.value = 2.5; treb.value = 2.5;
+    refreshLabels();
+    setStatus('Застосовано пресет «Авто-мастеринг». Можете підлаштувати повзунки або одразу завантажити.', 'ok');
+  });
+
+  function buildChain(ctx, source){
+    const p = {
+      loud: parseFloat(loud.value),
+      comp: parseFloat(comp.value)/100,
+      bass: parseFloat(bass.value),
+      treb: parseFloat(treb.value),
+    };
+    const low = ctx.createBiquadFilter();
+    low.type = 'lowshelf'; low.frequency.value = 150; low.gain.value = p.bass;
+
+    const high = ctx.createBiquadFilter();
+    high.type = 'highshelf'; high.frequency.value = 8000; high.gain.value = p.treb;
+
+    const compressor = ctx.createDynamicsCompressor();
+    compressor.threshold.value = -6 - p.comp*24;   
+    compressor.knee.value = 18;
+    compressor.ratio.value = 1 + p.comp*11;         
+    compressor.attack.value = 0.003;
+    compressor.release.value = 0.25;
+
+    const makeup = ctx.createGain();
+    makeup.gain.value = dbToGain(p.loud);
+
+    source.connect(low);
+    low.connect(high);
+    high.connect(compressor);
+    compressor.connect(makeup);
+    return makeup; 
+  }
+
+  function stopPlayback(){
+    if (currentSource){ try{ currentSource.stop(); }catch(e){} currentSource=null; }
+    if (rafId) cancelAnimationFrame(rafId);
+    vuFill.style.width = '0%';
+    peakVal.textContent = '-∞ дБ';
+  }
+
+  function playBuffer(processed){
+    if (!originalBuffer) return;
+    stopPlayback();
+    if (!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+
+    const src = audioCtx.createBufferSource();
+    src.buffer = originalBuffer;
+
+    const analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 1024;
+    const data = new Uint8Array(analyser.fftSize);
+
+    let endNode;
+    if (processed){
+      endNode = buildChain(audioCtx, src);
+    } else {
+      endNode = src;
+    }
+    endNode.connect(analyser);
+    analyser.connect(audioCtx.destination);
+
+    src.start();
+    currentSource = src;
+    currentAnalyser = analyser;
+    src.onended = () => { vuFill.style.width='0%'; };
+
+    function tick(){
+      analyser.getByteTimeDomainData(data);
+      let peak = 0;
+      for (let i=0;i<data.length;i++){
+        const v = Math.abs(data[i]-128)/128;
+        if (v>peak) peak = v;
+      }
+      const db = peak>0 ? 20*Math.log10(peak) : -60;
+      const pct = Math.max(0, Math.min(100, (db+60)/60*100));
+      vuFill.style.width = pct + '%';
+      peakVal.textContent = (db<=-59 ? '-∞' : db.toFixed(1)) + ' дБ';
+      rafId = requestAnimationFrame(tick);
+    }
+    tick();
+  }
+
+  playOrigBtn.addEventListener('click', () => playBuffer(false));
+  playMastBtn.addEventListener('click', () => playBuffer(true));
+  stopBtn.addEventListener('click', stopPlayback);
+
+  async function renderMastered(){
+    const OfflineCtor = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+    const offline = new OfflineCtor(originalBuffer.numberOfChannels, originalBuffer.length, originalBuffer.sampleRate);
+    const src = offline.createBufferSource();
+    src.buffer = originalBuffer;
+    const endNode = buildChain(offline, src);
+    endNode.connect(offline.destination);
+    src.start();
+    const rendered = await offline.startRendering();
+
+    let peak = 0;
+    for (let ch=0; ch<rendered.numberOfChannels; ch++){
+      const d = rendered.getChannelData(ch);
+      for (let i=0;i<d.length;i++){ const a = Math.abs(d[i]); if (a>peak) peak=a; }
+    }
+    const targetPeak = dbToGain(-0.5);
+    const scale = peak > 0 ? Math.min(targetPeak/peak, targetPeak/0.0001) : 1;
+
+    return { buffer: rendered, scale };
+  }
+
+  function encodeWav(buffer, scale){
+    const numChannels = buffer.numberOfChannels;
+    const sampleRate = buffer.sampleRate;
+    const numFrames = buffer.length;
+    const bytesPerSample = 2;
+    const blockAlign = numChannels * bytesPerSample;
+    const dataSize = numFrames * blockAlign;
+    const bufferArr = new ArrayBuffer(44 + dataSize);
+    const view = new DataView(bufferArr);
+
+    function writeString(offset, str){ for (let i=0;i<str.length;i++) view.setUint8(offset+i, str.charCodeAt(i)); }
+
+    writeString(0, 'RIFF');
+    view.setUint32(4, 36 + dataSize, true);
+    writeString(8, 'WAVE');
+    writeString(12, 'fmt ');
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true);
+    view.setUint16(22, numChannels, true);
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * blockAlign, true);
+    view.setUint16(32, blockAlign, true);
+    view.setUint16(34, 16, true);
+    writeString(36, 'data');
+    view.setUint32(40, dataSize, true);
+
+    const channels = [];
+    for (let ch=0; ch<numChannels; ch++) channels.push(buffer.getChannelData(ch));
+
+    let offset = 44;
+    for (let i=0; i<numFrames; i++){
+      for (let ch=0; ch<numChannels; ch++){
+        let sample = channels[ch][i] * scale;
+        sample = Math.max(-1, Math.min(1, sample));
+        view.setInt16(offset, sample < 0 ? sample*0x8000 : sample*0x7FFF, true);
+        offset += 2;
+      }
+    }
+    return new Blob([bufferArr], { type: 'audio/wav' });
+  }
+
+  exportBtn.addEventListener('click', async () => {
+    if (!originalBuffer) return;
+    exportBtn.disabled = true;
+    setStatus('Обробка треку… (рендеринг відбувається локально, це може зайняти кілька секунд)');
+    try{
+      const { buffer, scale } = await renderMastered();
+      const blob = encodeWav(buffer, scale);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileNameBase + '-mastered.wav';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+      setStatus('Готово! Файл завантажено на ваш пристрій — нічого не збережено ніде більше.', 'ok');
+    }catch(err){
+      console.error(err);
+      setStatus('Помилка обробки. Спробуйте ще раз або інший файл.', 'err');
+    }finally{
+      exportBtn.disabled = false;
+    }
+  });
+})();
+</script>
+</body>
+</html>

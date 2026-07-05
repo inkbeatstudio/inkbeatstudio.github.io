@@ -1,0 +1,2172 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Equalizer Studio | INKBEAT</title>
+<meta name="description" content="Генератор промо-відео зі спектр-еквалайзером для TikTok, Reels та Shorts від InkBeat.">
+<meta name="theme-color" content="#000000">
+<link rel="icon" href="../../public/favicon-optimized.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../css/style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+  :root{
+    --bg:#000000;
+    --panel:#0F0F0F;
+    --panel-2:#161616;
+    --line:rgba(255,255,255,.08);
+    --text:#ffffff;
+    --muted:rgba(255,255,255,.45);
+    --accent1:#BF5FFF;
+    --accent2:#00BFFF;
+    --led:#00FFE5;
+    --led-off:#232323;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(1200px 600px at 50% -10%, #0F0F0F 0%, transparent 60%),
+      var(--bg);
+    color:var(--text);
+    font-family:'Space Grotesk', sans-serif;
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding:0 14px 60px;
+    cursor:none;
+  }
+  .rack{ width:100%; max-width:560px; }
+  header{ text-align:center; margin-bottom:22px; }
+  .eyebrow{
+    font-size:11px; letter-spacing:.24em; color:var(--accent1);
+    text-transform:uppercase; margin-bottom:8px;
+  }
+  h1{
+    font-family:'Syne', sans-serif; font-weight:800;
+    font-size:clamp(26px,7vw,36px); margin:0 0 6px; line-height:1.05;
+    background:linear-gradient(90deg,var(--text) 30%,var(--accent2) 100%);
+    -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+  }
+  .sub{ color:var(--muted); font-size:13px; max-width:420px; margin:0 auto; }
+
+  .panel{
+    background:linear-gradient(180deg,var(--panel-2),var(--panel));
+    border:1px solid var(--line); border-radius:18px; padding:18px;
+    position:relative; box-shadow:0 20px 60px -20px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.03);
+    margin-bottom:18px;
+  }
+  .screw{
+    position:absolute; width:7px;height:7px; border-radius:50%;
+    background:radial-gradient(circle at 35% 35%, #3a3a3a, #101010 70%);
+    box-shadow:inset 0 0 0 1px #000;
+  }
+  .screw.tl{top:10px;left:10px;} .screw.tr{top:10px;right:10px;}
+  .screw.bl{bottom:10px;left:10px;} .screw.br{bottom:10px;right:10px;}
+
+  .canvas-wrap{
+    position:relative; border-radius:10px; overflow:hidden;
+    border:1px solid var(--line); background:#000;
+    cursor:grab; touch-action:none;
+  }
+  .canvas-wrap.dragging{ cursor:grabbing; }
+  .canvas-wrap::after{
+    content:"⇕ перетягни спектр"; position:absolute; bottom:8px; left:50%;
+    transform:translateX(-50%); font-size:10px; letter-spacing:.08em;
+    color:rgba(255,255,255,.55); background:rgba(0,0,0,.35);
+    padding:4px 9px; border-radius:20px; pointer-events:none;
+    opacity:0; transition:opacity .2s ease;
+  }
+  .canvas-wrap:hover::after{ opacity:1; }
+  canvas{ width:100%; display:block; }
+  .led-row{
+    display:flex; align-items:center; gap:8px; margin-top:12px;
+    font-size:11px; letter-spacing:.12em; color:var(--muted); text-transform:uppercase;
+  }
+  .led{
+    width:9px;height:9px;border-radius:50%; background:var(--led-off);
+    box-shadow:0 0 0 rgba(51,255,158,0); transition:.15s;
+  }
+  .led.on{ background:var(--led); box-shadow:0 0 10px 2px var(--led); }
+
+  .section-title{
+    font-size:11px; letter-spacing:.18em; text-transform:uppercase;
+    color:var(--accent2); margin:20px 0 12px; padding-top:14px;
+    border-top:1px dashed var(--line);
+  }
+  .section-title:first-child{ margin-top:0; padding-top:0; border-top:none; }
+
+  .field{ margin-bottom:14px; }
+  label{
+    display:block; font-size:11px; letter-spacing:.1em; text-transform:uppercase;
+    color:var(--muted); margin-bottom:6px;
+  }
+  label .val{ color:var(--accent1); float:right; }
+  .file-btn{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    background:var(--bg); border:1px solid var(--line); border-radius:10px;
+    padding:11px 14px; cursor:pointer; font-size:13px; color:var(--text);
+  }
+  .file-btn span.name{
+    color:var(--muted); font-size:12px; overflow:hidden;
+    text-overflow:ellipsis; white-space:nowrap; max-width:60%;
+  }
+  input[type=file]{display:none;}
+  .drop-zone.drag-over{ border-color:var(--accent1); background:rgba(191,95,255,.08); }
+  input[type=text]{
+    width:100%; background:var(--bg); border:1px solid var(--line); border-radius:10px;
+    padding:11px 14px; color:var(--text); font-family:'JetBrains Mono',monospace; font-size:13px;
+  }
+  .row{ display:flex; gap:10px; }
+  .row .field{ flex:1; }
+  select{
+    width:100%; background:var(--bg); border:1px solid var(--line); border-radius:10px;
+    padding:11px 14px; color:var(--text); font-family:'JetBrains Mono',monospace; font-size:13px;
+    -webkit-appearance:none; appearance:none;
+  }
+  input[type=color]{
+    width:100%; height:42px; border:1px solid var(--line); border-radius:10px;
+    background:var(--bg); padding:4px;
+  }
+  input[type=range]{
+    width:100%; height:6px; border-radius:3px; background:var(--bg);
+    border:1px solid var(--line); -webkit-appearance:none; appearance:none; cursor:pointer;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none; width:16px; height:16px; border-radius:50%;
+    background:linear-gradient(135deg,var(--accent1),var(--accent2)); border:2px solid #fff2;
+    margin-top:-6px;
+  }
+  input[type=range]::-moz-range-thumb{
+    width:16px; height:16px; border-radius:50%; border:2px solid #fff2;
+    background:linear-gradient(135deg,var(--accent1),var(--accent2));
+  }
+  .toggle-row{
+    display:flex; align-items:center; justify-content:space-between;
+    background:var(--bg); border:1px solid var(--line); border-radius:10px;
+    padding:11px 14px; font-size:13px;
+  }
+  .toggle-row input[type=checkbox]{ width:18px; height:18px; accent-color:var(--accent1); }
+
+  .btn{
+    width:100%; border:none; border-radius:10px; padding:14px 16px;
+    font-family:'JetBrains Mono',monospace; font-weight:600; font-size:13px;
+    letter-spacing:.06em; text-transform:uppercase; cursor:pointer;
+    transition:transform .1s ease, opacity .15s ease;
+  }
+  .btn:active{ transform:scale(.98); }
+  .btn:disabled{ opacity:.4; cursor:not-allowed; }
+  .btn-primary{ background:linear-gradient(90deg,var(--accent1),var(--accent2)); color:#fff; }
+  .btn-ghost{ background:transparent; border:1px solid var(--line); color:var(--text); margin-top:10px; }
+  .btn-row{ display:flex; gap:10px; }
+  .btn-row .btn{ margin-top:10px; }
+
+  .progress{
+    height:6px; border-radius:3px; background:var(--bg); border:1px solid var(--line);
+    overflow:hidden; margin-top:14px;
+  }
+  .progress-fill{
+    height:100%; width:0%; background:linear-gradient(90deg,var(--accent1),var(--accent2));
+    transition:width .1s linear;
+  }
+  .status{ font-size:12px; color:var(--muted); margin-top:8px; min-height:16px; }
+  .note{
+    font-size:11.5px; color:var(--muted); line-height:1.6;
+    border-top:1px dashed var(--line); margin-top:16px; padding-top:12px;
+  }
+  .note b{ color:var(--text); }
+
+  .batch-item{
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+    background:var(--bg); border:1px solid var(--line); border-radius:8px;
+    padding:8px 10px; margin-top:8px; font-size:12px;
+  }
+  .batch-item .bi-name{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:46%; }
+  .batch-item .bi-status{ color:var(--muted); font-size:11px; }
+  .batch-item .bi-dl{ color:var(--accent1); text-decoration:none; font-size:11px; font-weight:600; }
+  .trim-readout{ font-size:11px; color:var(--muted); margin-top:6px; }
+  .trim-readout b{ color:var(--accent1); }
+</style>
+</head>
+<body>
+
+<div class="cursor-dot"></div>
+<div class="cursor-ring"></div>
+
+<div id="loading-screen">
+  <div class="loading-letters">
+    <span class="loading-letter gradient-text" style="animation-delay:.3s">I</span>
+    <span class="loading-letter gradient-text" style="animation-delay:.35s">N</span>
+    <span class="loading-letter gradient-text" style="animation-delay:.4s">K</span>
+    <span class="loading-letter gradient-text" style="animation-delay:.45s">B</span>
+    <span class="loading-letter gradient-text" style="animation-delay:.5s">E</span>
+    <span class="loading-letter gradient-text" style="animation-delay:.55s">A</span>
+    <span class="loading-letter gradient-text" style="animation-delay:.6s">T</span>
+  </div>
+  <div class="loading-bar-wrap"><div class="loading-bar" style="width:0%"></div></div>
+  <div class="loading-pct">0%</div>
+</div>
+
+<nav id="navbar">
+  <div class="nav-inner">
+    <a href="../../index.html" class="nav-logo gradient-text">INKBEAT</a>
+    <div class="nav-links">
+      <a href="../../index.html" data-i18n="nav.home">Головна</a>
+      <a href="../about.html" data-i18n="nav.about">Про мене</a>
+      <a href="../discography.html" data-i18n="nav.discography">Дискографія</a>
+      <a href="../services.html" data-i18n="nav.services">Послуги</a>
+      <a href="../portfolio.html" data-i18n="nav.portfolio">Портфоліо</a>
+      <a href="../contact.html" data-i18n="nav.contact">Контакти</a>
+    </div>
+    <div class="nav-right">
+      <div class="lang-btn">
+        <span class="lang-ua lang-toggle active" data-lang="uk">UA</span>
+        <span class="lang-sep">|</span>
+        <span class="lang-en lang-toggle" data-lang="en">EN</span>
+      </div>
+      <a href="index.html" class="nav-order nav-master active"><span class="nav-master-dot"></span><span data-i18n="nav.master">Мастеринг</span></a>
+    </div>
+    <button class="burger"><svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+  </div>
+</nav>
+
+<div class="mobile-menu">
+  <button class="mobile-close"><svg width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+  <a href="../../index.html" data-i18n="nav.home">Головна</a>
+  <a href="../about.html" data-i18n="nav.about">Про мене</a>
+  <a href="../discography.html" data-i18n="nav.discography">Дискографія</a>
+  <a href="../services.html" data-i18n="nav.services">Послуги</a>
+  <a href="../portfolio.html" data-i18n="nav.portfolio">Портфоліо</a>
+  <a href="../contact.html" data-i18n="nav.contact">Контакти</a>
+  <a href="index.html" data-i18n="nav.master">Мастеринг</a>
+  <div class="mobile-lang-switch">
+    <span class="lang-ua lang-toggle active" data-lang="uk">UA</span>
+    <span class="lang-sep">|</span>
+    <span class="lang-en lang-toggle" data-lang="en">EN</span>
+  </div>
+</div>
+
+<div class="rack" style="margin-top:120px">
+  <header>
+    <div class="eyebrow"><a href="index.html" style="color:inherit;text-decoration:none">Аудіо-студія</a> / Equalizer Studio</div>
+    <h1 class="gradient-text">EQUALIZER STUDIO</h1>
+    <p class="sub">Завантаж картинку або відео і трек — отримай промо-відео зі спектр-еквалайзером для TikTok, Reels та Shorts.</p>
+  </header>
+
+
+  <div class="panel">
+    <div class="screw tl"></div><div class="screw tr"></div>
+    <div class="screw bl"></div><div class="screw br"></div>
+    <div class="canvas-wrap" id="canvasWrap">
+      <canvas id="canvas" width="1080" height="1080"></canvas>
+    </div>
+    <div class="led-row">
+      <div class="led" id="led"></div>
+      <span id="ledText">IDLE</span>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="screw tl"></div><div class="screw tr"></div>
+    <div class="screw bl"></div><div class="screw br"></div>
+
+    <div class="section-title">Пресети</div>
+    <div class="field">
+      <input type="text" id="presetName" placeholder="Назва пресету (напр. Мій стиль 1)">
+    </div>
+    <div class="field">
+      <label>Збережені пресети</label>
+      <select id="presetSelect"><option value="">— немає —</option></select>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" id="presetSaveBtn">💾 Зберегти</button>
+      <button class="btn btn-ghost" id="presetLoadBtn">📂 Завантажити</button>
+      <button class="btn btn-ghost" id="presetDeleteBtn">🗑 Видалити</button>
+    </div>
+
+    <div class="section-title">Файли</div>
+
+    <div class="field">
+      <label>Тип фону</label>
+      <select id="bgTypeSel">
+        <option value="image" selected>Зображення</option>
+        <option value="video">Відео</option>
+      </select>
+    </div>
+
+    <div class="field" id="imgFieldWrap">
+      <label>Обкладинка (JPG/PNG)</label>
+      <label class="file-btn drop-zone" id="imgBtn" for="imgInput">
+        <span>Обрати зображення або перетягнути сюди</span>
+        <span class="name" id="imgName">не обрано</span>
+      </label>
+      <input type="file" id="imgInput" accept="image/*">
+    </div>
+
+    <div class="field" id="videoFieldWrap" style="display:none;">
+      <label>Відео фону (MP4/MOV)</label>
+      <label class="file-btn drop-zone" id="videoBtn" for="videoInput">
+        <span>Обрати відео або перетягнути сюди</span>
+        <span class="name" id="videoName">не обрано</span>
+      </label>
+      <input type="file" id="videoInput" accept="video/*">
+    </div>
+
+    <div class="field toggle-row">
+      <span>Батч-режим (кілька треків одразу)</span>
+      <input type="checkbox" id="batchToggle">
+    </div>
+
+    <div class="field" id="audioFieldWrap">
+      <label>Аудіо (MP3/WAV/M4A)</label>
+      <label class="file-btn drop-zone" id="audioBtn" for="audioInput">
+        <span>Обрати трек або перетягнути сюди</span>
+        <span class="name" id="audioName">не обрано</span>
+      </label>
+      <input type="file" id="audioInput" accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg,.flac">
+    </div>
+
+    <div class="field" id="batchFieldWrap" style="display:none;">
+      <label>Треки (можна кілька файлів одразу)</label>
+      <label class="file-btn drop-zone" id="batchBtn" for="batchInput">
+        <span>Обрати треки</span>
+        <span class="name" id="batchName">не обрано</span>
+      </label>
+      <input type="file" id="batchInput" accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg,.flac" multiple>
+      <div id="batchList"></div>
+    </div>
+
+    <div class="section-title" id="trimSection" style="display:none;">Обрізка треку</div>
+    <div class="field" id="trimFieldWrap" style="display:none;">
+      <label>Початок фрагменту <span class="val" id="trimStartVal">0:00</span></label>
+      <input type="range" id="trimStartSlider" min="0" max="0" step="0.1" value="0">
+      <label style="margin-top:12px;">Кінець фрагменту <span class="val" id="trimEndVal">0:00</span></label>
+      <input type="range" id="trimEndSlider" min="0" max="0" step="0.1" value="0">
+      <div class="trim-readout" id="trimReadout"></div>
+      <button class="btn btn-ghost" id="hookBtn">🔥 Знайти найяскравіший момент (хук)</button>
+      <div class="status" id="hookStatus"></div>
+    </div>
+
+    <div class="field">
+      <label>Назва треку (текст на відео, необов'язково)</label>
+      <input type="text" id="titleInput" placeholder="INKBEAT — Назва треку" maxlength="60">
+    </div>
+
+    <div class="section-title">Бренд і вотермарка</div>
+    <div class="field toggle-row">
+      <span>Показувати вотермарку</span>
+      <input type="checkbox" id="watermarkToggle">
+    </div>
+    <div class="field">
+      <label>Текст (нік / бренд)</label>
+      <input type="text" id="watermarkText" placeholder="@yourname" maxlength="30">
+    </div>
+    <div class="row">
+      <div class="field">
+        <label>Позиція</label>
+        <select id="watermarkPos">
+          <option value="br" selected>Знизу справа</option>
+          <option value="bl">Знизу зліва</option>
+          <option value="tr">Зверху справа</option>
+          <option value="tl">Зверху зліва</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Прозорість <span class="val" id="watermarkOpacityVal">80%</span></label>
+        <input type="range" id="watermarkOpacity" min="10" max="100" value="80">
+      </div>
+    </div>
+
+    <div class="section-title">Спектр / еквалайзер</div>
+
+    <div class="field">
+      <label>Стиль спектру</label>
+      <select id="styleSel">
+        <option value="bars" selected>Бари (класика)</option>
+        <option value="mirrorBars">Бари — Дзеркальні</option>
+        <option value="ledMatrix">Бари — LED матриця (вінтаж)</option>
+        <option value="wave">Хвиля (лінія)</option>
+        <option value="neonFill">Хвиля — Неонова заливка</option>
+        <option value="particles">Частинки (сітка)</option>
+        <option value="hexGrid">Сітка — Шестикутники</option>
+        <option value="liquidBlob">Блоб — Рідка форма</option>
+        <option value="circleRays">Коло — Промені</option>
+        <option value="circleRing">Коло — Пульсуюче кільце</option>
+        <option value="circleDots">Коло — Крапки по колу</option>
+        <option value="circleImage">Коло — З фото в центрі</option>
+        <option value="auroraRings">Коло — Аврора-кільця</option>
+      </select>
+    </div>
+
+    <button class="btn btn-ghost" id="randomStyleBtn" type="button">🎲 Випадковий стиль (натхнення)</button>
+
+    <div class="row" style="margin-top:14px;">
+      <div class="field">
+        <label>Колірний режим</label>
+        <select id="colorModeSel">
+          <option value="gradient" selected>Градієнт</option>
+          <option value="solid">Однотонний</option>
+          <option value="rainbow">Райдужний (авто)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Колір</label>
+        <input type="color" id="colorPick" value="#BF5FFF">
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Чутливість <span class="val" id="sensitivityVal">100%</span></label>
+      <input type="range" id="sensitivitySlider" min="50" max="200" value="100">
+    </div>
+    <div class="field">
+      <label>Плавність <span class="val" id="smoothVal">55%</span></label>
+      <input type="range" id="smoothSlider" min="0" max="90" value="55">
+    </div>
+    <div class="field">
+      <label>Інтенсивність світіння <span class="val" id="glowVal">100%</span></label>
+      <input type="range" id="glowSlider" min="0" max="200" value="100">
+    </div>
+
+    <div class="field">
+      <label>Розмір спектру <span class="val" id="spectrumScaleVal">100%</span></label>
+      <input type="range" id="spectrumScaleSlider" min="50" max="200" value="100">
+    </div>
+    <div class="row">
+      <div class="field">
+        <label>Зміщення по X <span class="val" id="spectrumPosXVal">0%</span></label>
+        <input type="range" id="spectrumPosX" min="-100" max="100" value="0">
+      </div>
+      <div class="field">
+        <label>Зміщення по Y <span class="val" id="spectrumPosYVal">0%</span></label>
+        <input type="range" id="spectrumPosY" min="-100" max="100" value="0">
+      </div>
+    </div>
+    <button class="btn btn-ghost" id="resetSpectrumPosBtn" type="button">↺ Скинути розмір і позицію</button>
+    <div class="status">Порада: спектр можна перетягнути прямо на прев'ю вгорі — мишкою або пальцем.</div>
+
+    <div class="section-title" id="circleImgSection" style="display:none;">Зображення в колі</div>
+    <div class="field" id="circleImgFieldWrap" style="display:none;">
+      <label>Картинка в центрі кола</label>
+      <label class="file-btn drop-zone" id="centerImgBtn" for="centerImgInput">
+        <span>Обрати картинку</span>
+        <span class="name" id="centerImgName">не обрано (візьме обкладинку)</span>
+      </label>
+      <input type="file" id="centerImgInput" accept="image/*">
+    </div>
+    <div class="row" id="circleImgRow1" style="display:none;">
+      <div class="field">
+        <label>Форма</label>
+        <select id="centerImgShape">
+          <option value="circle" selected>Коло</option>
+          <option value="rounded">Заокруглений квадрат</option>
+          <option value="hex">Шестикутник</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Розмір <span class="val" id="centerImgSizeVal">100%</span></label>
+        <input type="range" id="centerImgSize" min="60" max="160" value="100">
+      </div>
+    </div>
+    <div class="row" id="circleImgRow2" style="display:none;">
+      <div class="field toggle-row">
+        <span>Обертання</span>
+        <input type="checkbox" id="centerImgSpin">
+      </div>
+      <div class="field toggle-row">
+        <span>Пульс під біт</span>
+        <input type="checkbox" id="centerImgPulse" checked>
+      </div>
+    </div>
+    <div class="row" id="circleImgRow3" style="display:none;">
+      <div class="field">
+        <label>Товщина рамки <span class="val" id="centerImgBorderVal">3px</span></label>
+        <input type="range" id="centerImgBorder" min="0" max="14" value="3">
+      </div>
+      <div class="field">
+        <label>Швидкість обертання <span class="val" id="centerImgSpinSpeedVal">1.0x</span></label>
+        <input type="range" id="centerImgSpinSpeed" min="0" max="30" value="10">
+      </div>
+    </div>
+
+    <div class="section-title">Фон і рух</div>
+
+    <div class="field">
+      <label>Рух картинки/відео під біт</label>
+      <select id="motionSel">
+        <option value="none">Без руху</option>
+        <option value="zoomBeat" selected>Зум під біт</option>
+        <option value="rotateSway">Легке погойдування</option>
+        <option value="panDrift">Плавний дрейф</option>
+        <option value="shakeBeat">Тремтіння на басах</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label>Яскравість фону <span class="val" id="brightVal">100%</span></label>
+      <input type="range" id="bgBrightness" min="50" max="150" value="100">
+    </div>
+    <div class="field">
+      <label>Контраст фону <span class="val" id="contrastVal">100%</span></label>
+      <input type="range" id="bgContrast" min="50" max="150" value="100">
+    </div>
+    <div class="field">
+      <label>Насиченість фону <span class="val" id="satVal">100%</span></label>
+      <input type="range" id="bgSaturation" min="0" max="200" value="100">
+    </div>
+    <div class="field">
+      <label>Розмиття фону <span class="val" id="blurVal">0px</span></label>
+      <input type="range" id="bgBlur" min="0" max="15" value="0">
+    </div>
+    <div class="field">
+      <label>Затемнення <span class="val" id="overlayVal">100%</span></label>
+      <input type="range" id="overlayStrength" min="0" max="150" value="100">
+    </div>
+
+    <div class="row">
+      <div class="field toggle-row">
+        <span>Зорі на фоні</span>
+        <input type="checkbox" id="starsToggle">
+      </div>
+      <div class="field toggle-row">
+        <span>Віньєтка</span>
+        <input type="checkbox" id="vignetteToggle">
+      </div>
+    </div>
+
+    <div class="section-title">Формат і генерація</div>
+
+    <div class="row">
+      <div class="field">
+        <label>Формат</label>
+        <select id="aspect">
+          <option value="square">Квадрат 1:1 (TikTok/IG пост)</option>
+          <option value="vertical" selected>Вертикаль 9:16 (Reels/Shorts)</option>
+          <option value="horizontal">Горизонталь 16:9 (YouTube)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Якість експорту</label>
+        <select id="qualitySel">
+          <option value="standard">Стандарт (швидко)</option>
+          <option value="high" selected>Висока</option>
+          <option value="max">Максимальна (2x, повільніше)</option>
+        </select>
+      </div>
+    </div>
+
+    <button class="btn btn-primary" id="recordBtn" disabled>Згенерувати відео</button>
+    <button class="btn btn-ghost" id="cancelBtn" style="display:none;">✕ Скасувати запис</button>
+    <button class="btn btn-ghost" id="batchGenAllBtn" style="display:none;" disabled>Згенерувати всі треки</button>
+    <button class="btn btn-ghost" id="downloadBtn" style="display:none;">Завантажити відео</button>
+    <button class="btn btn-ghost" id="downloadAllZipBtn" style="display:none;">Завантажити всі (ZIP)</button>
+
+    <div class="progress"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="status" id="status">Завантаж файли, щоб почати.</div>
+
+    <div class="note">
+      <b>Як користуватись:</b> обери фон (картинка або відео) і трек → за бажанням обріж фрагмент або натисни «Знайти хук» → натисни «Згенерувати відео» → трек програється один раз у фоні, поки йде запис. Коли трек закінчиться — з'явиться кнопка завантаження.<br><br>
+      <b>Батч-режим:</b> вмикай, якщо треба обробити кілька треків одним фоном і стилем — для кожного треку хук підбирається автоматично.<br><br>
+      <b>Важливо:</b> на iPhone (Safari) файл збережеться у форматі MP4. На комп'ютері (Chrome/Firefox) файл буде у форматі WEBM — якщо TikTok/Instagram не приймають його напряму, сконвертуй безкоштовно на cloudconvert.com.
+    </div>
+  </div>
+
+  <div class="toolnav" style="margin-top:16px;text-align:center;font-size:12px">
+    <a href="index.html" style="color:var(--muted);text-decoration:none;border-bottom:1px dotted var(--muted)">← Усі аудіо-інструменти</a>
+  </div>
+  <p style="text-align:center;color:rgba(255,255,255,.3);font-size:12px;margin-top:14px">Працює повністю у браузері. Файли нікуди не завантажуються.</p>
+</div>
+
+<footer style="margin-top:60px;width:100%">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <div class="footer-brand-name gradient-text">INKBEAT</div>
+        <p class="footer-desc" data-i18n="footer.desc">Музичний артист • Автор пісень • Автор текстів. Музика, яка залишає слід.</p>
+        <a href="mailto:inkbeat.mail@gmail.com" class="footer-email">inkbeat.mail@gmail.com</a>
+      </div>
+      <div>
+        <div class="footer-col-title" data-i18n="footer.nav">Навігація</div>
+        <ul class="footer-links">
+          <li><a href="../../index.html" data-i18n="nav.home">Головна</a></li>
+          <li><a href="../about.html" data-i18n="nav.about">Про мене</a></li>
+          <li><a href="../discography.html" data-i18n="nav.discography">Дискографія</a></li>
+          <li><a href="../services.html" data-i18n="nav.services">Послуги</a></li>
+          <li><a href="../portfolio.html" data-i18n="nav.portfolio">Портфоліо</a></li>
+          <li><a href="../contact.html" data-i18n="nav.contact">Контакти</a></li>
+          <li><a href="index.html" data-i18n="nav.master">Мастеринг</a></li>
+        </ul>
+      </div>
+      <div>
+        <div class="footer-col-title" data-i18n="footer.socials">Соцмережі</div>
+        <ul class="footer-links footer-social-links">
+          <li><a href="https://open.spotify.com/artist/6hkNwIjIfDcMDp5AObEbO9" target="_blank" rel="noopener">Spotify</a></li>
+          <li><a href="https://www.instagram.com/_.inkbeat._/" target="_blank" rel="noopener">Instagram</a></li>
+          <li><a href="https://www.youtube.com/@1nkBeat12/shorts" target="_blank" rel="noopener">YouTube</a></li>
+          <li><a href="https://www.tiktok.com/@inkbeat_" target="_blank" rel="noopener">TikTok</a></li>
+          <li><a href="https://music.apple.com/ua/artist/inkbeat/1850263830?l=uk" target="_blank" rel="noopener">Apple Music</a></li>
+          <li><a href="https://soundcloud.com/akabbvwcbvle" target="_blank" rel="noopener">SoundCloud</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p class="footer-copy">© <span id="year"></span> InkBeat. <span data-i18n="footer.rights">Всі права захищені.</span></p>
+      <p class="footer-copy" data-i18n="footer.made">Зроблено з ♥ в Україні</p>
+    </div>
+  </div>
+</footer>
+
+<script src="../../js/main.js"></script>
+<script>document.getElementById('year').textContent = new Date().getFullYear()</script>
+
+<script>
+const imgInput = document.getElementById('imgInput');
+const videoInput = document.getElementById('videoInput');
+const audioInput = document.getElementById('audioInput');
+const batchInput = document.getElementById('batchInput');
+const centerImgInput = document.getElementById('centerImgInput');
+const imgBtn = document.getElementById('imgBtn');
+const videoBtn = document.getElementById('videoBtn');
+const audioBtn = document.getElementById('audioBtn');
+const batchBtn = document.getElementById('batchBtn');
+const centerImgBtn = document.getElementById('centerImgBtn');
+const imgName = document.getElementById('imgName');
+const videoName = document.getElementById('videoName');
+const audioName = document.getElementById('audioName');
+const batchName = document.getElementById('batchName');
+const centerImgName = document.getElementById('centerImgName');
+const imgFieldWrap = document.getElementById('imgFieldWrap');
+const videoFieldWrap = document.getElementById('videoFieldWrap');
+const audioFieldWrap = document.getElementById('audioFieldWrap');
+const batchFieldWrap = document.getElementById('batchFieldWrap');
+const batchList = document.getElementById('batchList');
+const batchToggle = document.getElementById('batchToggle');
+const bgTypeSel = document.getElementById('bgTypeSel');
+const titleInput = document.getElementById('titleInput');
+const aspectSel = document.getElementById('aspect');
+const qualitySel = document.getElementById('qualitySel');
+const styleSel = document.getElementById('styleSel');
+const colorModeSel = document.getElementById('colorModeSel');
+const colorPick = document.getElementById('colorPick');
+const sensitivitySlider = document.getElementById('sensitivitySlider');
+const smoothSlider = document.getElementById('smoothSlider');
+const glowSlider = document.getElementById('glowSlider');
+const spectrumScaleSlider = document.getElementById('spectrumScaleSlider');
+const spectrumPosX = document.getElementById('spectrumPosX');
+const spectrumPosY = document.getElementById('spectrumPosY');
+const resetSpectrumPosBtn = document.getElementById('resetSpectrumPosBtn');
+const canvasWrap = document.getElementById('canvasWrap');
+const motionSel = document.getElementById('motionSel');
+const bgBrightness = document.getElementById('bgBrightness');
+const bgContrast = document.getElementById('bgContrast');
+const bgSaturation = document.getElementById('bgSaturation');
+const bgBlur = document.getElementById('bgBlur');
+const overlayStrength = document.getElementById('overlayStrength');
+const starsToggle = document.getElementById('starsToggle');
+const vignetteToggle = document.getElementById('vignetteToggle');
+const recordBtn = document.getElementById('recordBtn');
+const cancelBtn = document.getElementById('cancelBtn');
+const batchGenAllBtn = document.getElementById('batchGenAllBtn');
+const downloadBtn = document.getElementById('downloadBtn');
+const downloadAllZipBtn = document.getElementById('downloadAllZipBtn');
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const statusEl = document.getElementById('status');
+const progressFill = document.getElementById('progressFill');
+const led = document.getElementById('led');
+const ledText = document.getElementById('ledText');
+
+const trimSection = document.getElementById('trimSection');
+const trimFieldWrap = document.getElementById('trimFieldWrap');
+const trimStartSlider = document.getElementById('trimStartSlider');
+const trimEndSlider = document.getElementById('trimEndSlider');
+const trimStartVal = document.getElementById('trimStartVal');
+const trimEndVal = document.getElementById('trimEndVal');
+const trimReadout = document.getElementById('trimReadout');
+const hookBtn = document.getElementById('hookBtn');
+const hookStatus = document.getElementById('hookStatus');
+
+const watermarkToggle = document.getElementById('watermarkToggle');
+const watermarkText = document.getElementById('watermarkText');
+const watermarkPos = document.getElementById('watermarkPos');
+const watermarkOpacity = document.getElementById('watermarkOpacity');
+
+const circleImgSection = document.getElementById('circleImgSection');
+const circleImgFieldWrap = document.getElementById('circleImgFieldWrap');
+const circleImgRow1 = document.getElementById('circleImgRow1');
+const circleImgRow2 = document.getElementById('circleImgRow2');
+const circleImgRow3 = document.getElementById('circleImgRow3');
+const centerImgShape = document.getElementById('centerImgShape');
+const centerImgSize = document.getElementById('centerImgSize');
+const centerImgSpin = document.getElementById('centerImgSpin');
+const centerImgPulse = document.getElementById('centerImgPulse');
+const centerImgBorder = document.getElementById('centerImgBorder');
+const centerImgSpinSpeed = document.getElementById('centerImgSpinSpeed');
+
+const presetName = document.getElementById('presetName');
+const presetSelect = document.getElementById('presetSelect');
+const presetSaveBtn = document.getElementById('presetSaveBtn');
+const presetLoadBtn = document.getElementById('presetLoadBtn');
+const presetDeleteBtn = document.getElementById('presetDeleteBtn');
+const randomStyleBtn = document.getElementById('randomStyleBtn');
+
+let img = null, imgReady = false;
+let bgVideo = null, videoReady = false;
+let audioEl = null, audioReady = false, audioFileRef = null;
+let centerImg = null, centerImgReady = false;
+let audioCtx, analyser;
+let dataArray = new Uint8Array(128);
+let smoothArray = new Float32Array(128);
+let rafId = null;
+let recording = false;
+let cancelRequested = false;
+let activeRecorder = null;
+let stars = [];
+let batchFiles = [];
+
+function bindValueLabel(slider, labelId, suffix){
+  const el = document.getElementById(labelId);
+  const update = () => { el.textContent = slider.value + suffix; };
+  slider.addEventListener('input', update);
+  update();
+}
+bindValueLabel(sensitivitySlider, 'sensitivityVal', '%');
+bindValueLabel(smoothSlider, 'smoothVal', '%');
+bindValueLabel(glowSlider, 'glowVal', '%');
+bindValueLabel(spectrumScaleSlider, 'spectrumScaleVal', '%');
+bindValueLabel(spectrumPosX, 'spectrumPosXVal', '%');
+bindValueLabel(spectrumPosY, 'spectrumPosYVal', '%');
+bindValueLabel(bgBrightness, 'brightVal', '%');
+bindValueLabel(bgContrast, 'contrastVal', '%');
+bindValueLabel(bgSaturation, 'satVal', '%');
+bindValueLabel(bgBlur, 'blurVal', 'px');
+bindValueLabel(overlayStrength, 'overlayVal', '%');
+bindValueLabel(watermarkOpacity, 'watermarkOpacityVal', '%');
+bindValueLabel(centerImgSize, 'centerImgSizeVal', '%');
+bindValueLabel(centerImgBorder, 'centerImgBorderVal', 'px');
+centerImgSpinSpeed.addEventListener('input', () => {
+  document.getElementById('centerImgSpinSpeedVal').textContent = (centerImgSpinSpeed.value/10).toFixed(1) + 'x';
+});
+document.getElementById('centerImgSpinSpeedVal').textContent = (centerImgSpinSpeed.value/10).toFixed(1) + 'x';
+
+function fakeFill(t){
+  const len = dataArray.length;
+  const beatFreq = 1.3;
+  const phase = (t*beatFreq) % 1;
+  const beatEnv = Math.max(0, 1 - phase*5);
+  for(let i=0;i<len;i++){
+    const wobble = Math.sin(i*0.18 + t*2.2) * 0.5 + 0.5;
+    const pulse = Math.sin(t*1.6 + i*0.04) * 0.5 + 0.5;
+    const envelope = Math.sin((i/len) * Math.PI);
+    let v = (wobble*0.6 + pulse*0.4) * envelope * 230;
+    if(i < 10){ v = Math.max(v, beatEnv * 230); }
+    dataArray[i] = Math.max(6, Math.min(255, v));
+  }
+}
+
+function updateSmoothing(){
+  const smoothing = Math.min(0.95, Math.max(0, smoothSlider.value/100));
+  for(let i=0;i<dataArray.length;i++){
+    smoothArray[i] = smoothArray[i]*smoothing + dataArray[i]*(1-smoothing);
+  }
+}
+
+function val(i){
+  const gain = sensitivitySlider.value/100;
+  return Math.min(255, (smoothArray[i]||0) * gain);
+}
+
+function getBass(){
+  let sum = 0;
+  const n = 10;
+  for(let i=0;i<n;i++){ sum += val(i); }
+  return (sum/n) / 255;
+}
+
+function getColors(t){
+  const mode = colorModeSel.value;
+  if(mode === 'rainbow'){
+    const hue = (t*40) % 360;
+    return { a:`hsl(${hue},90%,60%)`, b:`hsl(${(hue+50)%360},90%,55%)` };
+  }
+  if(mode === 'solid'){
+    return { a: colorPick.value, b: colorPick.value };
+  }
+  return { a: colorPick.value, b: '#00BFFF' };
+}
+
+function initStars(){
+  const cw = canvas.width, ch = canvas.height;
+  stars = [];
+  for(let i=0;i<100;i++){
+    stars.push({
+      x: Math.random()*cw, y: Math.random()*ch,
+      r: Math.random()*1.6 + 0.4,
+      phase: Math.random()*Math.PI*2,
+      speed: Math.random()*0.6 + 0.25
+    });
+  }
+}
+function drawStars(t, bass){
+  ctx.save();
+  for(const s of stars){
+    const tw = Math.sin(t*s.speed + s.phase) * 0.5 + 0.5;
+    ctx.globalAlpha = Math.min(1, 0.2 + tw*0.5 + bass*0.3);
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, s.r + bass*1.4, 0, Math.PI*2);
+    ctx.fill();
+  }
+  ctx.restore();
+  ctx.globalAlpha = 1;
+}
+
+function drawVignette(){
+  const cw = canvas.width, ch = canvas.height;
+  const grad = ctx.createRadialGradient(cw/2,ch/2, Math.min(cw,ch)*0.3, cw/2,ch/2, Math.max(cw,ch)*0.75);
+  grad.addColorStop(0,'rgba(0,0,0,0)');
+  grad.addColorStop(1,'rgba(0,0,0,0.65)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0,0,cw,ch);
+}
+
+function drawOverlay(){
+  const cw = canvas.width, ch = canvas.height;
+  const strength = overlayStrength.value/100;
+  const overlay = ctx.createLinearGradient(0,0,0,ch);
+  overlay.addColorStop(0, `rgba(0,0,0,${(0.2*strength).toFixed(3)})`);
+  overlay.addColorStop(0.55, `rgba(0,0,0,${(0.4*strength).toFixed(3)})`);
+  overlay.addColorStop(1, `rgba(0,0,0,${Math.min(0.95,0.82*strength).toFixed(3)})`);
+  ctx.fillStyle = overlay;
+  ctx.fillRect(0,0,cw,ch);
+}
+
+function setupDropZone(zone, input, onFile){
+  ['dragenter','dragover'].forEach(evt => {
+    zone.addEventListener(evt, (e) => { e.preventDefault(); e.stopPropagation(); zone.classList.add('drag-over'); });
+  });
+  ['dragleave','drop'].forEach(evt => {
+    zone.addEventListener(evt, (e) => { e.preventDefault(); e.stopPropagation(); zone.classList.remove('drag-over'); });
+  });
+  zone.addEventListener('drop', (e) => {
+    const file = e.dataTransfer.files[0];
+    if(file){
+      const dt = new DataTransfer();
+      dt.items.add(file);
+      input.files = dt.files;
+      onFile(file);
+    }
+  });
+}
+
+function updateBgFieldsVisibility(){
+  const v = bgTypeSel.value;
+  imgFieldWrap.style.display = v === 'image' ? 'block' : 'none';
+  videoFieldWrap.style.display = v === 'video' ? 'block' : 'none';
+}
+bgTypeSel.addEventListener('change', () => { updateBgFieldsVisibility(); checkReady(); });
+
+function loadImageFile(f){
+  if(!f) return;
+  imgName.textContent = f.name;
+  const url = URL.createObjectURL(f);
+  const image = new Image();
+  image.onload = () => { img = image; imgReady = true; checkReady(); };
+  image.src = url;
+}
+
+function loadVideoFile(f){
+  if(!f) return;
+  videoName.textContent = f.name;
+  const url = URL.createObjectURL(f);
+  if(bgVideo){ bgVideo.pause(); }
+  bgVideo = document.createElement('video');
+  bgVideo.src = url;
+  bgVideo.muted = true;
+  bgVideo.loop = true;
+  bgVideo.playsInline = true;
+  bgVideo.addEventListener('loadeddata', () => {
+    videoReady = true;
+    bgVideo.play().catch(()=>{});
+    checkReady();
+  });
+}
+
+function loadCenterImgFile(f){
+  if(!f) return;
+  centerImgName.textContent = f.name;
+  const url = URL.createObjectURL(f);
+  const image = new Image();
+  image.onload = () => { centerImg = image; centerImgReady = true; };
+  image.src = url;
+}
+
+function formatTime(s){
+  s = Math.max(0, s||0);
+  const m = Math.floor(s/60), sec = Math.floor(s%60);
+  return `${m}:${sec.toString().padStart(2,'0')}`;
+}
+
+function updateTrimLabels(){
+  let start = parseFloat(trimStartSlider.value);
+  let end = parseFloat(trimEndSlider.value);
+  const max = parseFloat(trimEndSlider.max) || 0;
+  if(end <= start + 1){ end = Math.min(max, start + 1); trimEndSlider.value = end; }
+  trimStartVal.textContent = formatTime(start);
+  trimEndVal.textContent = formatTime(end);
+  trimReadout.innerHTML = `Обрано фрагмент <b>${formatTime(start)}</b> — <b>${formatTime(end)}</b> (тривалість ${formatTime(end-start)})`;
+}
+trimStartSlider.addEventListener('input', updateTrimLabels);
+trimEndSlider.addEventListener('input', updateTrimLabels);
+
+function setupTrimRange(duration){
+  trimSection.style.display = 'block';
+  trimFieldWrap.style.display = 'block';
+  trimStartSlider.max = duration;
+  trimEndSlider.max = duration;
+  trimStartSlider.value = 0;
+  trimEndSlider.value = duration;
+  updateTrimLabels();
+}
+
+async function detectHookStart(file, hookLen){
+  const buf = await file.arrayBuffer();
+  const tempCtx = new (window.AudioContext || window.webkitAudioContext)();
+  const audioBuffer = await tempCtx.decodeAudioData(buf);
+  const duration = audioBuffer.duration;
+  const sr = audioBuffer.sampleRate;
+  const channelData = audioBuffer.getChannelData(0);
+  const hop = 1;
+  const winSamples = Math.max(1, Math.floor(hookLen * sr));
+  const hopSamples = Math.max(1, Math.floor(hop * sr));
+  let bestScore = -1, bestStart = 0;
+  for(let pos=0; pos + winSamples <= channelData.length; pos += hopSamples){
+    let sum = 0, count = 0;
+    for(let i=pos;i<pos+winSamples;i+=8){
+      const v = channelData[i];
+      sum += v*v;
+      count++;
+    }
+    const rms = count ? sum/count : 0;
+    if(rms > bestScore){ bestScore = rms; bestStart = pos/sr; }
+  }
+  try{ await tempCtx.close(); }catch(e){}
+  return Math.max(0, Math.min(Math.max(0,duration - hookLen), bestStart));
+}
+
+hookBtn.addEventListener('click', async () => {
+  if(!audioFileRef) return;
+  hookBtn.disabled = true;
+  hookStatus.textContent = 'Аналізую трек...';
+  try{
+    const maxDur = parseFloat(trimEndSlider.max) || 15;
+    const hookLen = Math.min(15, maxDur);
+    const start = await detectHookStart(audioFileRef, hookLen);
+    trimStartSlider.value = start;
+    trimEndSlider.value = Math.min(maxDur, start + hookLen);
+    updateTrimLabels();
+    hookStatus.textContent = `Знайдено найенергійніший момент: ${formatTime(start)}.`;
+  }catch(err){
+    hookStatus.textContent = 'Не вдалося проаналізувати трек у цьому браузері.';
+  }
+  hookBtn.disabled = false;
+});
+
+function loadAudioFile(f){
+  if(!f) return;
+  audioFileRef = f;
+  audioName.textContent = f.name;
+  const url = URL.createObjectURL(f);
+  if(audioEl){ audioEl.pause(); }
+  audioEl = new Audio();
+  audioEl.src = url;
+  audioEl.crossOrigin = 'anonymous';
+  audioEl.addEventListener('loadedmetadata', () => {
+    audioReady = true;
+    setupTrimRange(audioEl.duration);
+    checkReady();
+  });
+}
+
+function sanitizeName(n){
+  return n.replace(/\.[^.]+$/, '').replace(/[^a-zA-Zа-яА-ЯіІїЇєЄ0-9_-]+/g, '_').slice(0,40) || 'track';
+}
+
+function renderBatchList(){
+  batchList.innerHTML = '';
+  batchFiles.forEach((item) => {
+    const row = document.createElement('div');
+    row.className = 'batch-item';
+    const nameSpan = document.createElement('span');
+    nameSpan.className = 'bi-name';
+    nameSpan.textContent = item.name;
+    const statusSpan = document.createElement('span');
+    statusSpan.className = 'bi-status';
+    statusSpan.textContent = item.status;
+    row.appendChild(nameSpan);
+    row.appendChild(statusSpan);
+    if(item.url){
+      const a = document.createElement('a');
+      a.href = item.url;
+      a.download = sanitizeName(item.name) + '.' + item.ext;
+      a.className = 'bi-dl';
+      a.textContent = 'завантажити';
+      row.appendChild(a);
+    }
+    batchList.appendChild(row);
+  });
+}
+
+function loadBatchFiles(fileList){
+  batchFiles = Array.from(fileList).map(f => ({ file:f, name:f.name, status:'очікує', url:null, ext:null, blobRef:null }));
+  batchName.textContent = batchFiles.length ? `${batchFiles.length} треків обрано` : 'не обрано';
+  renderBatchList();
+  checkReady();
+}
+
+batchInput.addEventListener('change', (e) => loadBatchFiles(e.target.files));
+setupDropZone(batchBtn, batchInput, () => loadBatchFiles(batchInput.files));
+
+batchToggle.addEventListener('change', () => {
+  const on = batchToggle.checked;
+  audioFieldWrap.style.display = on ? 'none' : 'block';
+  batchFieldWrap.style.display = on ? 'block' : 'none';
+  trimSection.style.display = on ? 'none' : (audioReady ? 'block' : 'none');
+  trimFieldWrap.style.display = on ? 'none' : (audioReady ? 'block' : 'none');
+  recordBtn.style.display = on ? 'none' : 'block';
+  batchGenAllBtn.style.display = on ? 'block' : 'none';
+  downloadBtn.style.display = 'none';
+  downloadAllZipBtn.style.display = 'none';
+  checkReady();
+});
+
+imgInput.addEventListener('change', (e) => loadImageFile(e.target.files[0]));
+videoInput.addEventListener('change', (e) => loadVideoFile(e.target.files[0]));
+audioInput.addEventListener('change', (e) => loadAudioFile(e.target.files[0]));
+centerImgInput.addEventListener('change', (e) => loadCenterImgFile(e.target.files[0]));
+setupDropZone(imgBtn, imgInput, loadImageFile);
+setupDropZone(videoBtn, videoInput, loadVideoFile);
+setupDropZone(audioBtn, audioInput, loadAudioFile);
+setupDropZone(centerImgBtn, centerImgInput, loadCenterImgFile);
+
+function checkReady(){
+  const bgOk = bgTypeSel.value === 'video' ? videoReady : imgReady;
+  if(batchToggle.checked){
+    recordBtn.disabled = true;
+    batchGenAllBtn.disabled = !(bgOk && batchFiles.length > 0);
+    if(bgOk && batchFiles.length > 0){ statusEl.textContent = 'Готово. Натисни «Згенерувати всі треки».'; }
+  } else {
+    recordBtn.disabled = !(bgOk && audioReady);
+    if(bgOk && audioReady){ statusEl.textContent = 'Готово. Натисни «Згенерувати відео».'; }
+  }
+}
+
+function getBgMedia(){
+  if(bgTypeSel.value === 'video' && bgVideo && videoReady) return bgVideo;
+  if(bgTypeSel.value === 'image' && img && imgReady) return img;
+  return null;
+}
+function mediaSize(m){
+  if(m instanceof HTMLVideoElement) return { w:m.videoWidth, h:m.videoHeight };
+  return { w:m.width, h:m.height };
+}
+function drawCoverMedia(m){
+  const cw = canvas.width, ch = canvas.height;
+  const size = mediaSize(m);
+  if(!size.w || !size.h) return;
+  const ir = size.w/size.h, cr = cw/ch;
+  let sw, sh, sx, sy;
+  if(ir > cr){ sh = size.h; sw = sh*cr; sx = (size.w-sw)/2; sy = 0; }
+  else { sw = size.w; sh = sw/cr; sx = 0; sy = (size.h-sh)/2; }
+  ctx.drawImage(m, sx, sy, sw, sh, 0, 0, cw, ch);
+}
+function bgFilterString(){
+  return `brightness(${bgBrightness.value}%) contrast(${bgContrast.value}%) saturate(${bgSaturation.value}%) blur(${bgBlur.value}px)`;
+}
+function getMotionTransform(cw, ch, bass, t){
+  const mode = motionSel.value;
+  let scale = 1, rotate = 0, ox = 0, oy = 0;
+  if(mode === 'zoomBeat'){ scale = 1 + bass*0.12; }
+  else if(mode === 'rotateSway'){ rotate = Math.sin(t*0.6) * 0.045; scale = 1.06; }
+  else if(mode === 'panDrift'){ ox = Math.sin(t*0.25)*cw*0.035; oy = Math.cos(t*0.2)*ch*0.025; scale = 1.09; }
+  else if(mode === 'shakeBeat'){ const s = bass*cw*0.008; ox = (Math.random()-0.5)*s; oy = (Math.random()-0.5)*s; scale = 1.04; }
+  return { scale, rotate, ox, oy };
+}
+
+function drawTitle(){
+  const cw = canvas.width, ch = canvas.height;
+  const text = titleInput.value.trim();
+  if(!text) return;
+  const fontSize = Math.round(cw * 0.045);
+  ctx.font = `700 ${fontSize}px 'Syne', sans-serif`;
+  ctx.fillStyle = '#ffffff';
+  ctx.textBaseline = 'alphabetic';
+  ctx.shadowColor = 'rgba(0,0,0,.6)';
+  ctx.shadowBlur = 12;
+  wrapText(text, cw*0.07, ch*0.88, cw*0.86, fontSize*1.2);
+  ctx.shadowBlur = 0;
+}
+function wrapText(text, x, y, maxWidth, lineHeight){
+  const words = text.split(' ');
+  let line = ''; const lines = [];
+  for(let n=0; n<words.length; n++){
+    const testLine = line + words[n] + ' ';
+    if(ctx.measureText(testLine).width > maxWidth && n > 0){ lines.push(line); line = words[n] + ' '; }
+    else { line = testLine; }
+  }
+  lines.push(line);
+  const startY = y - (lines.length-1)*lineHeight;
+  lines.forEach((l,i) => ctx.fillText(l.trim(), x, startY + i*lineHeight));
+}
+
+function drawWatermark(){
+  if(!watermarkToggle.checked) return;
+  const text = watermarkText.value.trim();
+  if(!text) return;
+  const cw = canvas.width, ch = canvas.height;
+  const fontSize = Math.round(cw*0.026);
+  ctx.save();
+  ctx.font = `600 ${fontSize}px 'JetBrains Mono', monospace`;
+  ctx.globalAlpha = watermarkOpacity.value/100;
+  ctx.fillStyle = '#ffffff';
+  ctx.shadowColor = 'rgba(0,0,0,.7)';
+  ctx.shadowBlur = 8;
+  const pad = cw*0.035;
+  const metrics = ctx.measureText(text);
+  let x, y;
+  const pos = watermarkPos.value;
+  if(pos === 'br'){ x = cw - pad - metrics.width; y = ch - pad; }
+  else if(pos === 'bl'){ x = pad; y = ch - pad; }
+  else if(pos === 'tr'){ x = cw - pad - metrics.width; y = pad + fontSize; }
+  else { x = pad; y = pad + fontSize; }
+  ctx.fillText(text, x, y);
+  ctx.restore();
+}
+
+function roundRectPath(x,y,w,h,r){
+  r = Math.min(r, w/2, h/2);
+  ctx.moveTo(x+r,y);
+  ctx.arcTo(x+w,y,x+w,y+h,r);
+  ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r);
+  ctx.arcTo(x,y,x+w,y,r);
+}
+
+function drawCenterImageIfNeeded(cx, cy, baseR, t, bass){
+  const source = centerImgReady ? centerImg : (imgReady ? img : null);
+  if(!source) return;
+  const sizePct = centerImgSize.value/100;
+  let r = baseR * 0.92 * sizePct;
+  if(centerImgPulse.checked){ r *= (1 + bass*0.12); }
+  let rotation = 0;
+  if(centerImgSpin.checked){ rotation = t * (centerImgSpinSpeed.value/10); }
+  const shape = centerImgShape.value;
+
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(rotation);
+  ctx.beginPath();
+  if(shape === 'circle'){ ctx.arc(0,0,r,0,Math.PI*2); }
+  else if(shape === 'hex'){
+    for(let i=0;i<6;i++){
+      const a = Math.PI/3*i - Math.PI/2;
+      const x = Math.cos(a)*r, y = Math.sin(a)*r;
+      if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    }
+    ctx.closePath();
+  } else {
+    roundRectPath(-r,-r,r*2,r*2,r*0.28);
+  }
+  ctx.closePath();
+  ctx.clip();
+  const size = mediaSize(source);
+  const ir = (size.w && size.h) ? size.w/size.h : 1;
+  let sw, sh;
+  if(ir > 1){ sh = r*2; sw = sh*ir; } else { sw = r*2; sh = sw/ir; }
+  ctx.drawImage(source, -sw/2, -sh/2, sw, sh);
+  ctx.restore();
+
+  const borderW = Number(centerImgBorder.value);
+  if(borderW > 0){
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(rotation);
+    ctx.lineWidth = borderW;
+    ctx.strokeStyle = colorPick.value;
+    ctx.beginPath();
+    if(shape === 'circle'){ ctx.arc(0,0,r,0,Math.PI*2); }
+    else if(shape === 'hex'){
+      for(let i=0;i<6;i++){
+        const a = Math.PI/3*i - Math.PI/2;
+        const x = Math.cos(a)*r, y = Math.sin(a)*r;
+        if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+      }
+      ctx.closePath();
+    } else {
+      roundRectPath(-r,-r,r*2,r*2,r*0.28);
+    }
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+
+function prepareFrame(t){
+  const cw = canvas.width, ch = canvas.height;
+
+  if(recording && analyser){ analyser.getByteFrequencyData(dataArray); }
+  else { fakeFill(t); }
+  updateSmoothing();
+  const bass = getBass();
+
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0,0,cw,ch);
+
+  const media = getBgMedia();
+  if(media){
+    const tr = getMotionTransform(cw, ch, bass, t);
+    ctx.save();
+    ctx.filter = bgFilterString();
+    ctx.translate(cw/2 + tr.ox, ch/2 + tr.oy);
+    ctx.rotate(tr.rotate);
+    ctx.scale(tr.scale, tr.scale);
+    ctx.translate(-cw/2, -ch/2);
+    drawCoverMedia(media);
+    ctx.restore();
+  }
+
+  drawOverlay();
+  if(vignetteToggle.checked) drawVignette();
+  if(starsToggle.checked) drawStars(t, bass);
+
+  return bass;
+}
+
+function applySpectrumTransform(){
+  const cw = canvas.width, ch = canvas.height;
+  const scale = spectrumScaleSlider.value/100;
+  const offX = (spectrumPosX.value/100) * cw * 0.5;
+  const offY = (spectrumPosY.value/100) * ch * 0.5;
+  ctx.save();
+  ctx.translate(cw/2 + offX, ch/2 + offY);
+  ctx.scale(scale, scale);
+  ctx.translate(-cw/2, -ch/2);
+}
+function restoreSpectrumTransform(){ ctx.restore(); }
+
+function drawFrame(){
+  const t = performance.now()/1000;
+  const bass = prepareFrame(t);
+  const style = styleSel.value;
+  const colors = getColors(t);
+  const glow = glowSlider.value/100;
+  applySpectrumTransform();
+  if(style === 'circleRays') drawCircleRays(colors, glow, t, bass);
+  else if(style === 'circleRing') drawRingPulse(colors, glow, t, bass);
+  else if(style === 'circleDots') drawDotsRing(colors, glow, t, bass);
+  else if(style === 'circleImage') drawCircleImage(colors, glow, t, bass);
+  else if(style === 'wave') drawWave(colors, glow);
+  else if(style === 'neonFill') drawNeonFill(colors, glow);
+  else if(style === 'particles') drawParticles(colors, glow);
+  else if(style === 'mirrorBars') drawMirrorBars(colors, glow);
+  else if(style === 'liquidBlob') drawLiquidBlob(colors, glow);
+  else if(style === 'hexGrid') drawHexGrid(colors, glow);
+  else if(style === 'ledMatrix') drawLedMatrix(colors, glow);
+  else if(style === 'auroraRings') drawAuroraRings(colors, glow, t, bass);
+  else drawBars(colors, glow);
+  restoreSpectrumTransform();
+  drawTitle();
+  drawWatermark();
+}
+
+resetSpectrumPosBtn.addEventListener('click', () => {
+  spectrumScaleSlider.value = 100;
+  spectrumPosX.value = 0;
+  spectrumPosY.value = 0;
+  [spectrumScaleSlider, spectrumPosX, spectrumPosY].forEach(s => s.dispatchEvent(new Event('input')));
+});
+
+let spectrumDragging = false;
+let dragStartClientX = 0, dragStartClientY = 0, dragStartPosX = 0, dragStartPosY = 0;
+canvasWrap.addEventListener('pointerdown', (e) => {
+  if(recording) return;
+  spectrumDragging = true;
+  canvasWrap.classList.add('dragging');
+  dragStartClientX = e.clientX; dragStartClientY = e.clientY;
+  dragStartPosX = parseFloat(spectrumPosX.value);
+  dragStartPosY = parseFloat(spectrumPosY.value);
+  canvasWrap.setPointerCapture(e.pointerId);
+});
+canvasWrap.addEventListener('pointermove', (e) => {
+  if(!spectrumDragging) return;
+  const rect = canvasWrap.getBoundingClientRect();
+  const dxFrac = (e.clientX - dragStartClientX) / rect.width;
+  const dyFrac = (e.clientY - dragStartClientY) / rect.height;
+  let newX = Math.max(-100, Math.min(100, dragStartPosX + dxFrac*200));
+  let newY = Math.max(-100, Math.min(100, dragStartPosY + dyFrac*200));
+  spectrumPosX.value = newX.toFixed(0);
+  spectrumPosY.value = newY.toFixed(0);
+  spectrumPosX.dispatchEvent(new Event('input'));
+  spectrumPosY.dispatchEvent(new Event('input'));
+});
+function endSpectrumDrag(){ spectrumDragging = false; canvasWrap.classList.remove('dragging'); }
+canvasWrap.addEventListener('pointerup', endSpectrumDrag);
+canvasWrap.addEventListener('pointercancel', endSpectrumDrag);
+
+function drawBars(colors, glow){
+  const cw = canvas.width, ch = canvas.height;
+  const barCount = 48;
+  const usable = Math.floor(dataArray.length * 0.75);
+  const step = Math.floor(usable / barCount);
+  const baseY = ch * 0.72;
+  const maxBarHeight = ch * 0.32;
+  const totalWidth = cw * 0.86;
+  const gap = totalWidth / barCount * 0.28;
+  const barWidth = (totalWidth - gap*(barCount-1)) / barCount;
+  const startX = (cw - totalWidth) / 2;
+
+  ctx.shadowColor = colors.a;
+  ctx.shadowBlur = cw * 0.012 * glow;
+
+  for(let i=0;i<barCount;i++){
+    let sum = 0;
+    for(let j=0;j<step;j++){ sum += val(i*step+j); }
+    const avg = sum / step;
+    const h = Math.max(cw*0.006, (avg/255) * maxBarHeight);
+    const x = startX + i*(barWidth+gap);
+    const r = barWidth/2;
+    const g = ctx.createLinearGradient(0, baseY - h, 0, baseY + h);
+    g.addColorStop(0, colors.a);
+    g.addColorStop(1, colors.b);
+    ctx.fillStyle = g;
+    roundRect(x, baseY - h, barWidth, h, r);
+    roundRect(x, baseY, barWidth, h*0.55, r);
+  }
+  ctx.shadowBlur = 0;
+}
+
+function drawMirrorBars(colors, glow){
+  const cw = canvas.width, ch = canvas.height;
+  const halfCount = 28;
+  const usable = Math.floor(dataArray.length * 0.75);
+  const step = Math.max(1, Math.floor(usable/halfCount));
+  const baseY = ch * 0.72;
+  const maxH = ch * 0.3;
+  const totalWidth = cw * 0.86;
+  const barW = totalWidth / (halfCount*2);
+  const gap = barW * 0.25;
+  const cx = cw/2;
+
+  ctx.shadowColor = colors.a;
+  ctx.shadowBlur = cw * 0.012 * glow;
+
+  for(let i=0;i<halfCount;i++){
+    let sum = 0;
+    for(let j=0;j<step;j++){ sum += val(i*step+j); }
+    const avg = sum/step;
+    const h = Math.max(cw*0.005, (avg/255)*maxH);
+    const g = ctx.createLinearGradient(0, baseY-h, 0, baseY);
+    g.addColorStop(0, colors.a); g.addColorStop(1, colors.b);
+    ctx.fillStyle = g;
+    const xRight = cx + gap/2 + i*barW;
+    const xLeft = cx - gap/2 - (i+1)*barW;
+    roundRect(xRight, baseY-h, barW-gap, h, (barW-gap)/2);
+    roundRect(xLeft, baseY-h, barW-gap, h, (barW-gap)/2);
+  }
+  ctx.shadowBlur = 0;
+}
+
+function drawCircleRays(colors, glow, t, bass){
+  const cw = canvas.width, ch = canvas.height;
+  const cx = cw/2, cy = ch*0.46;
+  const baseR = Math.min(cw,ch) * 0.2;
+  const barCount = 64;
+  const usable = Math.floor(dataArray.length * 0.8);
+  const step = Math.floor(usable / barCount);
+  const maxLen = Math.min(cw,ch) * 0.16;
+
+  ctx.shadowColor = colors.a;
+  ctx.shadowBlur = cw * 0.01 * glow;
+
+  for(let i=0;i<barCount;i++){
+    let sum = 0;
+    for(let j=0;j<step;j++){ sum += val(i*step+j); }
+    const avg = sum / step;
+    const len = Math.max(cw*0.004, (avg/255) * maxLen);
+    const angle = (i / barCount) * Math.PI * 2 - Math.PI/2;
+    const x1 = cx + Math.cos(angle) * baseR, y1 = cy + Math.sin(angle) * baseR;
+    const x2 = cx + Math.cos(angle) * (baseR + len), y2 = cy + Math.sin(angle) * (baseR + len);
+    const g = ctx.createLinearGradient(x1,y1,x2,y2);
+    g.addColorStop(0, colors.a); g.addColorStop(1, colors.b);
+    ctx.strokeStyle = g;
+    ctx.lineWidth = Math.max(2, cw*0.006);
+    ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  }
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = colors.a;
+  ctx.globalAlpha = .5; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(cx,cy,baseR,0,Math.PI*2); ctx.stroke();
+  ctx.globalAlpha = 1;
+  drawCenterImageIfNeeded(cx, cy, baseR*0.9, t, bass);
+}
+
+function drawRingPulse(colors, glow, t, bass){
+  const cw = canvas.width, ch = canvas.height;
+  const cx = cw/2, cy = ch*0.46;
+  const baseR = Math.min(cw,ch) * 0.22;
+  const pulseR = baseR + bass * Math.min(cw,ch) * 0.07;
+
+  ctx.shadowColor = colors.a;
+  ctx.shadowBlur = cw * 0.02 * glow;
+
+  const grad = ctx.createLinearGradient(cx-pulseR, cy, cx+pulseR, cy);
+  grad.addColorStop(0, colors.a); grad.addColorStop(1, colors.b);
+  ctx.strokeStyle = grad;
+  ctx.lineWidth = Math.max(4, cw*0.012 + bass*cw*0.012);
+  ctx.beginPath(); ctx.arc(cx, cy, pulseR, 0, Math.PI*2); ctx.stroke();
+
+  ctx.globalAlpha = 0.35; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(cx, cy, pulseR + cw*0.025, 0, Math.PI*2); ctx.stroke();
+  ctx.globalAlpha = 1;
+  ctx.shadowBlur = 0;
+  drawCenterImageIfNeeded(cx, cy, baseR*0.9, t, bass);
+}
+
+function drawDotsRing(colors, glow, t, bass){
+  const cw = canvas.width, ch = canvas.height;
+  const cx = cw/2, cy = ch*0.46;
+  const baseR = Math.min(cw,ch) * 0.22;
+  const dotCount = 40;
+  const usable = Math.floor(dataArray.length * 0.8);
+  const step = Math.max(1, Math.floor(usable / dotCount));
+
+  ctx.shadowColor = colors.a;
+  ctx.shadowBlur = cw * 0.012 * glow;
+
+  for(let i=0;i<dotCount;i++){
+    let sum = 0;
+    for(let j=0;j<step;j++){ sum += val(i*step+j); }
+    const v = (sum/step) / 255;
+    const angle = (i/dotCount) * Math.PI*2 - Math.PI/2;
+    const r = baseR + v * Math.min(cw,ch) * 0.13;
+    const x = cx + Math.cos(angle)*r, y = cy + Math.sin(angle)*r;
+    const dotR = Math.max(2, cw*0.006 + v*cw*0.01);
+    const g = ctx.createRadialGradient(x,y,0,x,y,dotR);
+    g.addColorStop(0, colors.a); g.addColorStop(1, colors.b);
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(x,y,dotR,0,Math.PI*2); ctx.fill();
+  }
+  ctx.shadowBlur = 0;
+  drawCenterImageIfNeeded(cx, cy, baseR*0.85, t, bass);
+}
+
+function drawCircleImage(colors, glow, t, bass){
+  const cw = canvas.width, ch = canvas.height;
+  const cx = cw/2, cy = ch*0.42;
+  const baseR = Math.min(cw,ch)*0.24;
+  const barCount = 72;
+  const usable = Math.floor(dataArray.length*0.8);
+  const step = Math.max(1, Math.floor(usable/barCount));
+  const maxLen = Math.min(cw,ch)*0.13;
+
+  ctx.shadowColor = colors.a;
+  ctx.shadowBlur = cw*0.012*glow;
+
+  for(let i=0;i<barCount;i++){
+    let sum=0;
+    for(let j=0;j<step;j++){ sum += val(i*step+j); }
+    const avg = sum/step;
+    const len = Math.max(cw*0.003, (avg/255)*maxLen);
+    const angle = (i/barCount)*Math.PI*2 - Math.PI/2;
+    const x1 = cx+Math.cos(angle)*baseR, y1 = cy+Math.sin(angle)*baseR;
+    const x2 = cx+Math.cos(angle)*(baseR+len), y2 = cy+Math.sin(angle)*(baseR+len);
+    const g = ctx.createLinearGradient(x1,y1,x2,y2);
+    g.addColorStop(0,colors.a); g.addColorStop(1,colors.b);
+    ctx.strokeStyle = g;
+    ctx.lineWidth = Math.max(3, cw*0.008);
+    ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  }
+  ctx.shadowBlur = 0;
+  drawCenterImageIfNeeded(cx, cy, baseR*0.95, t, bass);
+}
+
+function drawWave(colors, glow){
+  const cw = canvas.width, ch = canvas.height;
+  const midY = ch * 0.72;
+  const amp = ch * 0.18;
+  const points = 96;
+  const usable = Math.floor(dataArray.length * 0.8);
+  const step = Math.max(1, Math.floor(usable / points));
+
+  ctx.shadowColor = colors.a;
+  ctx.shadowBlur = cw * 0.012 * glow;
+
+  const g = ctx.createLinearGradient(0, midY-amp, 0, midY+amp);
+  g.addColorStop(0, colors.a); g.addColorStop(1, colors.b);
+  ctx.strokeStyle = g;
+  ctx.lineWidth = Math.max(3, cw*0.006);
+  ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+
+  ctx.beginPath();
+  for(let i=0;i<points;i++){
+    const v = val(i*step) / 255;
+    const x = (i/(points-1)) * cw;
+    const y = midY - Math.sin(i*0.35) * amp * 0.15 - v * amp;
+    if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  }
+  ctx.stroke();
+
+  ctx.beginPath();
+  for(let i=0;i<points;i++){
+    const v = val(i*step) / 255;
+    const x = (i/(points-1)) * cw;
+    const y = midY + Math.sin(i*0.35) * amp * 0.15 + v * amp;
+    if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  }
+  ctx.globalAlpha = .5; ctx.stroke(); ctx.globalAlpha = 1;
+  ctx.shadowBlur = 0;
+}
+
+function drawNeonFill(colors, glow){
+  const cw = canvas.width, ch = canvas.height;
+  const midY = ch*0.68;
+  const amp = ch*0.22;
+  const points = 80;
+  const usable = Math.floor(dataArray.length*0.8);
+  const step = Math.max(1, Math.floor(usable/points));
+
+  ctx.shadowColor = colors.a;
+  ctx.shadowBlur = cw*0.015*glow;
+
+  ctx.beginPath();
+  ctx.moveTo(0, midY);
+  for(let i=0;i<points;i++){
+    const v = val(i*step)/255;
+    const x = (i/(points-1))*cw;
+    const y = midY - v*amp;
+    ctx.lineTo(x,y);
+  }
+  ctx.lineTo(cw, midY);
+  ctx.closePath();
+  const g = ctx.createLinearGradient(0, midY-amp, 0, midY);
+  g.addColorStop(0, colors.a); g.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = g;
+  ctx.globalAlpha = 0.85;
+  ctx.fill();
+  ctx.globalAlpha = 1;
+
+  ctx.strokeStyle = colors.b;
+  ctx.lineWidth = Math.max(2, cw*0.004);
+  ctx.beginPath();
+  for(let i=0;i<points;i++){
+    const v = val(i*step)/255;
+    const x = (i/(points-1))*cw;
+    const y = midY - v*amp;
+    if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+  }
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+}
+
+function drawParticles(colors, glow){
+  const cw = canvas.width, ch = canvas.height;
+  const cols = 12, rows = 12;
+  const usable = Math.floor(dataArray.length * 0.8);
+  const marginX = cw*0.1;
+  const gridW = cw - marginX*2, gridH = ch*0.46;
+  const startY = ch*0.5;
+
+  ctx.shadowColor = colors.a;
+  ctx.shadowBlur = cw * 0.015 * glow;
+
+  for(let r=0;r<rows;r++){
+    for(let c=0;c<cols;c++){
+      const idx = ((r*cols+c) * 3) % usable;
+      const v = val(idx) / 255;
+      const x = marginX + (c/(cols-1)) * gridW;
+      const y = startY + (r/(rows-1)) * gridH;
+      const radius = Math.max(1.5, v * cw * 0.014);
+      const g = ctx.createRadialGradient(x,y,0,x,y,radius);
+      g.addColorStop(0, colors.a); g.addColorStop(1, colors.b);
+      ctx.fillStyle = g;
+      ctx.globalAlpha = 0.35 + v*0.65;
+      ctx.beginPath(); ctx.arc(x,y,radius,0,Math.PI*2); ctx.fill();
+    }
+  }
+  ctx.globalAlpha = 1;
+  ctx.shadowBlur = 0;
+}
+
+function drawHexGrid(colors, glow){
+  const cw = canvas.width, ch = canvas.height;
+  const cols = 9, rows = 7;
+  const hexR = Math.min(cw,ch)*0.055;
+  const w = hexR*Math.sqrt(3), h = hexR*1.5;
+  const usable = Math.floor(dataArray.length*0.8);
+  const gridW = w*cols, gridH = h*rows + hexR*0.5;
+  const startX = (cw-gridW)/2 + w/2, startY = ch*0.5 - gridH/2;
+
+  ctx.shadowColor = colors.a;
+  ctx.shadowBlur = cw*0.01*glow;
+
+  for(let r=0;r<rows;r++){
+    for(let c=0;c<cols;c++){
+      const idx = ((r*cols+c)*4) % usable;
+      const v = val(idx)/255;
+      const x = startX + c*w + (r%2 ? w/2 : 0);
+      const y = startY + r*h;
+      const rad = hexR*0.42 + v*hexR*0.55;
+      ctx.beginPath();
+      for(let i=0;i<6;i++){
+        const a = Math.PI/3*i - Math.PI/2;
+        const px = x+Math.cos(a)*rad, py = y+Math.sin(a)*rad;
+        if(i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);
+      }
+      ctx.closePath();
+      ctx.globalAlpha = 0.3 + v*0.7;
+      ctx.fillStyle = v > 0.5 ? colors.a : colors.b;
+      ctx.fill();
+    }
+  }
+  ctx.globalAlpha = 1;
+  ctx.shadowBlur = 0;
+}
+
+function drawLiquidBlob(colors, glow){
+  const cw = canvas.width, ch = canvas.height;
+  const cx = cw/2, cy = ch*0.46;
+  const baseR = Math.min(cw,ch)*0.2;
+  const points = 48;
+  const usable = Math.floor(dataArray.length*0.8);
+  const step = Math.max(1, Math.floor(usable/points));
+  const pts = [];
+  for(let i=0;i<points;i++){
+    const v = val(i*step)/255;
+    const angle = (i/points)*Math.PI*2;
+    const r = baseR + v*baseR*0.9;
+    pts.push([cx+Math.cos(angle)*r, cy+Math.sin(angle)*r]);
+  }
+  ctx.shadowColor = colors.a;
+  ctx.shadowBlur = cw*0.02*glow;
+  ctx.beginPath();
+  for(let i=0;i<points;i++){
+    const p0 = pts[i], p1 = pts[(i+1)%points];
+    const mx = (p0[0]+p1[0])/2, my = (p0[1]+p1[1])/2;
+    if(i===0) ctx.moveTo(mx,my);
+    else ctx.quadraticCurveTo(p0[0],p0[1],mx,my);
+  }
+  ctx.closePath();
+  const g = ctx.createRadialGradient(cx,cy,0,cx,cy,baseR*2);
+  g.addColorStop(0, colors.a); g.addColorStop(1, colors.b);
+  ctx.fillStyle = g;
+  ctx.globalAlpha = 0.55;
+  ctx.fill();
+  ctx.globalAlpha = 1;
+  ctx.strokeStyle = colors.a;
+  ctx.lineWidth = Math.max(2, cw*0.004);
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+}
+
+function drawLedMatrix(colors, glow){
+  const cw = canvas.width, ch = canvas.height;
+  const colCount = 24, segCount = 14;
+  const usable = Math.floor(dataArray.length*0.75);
+  const step = Math.max(1, Math.floor(usable/colCount));
+  const totalWidth = cw*0.86, startX = (cw-totalWidth)/2;
+  const colW = totalWidth/colCount;
+  const segGap = colW*0.18;
+  const areaTop = ch*0.42, areaBottom = ch*0.74;
+  const segH = (areaBottom-areaTop)/segCount;
+
+  ctx.shadowBlur = cw*0.006*glow;
+
+  for(let c=0;c<colCount;c++){
+    let sum = 0;
+    for(let j=0;j<step;j++){ sum += val(c*step+j); }
+    const avg = sum/step;
+    const litCount = Math.round((avg/255)*segCount);
+    for(let s=0;s<segCount;s++){
+      const lit = s < litCount;
+      const tt = s/segCount;
+      const color = tt < 0.6 ? colors.b : (tt < 0.85 ? colors.a : '#ff5050');
+      ctx.fillStyle = lit ? color : 'rgba(255,255,255,0.05)';
+      ctx.shadowColor = lit ? color : 'transparent';
+      const x = startX + c*colW + segGap/2;
+      const y = areaBottom - (s+1)*segH + segGap/2;
+      ctx.fillRect(x, y, colW-segGap, segH-segGap/1.5);
+    }
+  }
+  ctx.shadowBlur = 0;
+}
+
+function drawAuroraRings(colors, glow, t, bass){
+  const cw = canvas.width, ch = canvas.height;
+  const cx = cw/2, cy = ch*0.44;
+  const bands = 5;
+  const usable = Math.floor(dataArray.length*0.8);
+
+  ctx.shadowColor = colors.a;
+  ctx.shadowBlur = cw*0.02*glow;
+
+  for(let b=0;b<bands;b++){
+    const idxStart = Math.floor((b/bands)*usable);
+    const n = Math.max(1, Math.floor(usable/bands));
+    let sum = 0;
+    for(let i=0;i<n;i++){ sum += val(idxStart+i); }
+    const v = (sum/n)/255;
+    const r = Math.min(cw,ch)*(0.14 + b*0.045) + v*Math.min(cw,ch)*0.05;
+    ctx.beginPath();
+    ctx.arc(cx,cy,r,0,Math.PI*2);
+    ctx.lineWidth = Math.max(2, cw*0.006*(1-b/bands*0.5));
+    ctx.strokeStyle = b%2===0 ? colors.a : colors.b;
+    ctx.globalAlpha = 0.35 + v*0.5;
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+  ctx.shadowBlur = 0;
+  drawCenterImageIfNeeded(cx, cy, Math.min(cw,ch)*0.13, t, bass);
+}
+
+function roundRect(x,y,w,h,r){
+  r = Math.min(r, w/2, h/2);
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.arcTo(x+w,y,x+w,y+h,r);
+  ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r);
+  ctx.arcTo(x,y,x+w,y,r);
+  ctx.closePath();
+  ctx.fill();
+}
+
+const CIRCLE_IMG_STYLES = ['circleRays','circleRing','circleDots','circleImage','auroraRings'];
+function updateStyleDependentUI(){
+  const show = CIRCLE_IMG_STYLES.includes(styleSel.value);
+  circleImgSection.style.display = show ? 'block' : 'none';
+  circleImgFieldWrap.style.display = show ? 'block' : 'none';
+  circleImgRow1.style.display = show ? 'flex' : 'none';
+  circleImgRow2.style.display = show ? 'flex' : 'none';
+  circleImgRow3.style.display = show ? 'flex' : 'none';
+}
+styleSel.addEventListener('change', updateStyleDependentUI);
+
+function baseDimsForAspect(){
+  const v = aspectSel.value;
+  if(v === 'square') return { w:1080, h:1080 };
+  if(v === 'vertical') return { w:1080, h:1920 };
+  return { w:1920, h:1080 };
+}
+function setAspect(){
+  const d = baseDimsForAspect();
+  canvas.width = d.w; canvas.height = d.h;
+  initStars();
+}
+aspectSel.addEventListener('change', setAspect);
+
+function animate(){
+  drawFrame();
+  rafId = requestAnimationFrame(animate);
+}
+
+function hslToHex(h,s,l){
+  s/=100; l/=100;
+  const k = n => (n + h/30) % 12;
+  const a = s * Math.min(l, 1-l);
+  const f = n => l - a*Math.max(-1, Math.min(k(n)-3, Math.min(9-k(n),1)));
+  const toHex = x => Math.round(255*x).toString(16).padStart(2,'0');
+  return `#${toHex(f(0))}${toHex(f(8))}${toHex(f(4))}`;
+}
+function randomColor(){
+  return hslToHex(Math.floor(Math.random()*360), 78, 56);
+}
+
+const STYLE_OPTIONS = ['bars','mirrorBars','ledMatrix','wave','neonFill','particles','hexGrid','liquidBlob','circleRays','circleRing','circleDots','circleImage','auroraRings'];
+const MOTION_OPTIONS = ['none','zoomBeat','rotateSway','panDrift','shakeBeat'];
+const COLOR_MODES = ['gradient','solid','rainbow'];
+const SHAPE_OPTIONS = ['circle','rounded','hex'];
+
+randomStyleBtn.addEventListener('click', () => {
+  styleSel.value = STYLE_OPTIONS[Math.floor(Math.random()*STYLE_OPTIONS.length)];
+  styleSel.dispatchEvent(new Event('change'));
+  colorModeSel.value = COLOR_MODES[Math.floor(Math.random()*COLOR_MODES.length)];
+  colorPick.value = randomColor();
+  motionSel.value = MOTION_OPTIONS[Math.floor(Math.random()*MOTION_OPTIONS.length)];
+  sensitivitySlider.value = 80 + Math.floor(Math.random()*80);
+  glowSlider.value = 60 + Math.floor(Math.random()*120);
+  smoothSlider.value = 30 + Math.floor(Math.random()*50);
+  [sensitivitySlider, glowSlider, smoothSlider].forEach(s => s.dispatchEvent(new Event('input')));
+  centerImgShape.value = SHAPE_OPTIONS[Math.floor(Math.random()*SHAPE_OPTIONS.length)];
+  centerImgSpin.checked = Math.random() > 0.5;
+  statusEl.textContent = 'Новий випадковий стиль застосовано.';
+});
+
+function collectSettings(){
+  return {
+    title: titleInput.value,
+    style: styleSel.value,
+    colorMode: colorModeSel.value,
+    color: colorPick.value,
+    sensitivity: sensitivitySlider.value,
+    smooth: smoothSlider.value,
+    glow: glowSlider.value,
+    spectrumScale: spectrumScaleSlider.value,
+    spectrumPosX: spectrumPosX.value,
+    spectrumPosY: spectrumPosY.value,
+    motion: motionSel.value,
+    brightness: bgBrightness.value,
+    contrast: bgContrast.value,
+    saturation: bgSaturation.value,
+    blur: bgBlur.value,
+    overlay: overlayStrength.value,
+    stars: starsToggle.checked,
+    vignette: vignetteToggle.checked,
+    aspect: aspectSel.value,
+    quality: qualitySel.value,
+    watermarkOn: watermarkToggle.checked,
+    watermarkText: watermarkText.value,
+    watermarkPos: watermarkPos.value,
+    watermarkOpacity: watermarkOpacity.value,
+    centerImgShape: centerImgShape.value,
+    centerImgSize: centerImgSize.value,
+    centerImgSpin: centerImgSpin.checked,
+    centerImgPulse: centerImgPulse.checked,
+    centerImgBorder: centerImgBorder.value,
+    centerImgSpinSpeed: centerImgSpinSpeed.value
+  };
+}
+
+function applySettings(s){
+  if(!s) return;
+  titleInput.value = s.title ?? '';
+  styleSel.value = s.style ?? styleSel.value;
+  styleSel.dispatchEvent(new Event('change'));
+  colorModeSel.value = s.colorMode ?? colorModeSel.value;
+  colorPick.value = s.color ?? colorPick.value;
+  sensitivitySlider.value = s.sensitivity ?? sensitivitySlider.value;
+  smoothSlider.value = s.smooth ?? smoothSlider.value;
+  glowSlider.value = s.glow ?? glowSlider.value;
+  spectrumScaleSlider.value = s.spectrumScale ?? spectrumScaleSlider.value;
+  spectrumPosX.value = s.spectrumPosX ?? spectrumPosX.value;
+  spectrumPosY.value = s.spectrumPosY ?? spectrumPosY.value;
+  motionSel.value = s.motion ?? motionSel.value;
+  bgBrightness.value = s.brightness ?? bgBrightness.value;
+  bgContrast.value = s.contrast ?? bgContrast.value;
+  bgSaturation.value = s.saturation ?? bgSaturation.value;
+  bgBlur.value = s.blur ?? bgBlur.value;
+  overlayStrength.value = s.overlay ?? overlayStrength.value;
+  starsToggle.checked = !!s.stars;
+  vignetteToggle.checked = !!s.vignette;
+  aspectSel.value = s.aspect ?? aspectSel.value;
+  aspectSel.dispatchEvent(new Event('change'));
+  qualitySel.value = s.quality ?? qualitySel.value;
+  watermarkToggle.checked = !!s.watermarkOn;
+  watermarkText.value = s.watermarkText ?? '';
+  watermarkPos.value = s.watermarkPos ?? watermarkPos.value;
+  watermarkOpacity.value = s.watermarkOpacity ?? watermarkOpacity.value;
+  centerImgShape.value = s.centerImgShape ?? centerImgShape.value;
+  centerImgSize.value = s.centerImgSize ?? centerImgSize.value;
+  centerImgSpin.checked = !!s.centerImgSpin;
+  centerImgPulse.checked = s.centerImgPulse !== undefined ? !!s.centerImgPulse : true;
+  centerImgBorder.value = s.centerImgBorder ?? centerImgBorder.value;
+  centerImgSpinSpeed.value = s.centerImgSpinSpeed ?? centerImgSpinSpeed.value;
+  [sensitivitySlider, smoothSlider, glowSlider, spectrumScaleSlider, spectrumPosX, spectrumPosY, bgBrightness, bgContrast, bgSaturation, bgBlur, overlayStrength, watermarkOpacity, centerImgSize, centerImgBorder, centerImgSpinSpeed].forEach(el => el.dispatchEvent(new Event('input')));
+}
+
+const PRESET_KEY = 'rackeq_presets_v1';
+function loadPresetsMap(){
+  try{ return JSON.parse(localStorage.getItem(PRESET_KEY)) || {}; }catch(e){ return {}; }
+}
+function savePresetsMap(map){
+  try{ localStorage.setItem(PRESET_KEY, JSON.stringify(map)); }catch(e){}
+}
+function refreshPresetSelect(){
+  const map = loadPresetsMap();
+  presetSelect.innerHTML = '<option value="">— немає —</option>';
+  Object.keys(map).forEach(name => {
+    const opt = document.createElement('option');
+    opt.value = name; opt.textContent = name;
+    presetSelect.appendChild(opt);
+  });
+}
+presetSaveBtn.addEventListener('click', () => {
+  const name = presetName.value.trim();
+  if(!name){ statusEl.textContent = 'Введи назву пресету.'; return; }
+  const map = loadPresetsMap();
+  map[name] = collectSettings();
+  savePresetsMap(map);
+  refreshPresetSelect();
+  presetSelect.value = name;
+  statusEl.textContent = `Пресет «${name}» збережено.`;
+});
+presetLoadBtn.addEventListener('click', () => {
+  const name = presetSelect.value;
+  if(!name) return;
+  const map = loadPresetsMap();
+  applySettings(map[name]);
+  statusEl.textContent = `Пресет «${name}» завантажено.`;
+});
+presetDeleteBtn.addEventListener('click', () => {
+  const name = presetSelect.value;
+  if(!name) return;
+  const map = loadPresetsMap();
+  delete map[name];
+  savePresetsMap(map);
+  refreshPresetSelect();
+  statusEl.textContent = `Пресет «${name}» видалено.`;
+});
+
+refreshPresetSelect();
+updateStyleDependentUI();
+updateBgFieldsVisibility();
+setAspect();
+animate();
+
+function pickMimeType(){
+  const options = [
+    'video/mp4;codecs=avc1,mp4a.40.2',
+    'video/mp4',
+    'video/webm;codecs=vp9,opus',
+    'video/webm;codecs=vp8,opus',
+    'video/webm'
+  ];
+  for(const o of options){
+    if(window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(o)) return o;
+  }
+  return '';
+}
+function bitrateForQuality(){
+  const q = qualitySel.value;
+  if(q === 'max') return 16000000;
+  if(q === 'high') return 10000000;
+  return 6000000;
+}
+function qualityScaleFactor(){
+  return qualitySel.value === 'max' ? 2 : 1;
+}
+function getOrCreateSourceNode(audioElement){
+  if(audioElement._rackEqSource) return audioElement._rackEqSource;
+  const node = audioCtx.createMediaElementSource(audioElement);
+  audioElement._rackEqSource = node;
+  return node;
+}
+
+async function runRecording(opts){
+  const { audioElement, start, end, onProgress } = opts;
+  return new Promise(async (resolve) => {
+    if(!audioCtx){ audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+    if(audioCtx.state === 'suspended'){ await audioCtx.resume(); }
+
+    let localSourceNode;
+    try{
+      localSourceNode = getOrCreateSourceNode(audioElement);
+    }catch(err){
+      resolve({ blob:null, error:'source' });
+      return;
+    }
+    const localAnalyser = audioCtx.createAnalyser();
+    localAnalyser.fftSize = 256;
+    const localDest = audioCtx.createMediaStreamDestination();
+    localSourceNode.connect(localAnalyser);
+    localAnalyser.connect(localDest);
+    localSourceNode.connect(audioCtx.destination);
+
+    analyser = localAnalyser;
+    dataArray = new Uint8Array(analyser.frequencyBinCount);
+    smoothArray = new Float32Array(analyser.frequencyBinCount);
+
+    const scale = qualityScaleFactor();
+    const dims = baseDimsForAspect();
+    canvas.width = dims.w*scale;
+    canvas.height = dims.h*scale;
+    initStars();
+
+    const videoStream = canvas.captureStream(30);
+    const combined = new MediaStream([
+      ...videoStream.getVideoTracks(),
+      ...localDest.stream.getAudioTracks()
+    ]);
+
+    const mimeType = pickMimeType();
+    let localRecorder;
+    try{
+      localRecorder = mimeType
+        ? new MediaRecorder(combined, { mimeType, videoBitsPerSecond: bitrateForQuality() })
+        : new MediaRecorder(combined);
+    }catch(err){
+      canvas.width = dims.w; canvas.height = dims.h; initStars();
+      resolve({ blob:null, error:'recorder' });
+      return;
+    }
+    activeRecorder = localRecorder;
+    const localChunks = [];
+    localRecorder.ondataavailable = (e) => { if(e.data.size > 0) localChunks.push(e.data); };
+
+    let finished = false;
+    let progressTimer = null;
+
+    localRecorder.onstop = () => {
+      if(finished) return;
+      finished = true;
+      clearInterval(progressTimer);
+      localSourceNode.disconnect();
+      canvas.width = dims.w; canvas.height = dims.h; initStars();
+      recording = false;
+      led.classList.remove('on');
+      ledText.textContent = 'IDLE';
+      if(cancelRequested){
+        cancelRequested = false;
+        resolve({ blob:null, cancelled:true });
+        return;
+      }
+      const blob = new Blob(localChunks, { type: localRecorder.mimeType || 'video/webm' });
+      resolve({ blob, mimeType: localRecorder.mimeType || 'video/webm' });
+    };
+
+    audioElement.currentTime = start;
+    if(bgVideo && videoReady){ try{ bgVideo.currentTime = 0; }catch(e){} }
+    localRecorder.start();
+    recording = true;
+    led.classList.add('on');
+    ledText.textContent = 'RECORDING';
+
+    await audioElement.play();
+
+    const dur = Math.max(0.2, end - start);
+    progressTimer = setInterval(() => {
+      const pct = Math.min(100, ((audioElement.currentTime - start) / dur) * 100);
+      progressFill.style.width = pct + '%';
+      if(onProgress) onProgress(pct);
+      if(audioElement.currentTime >= end - 0.05 && localRecorder.state !== 'inactive'){
+        clearInterval(progressTimer);
+        audioElement.pause();
+        localRecorder.stop();
+      }
+    }, 100);
+
+    audioElement.onended = () => {
+      clearInterval(progressTimer);
+      if(localRecorder.state !== 'inactive'){ localRecorder.stop(); }
+    };
+  });
+}
+
+recordBtn.addEventListener('click', async () => {
+  if(recording) return;
+  recordBtn.disabled = true;
+  cancelBtn.style.display = 'block';
+  downloadBtn.style.display = 'none';
+  statusEl.textContent = 'Ініціалізація...';
+  progressFill.style.width = '0%';
+
+  const start = parseFloat(trimStartSlider.value) || 0;
+  const end = parseFloat(trimEndSlider.value) || (audioEl.duration || start + 15);
+
+  const result = await runRecording({ audioElement: audioEl, start, end });
+  cancelBtn.style.display = 'none';
+  recordBtn.disabled = false;
+
+  if(result.cancelled){
+    statusEl.textContent = 'Запис скасовано.';
+    progressFill.style.width = '0%';
+    return;
+  }
+  if(!result.blob){
+    statusEl.textContent = 'Помилка запису відео в цьому браузері. Спробуй Chrome або оновлений Safari.';
+    return;
+  }
+  const url = URL.createObjectURL(result.blob);
+  const ext = (result.mimeType||'').includes('mp4') ? 'mp4' : 'webm';
+  downloadBtn.style.display = 'block';
+  downloadBtn.onclick = () => {
+    const a = document.createElement('a');
+    a.href = url; a.download = 'promo-video.' + ext; a.click();
+  };
+  statusEl.textContent = 'Готово! Файл: promo-video.' + ext;
+  progressFill.style.width = '100%';
+});
+
+cancelBtn.addEventListener('click', () => {
+  if(!recording) return;
+  cancelRequested = true;
+  if(activeRecorder && activeRecorder.state !== 'inactive'){ activeRecorder.stop(); }
+  if(audioEl){ audioEl.pause(); }
+});
+
+batchGenAllBtn.addEventListener('click', async () => {
+  if(recording) return;
+  batchGenAllBtn.disabled = true;
+  downloadAllZipBtn.style.display = 'none';
+
+  for(let i=0;i<batchFiles.length;i++){
+    const item = batchFiles[i];
+    item.status = 'аналіз хука...';
+    renderBatchList();
+
+    const tempAudio = new Audio();
+    tempAudio.src = URL.createObjectURL(item.file);
+    tempAudio.crossOrigin = 'anonymous';
+    await new Promise(res => { tempAudio.addEventListener('loadedmetadata', res, { once:true }); });
+
+    let hookStart = 0;
+    const hookLen = Math.min(15, tempAudio.duration || 15);
+    try{
+      hookStart = await detectHookStart(item.file, hookLen);
+    }catch(e){
+      hookStart = 0;
+    }
+    const segEnd = Math.min(tempAudio.duration || hookLen, hookStart + hookLen);
+
+    item.status = 'рендеринг 0%';
+    renderBatchList();
+
+    const result = await runRecording({
+      audioElement: tempAudio,
+      start: hookStart,
+      end: segEnd,
+      onProgress: (pct) => { item.status = `рендеринг ${Math.round(pct)}%`; renderBatchList(); }
+    });
+
+    if(result.blob){
+      const ext = (result.mimeType||'').includes('mp4') ? 'mp4' : 'webm';
+      item.url = URL.createObjectURL(result.blob);
+      item.ext = ext;
+      item.blobRef = result.blob;
+      item.status = 'готово ✓';
+    } else {
+      item.status = 'помилка';
+    }
+    renderBatchList();
+  }
+
+  batchGenAllBtn.disabled = false;
+  statusEl.textContent = 'Всі треки оброблено.';
+  if(window.JSZip && batchFiles.some(f => f.blobRef)){
+    downloadAllZipBtn.style.display = 'block';
+  }
+});
+
+downloadAllZipBtn.addEventListener('click', async () => {
+  if(!window.JSZip) return;
+  downloadAllZipBtn.disabled = true;
+  downloadAllZipBtn.textContent = 'Пакую ZIP...';
+  const zip = new JSZip();
+  batchFiles.forEach(item => {
+    if(item.blobRef){ zip.file(sanitizeName(item.name) + '.' + item.ext, item.blobRef); }
+  });
+  const content = await zip.generateAsync({ type:'blob' });
+  const url = URL.createObjectURL(content);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'promo-videos.zip'; a.click();
+  downloadAllZipBtn.disabled = false;
+  downloadAllZipBtn.textContent = 'Завантажити всі (ZIP)';
+});
+
+</script>
+</body>
+</html>
