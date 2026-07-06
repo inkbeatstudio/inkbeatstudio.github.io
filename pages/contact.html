@@ -288,15 +288,9 @@ async function handleSubmit(e) {
   } catch (err) {
     console.error('Telegram error:', err)
 
-    if (TELEGRAM_BOT_TOKEN === 'ВАШ_ТОКЕН_СЮДИ') {
-      statusEl.className = 'form-status'
-      statusEl.style.cssText = 'display:flex;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.3);color:#fbbf24;padding:16px;border-radius:12px;gap:12px;margin-bottom:20px'
-      statusEl.innerHTML = '⚠ Telegram бот не налаштований. Напишіть напряму: <a href="mailto:inkbeat.mail@gmail.com" style="color:var(--blue);margin-left:4px">inkbeat.mail@gmail.com</a>'
-    } else {
-      statusEl.className = 'form-status error'
-      statusEl.innerHTML = '✗ Помилка відправки. Напишіть напряму: inkbeat.mail@gmail.com'
-      statusEl.style.display = 'flex'
-    }
+    statusEl.className = 'form-status error'
+    statusEl.innerHTML = '✗ Помилка відправки. Напишіть напряму: inkbeat.mail@gmail.com'
+    statusEl.style.display = 'flex'
   } finally {
     btn.disabled = false
     btnText.textContent = 'Надіслати повідомлення'

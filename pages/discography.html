@@ -189,7 +189,7 @@ async function loadDiscography() {
 
   const [data] = await Promise.all([
     getSoundCloudData(),
-    new Promise(r => setTimeout(r, 5000)) // мінімум 5 сек показуємо анімацію
+    new Promise(r => setTimeout(r, 5000))
   ])
   const countEl = document.getElementById('disco-count')
   if (finishLoader) finishLoader()
