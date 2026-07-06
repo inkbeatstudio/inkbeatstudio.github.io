@@ -11,9 +11,6 @@ function getSoundCloudData() {
 }
 getSoundCloudData()
 
-const TELEGRAM_BOT_TOKEN = '8819832909:AAE6I9jGqQCS687-p2yxaCWexgUwkbeppSE'
-const TELEGRAM_CHAT_ID = '551074322'
-
 const translations = {
   uk: {
     nav: { home:'Головна', about:'Про мене', discography:'Дискографія', services:'Послуги', portfolio:'Портфоліо', contact:'Контакти', order:'Замовити', master:'Мастеринг' },
@@ -141,12 +138,12 @@ function initNavbar() {
 
   function openMenu() {
     mobileMenu.classList.add('open')
-    document.body.style.overflow = 'hidden' // Блокуємо скрол
+    document.body.style.overflow = 'hidden'
   }
 
   function closeMenu() {
     mobileMenu.classList.remove('open')
-    document.body.style.overflow = '' // Повертаємо скрол
+    document.body.style.overflow = ''
   }
 
   burger?.addEventListener('click', openMenu)
@@ -248,35 +245,21 @@ function initFAQ() {
 }
 
 async function sendToTelegram(name, email, subject, message) {
-  const text = `
-🎵 *Нове повідомлення з сайту InkBeat*
-
-👤 *Ім'я:* ${name}
-📧 *Email:* ${email}
-📌 *Тема:* ${subject || '—'}
-💬 *Повідомлення:*
-${message}
-  `.trim()
-
-  const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+  const res = await fetch(`${API_BASE}/api/contact`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      chat_id: TELEGRAM_CHAT_ID,
-      text: text,
-      parse_mode: 'Markdown'
-    })
+    body: JSON.stringify({ name, email, subject, message })
   })
 
   const data = await res.json()
-  if (!data.ok) throw new Error(data.description || 'Telegram error')
+  if (!res.ok || !data.success) throw new Error(data.error || 'Contact API error')
   return data
 }
 
 async function fetchSoundCloud() {
   try {
     const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 10000) // 10 сек таймаут
+    const timeout = setTimeout(() => controller.abort(), 10000)
 
     const res = await fetch(`${API_BASE}/api/soundcloud`, {
       signal: controller.signal
@@ -429,7 +412,7 @@ async function loadSoundCloud() {
 
   const [data] = await Promise.all([
     getSoundCloudData(),
-    new Promise(r => setTimeout(r, 5000)) // мінімум 5 сек показуємо анімацію
+    new Promise(r => setTimeout(r, 5000))
   ])
   if (finishLoader) finishLoader()
 
