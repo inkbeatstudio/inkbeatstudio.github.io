@@ -47,7 +47,6 @@
 
   canvas#wave{ width:100%; height:80px; display:block; margin-top:16px; border-radius:8px; background:var(--bg); border:1px solid var(--line); }
 
-  /* ---- progress ---- */
   .progress{ display:none; margin-top:18px; padding:16px; background:var(--bg); border:1px solid var(--line); border-radius:10px; align-items:center; gap:14px; }
   .progress.show{ display:flex; }
   .spinner{ width:22px; height:22px; border-radius:50%; border:3px solid var(--line); border-top-color:var(--pink); flex:none; animation:spin .8s linear infinite; }
@@ -68,7 +67,6 @@
   .intensityblock input[type=range]{ width:100%; }
   .intensityblock .isub{ color:var(--muted); font-size:11.5px; margin-top:8px; line-height:1.4; }
 
-  /* ---- editor ---- */
   .editor{ margin-top:20px; }
   .elabel{ font-family:var(--font-display); font-weight:700; font-size:13.5px; margin-bottom:8px; }
   .esub{ color:var(--muted); font-size:11.5px; margin-bottom:8px; }
@@ -348,10 +346,10 @@
 
   let audioCtx = null;
   let originalBuffer = null;
-  let instrBuffer = null;   // separated instrumental (immutable once computed)
-  let vocalBuffer = null;   // separated raw vocal (immutable once computed)
-  let cuts = [];            // [{start,end}] in seconds, applied to vocalBuffer
-  let selection = null;     // {start,end} in seconds, in-progress selection
+  let instrBuffer = null;
+  let vocalBuffer = null;
+  let cuts = [];
+  let selection = null;
   let fileNameBase = 'track';
   let currentSource = null;
   let instrIntensity = 0.85;
@@ -397,7 +395,6 @@
     }
   });
 
-  // ---------- file loading ----------
   dropEl.addEventListener('click', () => fileInput.click());
   ['dragover','dragenter'].forEach(ev => dropEl.addEventListener(ev, e => { e.preventDefault(); dropEl.classList.add('drag'); }));
   ['dragleave','drop'].forEach(ev => dropEl.addEventListener(ev, e => { e.preventDefault(); dropEl.classList.remove('drag'); }));
@@ -432,11 +429,6 @@
     ]);
   }
 
-  // Blob.arrayBuffer() has no native progress event, but it's far more reliable
-  // across browsers than FileReader (which is known to sometimes stall forever
-  // on iOS Safari without ever firing onload/onprogress/onerror). We animate a
-  // smooth estimated progress bar instead, and always finish at 100% the moment
-  // the read actually completes.
   function readFileWithSimulatedProgress(file, onProgress){
     const sizeMb = file.size / (1024*1024);
     const estimatedMs = Math.max(600, Math.min(15000, sizeMb * 180));
@@ -527,7 +519,6 @@
     }
   }
 
-  // ---------- separation engine (phase-cancellation estimate) with progress via suspend/resume ----------
   async function buildVariantWithProgress(buffer, mode, onProgress, params){
     params = params || {};
     const intensity = params.intensity != null ? params.intensity : 0.85;
@@ -621,7 +612,6 @@
     return rendered;
   }
 
-  // ---------- vocal waveform editor ----------
   function drawEditor(){
     const ctx = vocalCanvas.getContext('2d');
     const cssW = vocalCanvas.clientWidth;
@@ -737,7 +727,6 @@
     drawEditor();
   });
 
-  // ---------- buffer math: cuts + merge ----------
   function applyCutsToBuffer(buffer, cutsList){
     const sampleRate = buffer.sampleRate;
     const fadeLen = Math.min(Math.floor(0.006*sampleRate), 400);
@@ -785,7 +774,6 @@
   function getEditedVocal(){ return applyCutsToBuffer(vocalBuffer, cuts); }
   function getMerged(){ return mixBuffers(instrBuffer, getEditedVocal()); }
 
-  // ---------- playback ----------
   function stopPlayback(){
     if (currentSource){ try{ currentSource.stop(); }catch(e){} currentSource=null; }
   }
@@ -806,7 +794,6 @@
   playMergedBtn.addEventListener('click', () => { if (instrBuffer && vocalBuffer) playRawBuffer(getMerged()); });
   stopBtn.addEventListener('click', stopPlayback);
 
-  // ---------- export ----------
   function encodeWav(buffer){
     const numChannels = buffer.numberOfChannels;
     const sampleRate = buffer.sampleRate;
