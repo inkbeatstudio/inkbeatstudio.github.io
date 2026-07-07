@@ -101,9 +101,9 @@
   <div class="page-header-orb" style="bottom:0;left:10%;width:400px;height:400px;background:radial-gradient(circle,#BF5FFF,transparent 70%)"></div>
   <div class="container">
     <div class="reveal">
-      <div class="page-label" style="color:var(--cyan)">— Інструменти</div>
-      <h1 class="page-title">Аудіо-<span class="gradient-text">студія</span></h1>
-      <p class="page-sub">Безкоштовні інструменти для обробки звуку — прямо в браузері, без реєстрації та завантаження файлів на сервер.</p>
+      <div class="page-label" style="color:var(--cyan)" data-i18n-local="pageLabel">— Інструменти</div>
+      <h1 class="page-title" data-i18n-local-html="pageTitleHtml">Аудіо-<span class="gradient-text">студія</span></h1>
+      <p class="page-sub" data-i18n-local="pageSub">Безкоштовні інструменти для обробки звуку — прямо в браузері, без реєстрації та завантаження файлів на сервер.</p>
     </div>
   </div>
 </section>
@@ -114,28 +114,28 @@
 
       <a href="mastering.html" class="tool-card reveal">
         <div class="tool-icon" style="background:rgba(0,191,255,.1);border:1px solid rgba(0,191,255,.3)">🎚</div>
-        <div class="tool-title">Мастеринг треків</div>
-        <p class="tool-desc">Підніми гучність, додай компресію та вирівняй баси й верхи. Порівнюй оригінал та результат наживо і завантаж готовий WAV.</p>
-        <span class="tool-cta" style="color:var(--blue)">Відкрити MASTER.WAV →</span>
+        <div class="tool-title" data-i18n-local="masteringTitle">Мастеринг треків</div>
+        <p class="tool-desc" data-i18n-local="masteringDesc">Підніми гучність, додай компресію та вирівняй баси й верхи. Порівнюй оригінал та результат наживо і завантаж готовий WAV.</p>
+        <span class="tool-cta" style="color:var(--blue)" data-i18n-local="masteringCta">Відкрити MASTER.WAV →</span>
       </a>
 
       <a href="vocal-split.html" class="tool-card reveal" style="transition-delay:.1s">
         <div class="tool-icon" style="background:rgba(191,95,255,.1);border:1px solid rgba(191,95,255,.3)">🎤</div>
         <div class="tool-title">Vocal Split</div>
-        <p class="tool-desc">Розділи трек на вокал та інструментал, виріж непотрібні фрагменти вокалу та зведи все назад в один файл.</p>
-        <span class="tool-cta" style="color:var(--purple)">Відкрити VOCAL SPLIT →</span>
+        <p class="tool-desc" data-i18n-local="vocalDesc">Розділи трек на вокал та інструментал, виріж непотрібні фрагменти вокалу та зведи все назад в один файл.</p>
+        <span class="tool-cta" style="color:var(--purple)" data-i18n-local="vocalCta">Відкрити VOCAL SPLIT →</span>
       </a>
 
       <a href="equalizer-studio.html" class="tool-card reveal" style="transition-delay:.2s">
         <div class="tool-icon" style="background:rgba(0,255,229,.1);border:1px solid rgba(0,255,229,.3)">🎛</div>
         <div class="tool-title">Equalizer Studio</div>
-        <p class="tool-desc">Завантаж картинку чи відео та трек — отримай промо-відео зі спектр-еквалайзером для TikTok, Reels та Shorts.</p>
-        <span class="tool-cta" style="color:var(--cyan)">Відкрити EQUALIZER →</span>
+        <p class="tool-desc" data-i18n-local="eqDesc">Завантаж картинку чи відео та трек — отримай промо-відео зі спектр-еквалайзером для TikTok, Reels та Shorts.</p>
+        <span class="tool-cta" style="color:var(--cyan)" data-i18n-local="eqCta">Відкрити EQUALIZER →</span>
       </a>
 
     </div>
 
-    <div class="privacy-strip reveal">
+    <div class="privacy-strip reveal" data-i18n-local="privacyStrip">
       🔒 Уся обробка звуку та відео відбувається локально у вашому браузері через Web Audio API — жоден файл нікуди не завантажується.
     </div>
   </div>
@@ -182,5 +182,48 @@
 
 <script src="../../js/main.js"></script>
 <script>document.getElementById('year').textContent = new Date().getFullYear()</script>
+<script>
+const IL = {
+  uk: {
+    pageLabel: '— Інструменти',
+    pageTitleHtml: 'Аудіо-<span class="gradient-text">студія</span>',
+    pageSub: 'Безкоштовні інструменти для обробки звуку — прямо в браузері, без реєстрації та завантаження файлів на сервер.',
+    masteringTitle: 'Мастеринг треків',
+    masteringDesc: 'Підніми гучність, додай компресію та вирівняй баси й верхи. Порівнюй оригінал та результат наживо і завантаж готовий WAV.',
+    masteringCta: 'Відкрити MASTER.WAV →',
+    vocalDesc: 'Розділи трек на вокал та інструментал, виріж непотрібні фрагменти вокалу та зведи все назад в один файл.',
+    vocalCta: 'Відкрити VOCAL SPLIT →',
+    eqDesc: 'Завантаж картинку чи відео та трек — отримай промо-відео зі спектр-еквалайзером для TikTok, Reels та Shorts.',
+    eqCta: 'Відкрити EQUALIZER →',
+    privacyStrip: '🔒 Уся обробка звуку та відео відбувається локально у вашому браузері через Web Audio API — жоден файл нікуди не завантажується.'
+  },
+  en: {
+    pageLabel: '— Tools',
+    pageTitleHtml: 'Audio <span class="gradient-text">Studio</span>',
+    pageSub: 'Free sound-processing tools — right in your browser, no sign-up, no files uploaded to a server.',
+    masteringTitle: 'Track mastering',
+    masteringDesc: 'Boost loudness, add compression, and balance the bass and highs. Compare the original and the result live, then download the finished WAV.',
+    masteringCta: 'Open MASTER.WAV →',
+    vocalDesc: 'Split a track into vocal and instrumental, cut out unwanted vocal parts, and mix it all back into one file.',
+    vocalCta: 'Open VOCAL SPLIT →',
+    eqDesc: 'Upload a picture or video and a track — get a promo video with a spectrum equalizer for TikTok, Reels, and Shorts.',
+    eqCta: 'Open EQUALIZER →',
+    privacyStrip: '🔒 All audio and video processing happens locally in your browser via the Web Audio API — no file is ever uploaded anywhere.'
+  }
+};
+function applyLocalI18n(){
+  const lang = localStorage.getItem('lang') || 'uk';
+  document.querySelectorAll('[data-i18n-local]').forEach(el => {
+    const k = el.getAttribute('data-i18n-local');
+    if(IL[lang][k] !== undefined) el.textContent = IL[lang][k];
+  });
+  document.querySelectorAll('[data-i18n-local-html]').forEach(el => {
+    const k = el.getAttribute('data-i18n-local-html');
+    if(IL[lang][k] !== undefined) el.innerHTML = IL[lang][k];
+  });
+}
+window.onLangChange = function(){ applyLocalI18n(); };
+applyLocalI18n();
+</script>
 </body>
 </html>
