@@ -59,6 +59,25 @@
   .panel.show{ display:block; }
 
   .notebox{ background:var(--bg); border:1px solid var(--line); border-radius:10px; padding:14px 16px; font-size:12.5px; color:var(--muted); line-height:1.5; }
+
+  .modeblock{ margin-bottom:18px; }
+  .modeopt{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  @media (max-width:640px){ .modeopt{ grid-template-columns:1fr; } }
+  .moderadio{
+    display:flex; align-items:flex-start; gap:10px; cursor:pointer;
+    background:var(--bg); border:1px solid var(--line); border-radius:10px;
+    padding:12px 14px; transition:border-color .15s, background .15s;
+  }
+  .moderadio:has(input:checked){ border-color:var(--pink); background:rgba(255,61,129,.06); }
+  .moderadio input{ margin-top:3px; flex:none; accent-color:var(--pink); }
+  .moderadio span{ display:flex; flex-direction:column; gap:3px; }
+  .moderadio b{ font-size:13px; color:var(--text); }
+  .moderadio span span{ font-size:11.5px; color:var(--muted); line-height:1.45; }
+  .modenote{
+    margin-top:10px; font-size:11.5px; color:var(--gold, #fbbf24);
+    background:rgba(251,191,36,.08); border:1px solid rgba(251,191,36,.25);
+    border-radius:8px; padding:9px 12px;
+  }
   .notebox b{ color:var(--text); }
 
   .intensityblock{ margin-top:14px; background:var(--bg); border:1px solid var(--line); border-radius:10px; padding:14px 16px; }
@@ -185,6 +204,26 @@
 
   <div class="rack">
 
+    <div class="modeblock" id="modeBlock">
+      <div class="modeopt">
+        <label class="moderadio">
+          <input type="radio" name="sepMode" value="fast" id="modeFast" checked>
+          <span>
+            <b data-i18n-local="modeFastTitle">⚡ Швидкий метод</b>
+            <span data-i18n-local="modeFastDesc">Миттєво, працює завжди. Обмежена якість (метод скасування фази).</span>
+          </span>
+        </label>
+        <label class="moderadio">
+          <input type="radio" name="sepMode" value="ai" id="modeAi">
+          <span>
+            <b data-i18n-local="modeAiTitle">✨ AI-якість (HTDemucs)</b>
+            <span data-i18n-local="modeAiDesc">Найкраща якість, справжня нейромережа. Перший раз завантажує модель (~160МБ, разово, кешується), обробка може тривати кілька хвилин.</span>
+          </span>
+        </label>
+      </div>
+      <div class="modenote" id="aiNote" style="display:none" data-i18n-local="modeAiNote">Порада: спробуй спершу короткий фрагмент (15-30 сек), щоб оцінити час обробки на своєму пристрої, перш ніж запускати цілий трек.</div>
+    </div>
+
     <div class="drop" id="drop">
       <div class="slot">// audio in</div>
       <div class="cta" data-i18n-local="dropCta">Перетягніть трек сюди або натисніть, щоб обрати файл</div>
@@ -205,14 +244,18 @@
       <div class="spinner"></div>
       <div class="ptext" id="progText">Обробка… 0%</div>
       <div class="progbar"><i id="progFill"></i></div>
+      <button class="btn ghost" id="aiCancelBtn" style="display:none;width:auto;margin:0;padding:8px 14px" data-i18n-local="cancelBtn">✕ Скасувати</button>
     </div>
 
     <div class="panel" id="panel">
-      <div class="notebox">
+      <div class="notebox" id="fastNotebox">
         <b data-i18n-local="noteboxBold">Як це працює:</b> <span data-i18n-local="noteboxText">розділення виконується через скасування фази центрального каналу в частотній смузі вокалу (бас і верхні частоти залишаються майже незмінними, щоб не втрачати «м'ясо» мікса) — це не повноцінний ШІ-сепаратор доріжок. Якість сильно залежить від конкретного треку: краще спрацьовує там, де вокал сухий і зведений рівно по центру; гірше — там, де є ревер, подвоєння вокалу чи стерео-розширення (тоді прибрати голос повністю фізично неможливо цим методом). Спробуйте підкрутити інтенсивність нижче — для різних пісень оптимальне значення відрізняється. На моно-файлах розділення недоступне.</span>
       </div>
+      <div class="notebox" id="aiNotebox" style="display:none">
+        <b data-i18n-local="aiNoteboxBold">AI-режим активний:</b> <span data-i18n-local="aiNoteboxText">вокал виділено нейромережею HTDemucs FT (відкрита MIT-ліцензія), інструментал отримано відніманням вокалу від оригіналу. Якість значно вища за швидкий метод. Повзунок інтенсивності тут не діє — результат моделі фіксований.</span>
+      </div>
 
-      <div class="intensityblock">
+      <div class="intensityblock" id="intensityBlock">
         <div class="ilabel"><span data-i18n-local="intensityLabel">Інтенсивність вирізання вокалу з мінусу</span> <b id="intensityVal">85%</b></div>
         <input type="range" id="intensity" min="30" max="100" step="5" value="85" />
         <div class="isub" data-i18n-local="intensitySub">Менше — м'якше, більше басу й натуральності. Більше — агресивніше прибирає вокал, але може з'явитись «фейзовий» присмак звуку.</div>
@@ -262,6 +305,7 @@
       </div>
     </div>
 
+    <div class="toolnav"><span data-i18n-local="toolnavMaster">Потрібно ще й підняти гучність та вирівняти звук? →</span> <a href="index.html" data-i18n-local="toolnavMasterLink">Окремий інструмент MASTER.WAV</a></div>
     <div class="toolnav">← <a href="index.html" data-i18n-local="toolnavAllLink">Усі аудіо-інструменти</a></div>
 
   </div>
@@ -395,7 +439,20 @@
       cutDoneStatus: 'Ділянку вирізано (замінено тишею). Можна прослухати результат нижче.',
       encodingMinus: 'Кодування WAV (мінус)…', encodingVocal: 'Кодування WAV (вокал)…', encodingMerged: 'Кодування WAV (обʼєднане)…',
       exportDone: 'Готово! Файл завантажено.', exportError: 'Помилка експорту. Спробуйте ще раз.',
-      separationTimeout: 'Обробка зайняла надто багато часу. Спробуйте інший браузер (Chrome) або коротший файл.'
+      separationTimeout: 'Обробка зайняла надто багато часу. Спробуйте інший браузер (Chrome) або коротший файл.',
+      modeFastTitle: '⚡ Швидкий метод', modeFastDesc: 'Миттєво, працює завжди. Обмежена якість (метод скасування фази).',
+      modeAiTitle: '✨ AI-якість (HTDemucs)', modeAiDesc: 'Найкраща якість, справжня нейромережа. Перший раз завантажує модель (~160МБ, разово, кешується), обробка може тривати кілька хвилин.',
+      modeAiNote: 'Порада: спробуй спершу короткий фрагмент (15-30 сек), щоб оцінити час обробки на своєму пристрої, перш ніж запускати цілий трек.',
+      aiNoteboxBold: 'AI-режим активний:', aiNoteboxText: "вокал виділено нейромережею HTDemucs FT (відкрита MIT-ліцензія), інструментал отримано відніманням вокалу від оригіналу. Якість значно вища за швидкий метод. Повзунок інтенсивності тут не діє — результат моделі фіксований.",
+      cancelBtn: '✕ Скасувати',
+      aiStageModel: 'Завантаження AI-моделі…', aiStagePrep: 'Ініціалізація моделі…', aiStageInfer: 'AI обробляє трек…', aiStageFinalize: 'Завершення…',
+      aiStatusBusy: 'AI аналізує трек — це може тривати кілька хвилин, особливо вперше (завантаження моделі) і на телефоні.',
+      aiReadyStatusOk: 'Готово! Вокал виділено за допомогою AI. Можна редагувати, прослухати чи завантажити.',
+      aiCancelledStatus: 'AI-обробку скасовано.',
+      aiOrtLoadError: "Не вдалося завантажити бібліотеку onnxruntime-web. Перевір інтернет-з'єднання.",
+      aiModelDownloadError: (status) => `Не вдалося завантажити AI-модель (HTTP ${status})`,
+      aiInitError: (msg) => `Не вдалося ініціалізувати AI-модель у цьому браузері: ${msg}`,
+      aiChunkTimeout: "Обробка одного фрагмента зайняла надто багато часу. Спробуй коротший трек, інший браузер (Chrome) або на комп'ютері замість телефону."
     },
     en: {
       audioStudioLink: 'Audio Studio',
@@ -438,7 +495,20 @@
       cutDoneStatus: 'Region cut (replaced with silence). You can listen to the result below.',
       encodingMinus: 'Encoding WAV (instrumental)…', encodingVocal: 'Encoding WAV (vocal)…', encodingMerged: 'Encoding WAV (merged)…',
       exportDone: 'Done! File downloaded.', exportError: 'Export error. Please try again.',
-      separationTimeout: 'Processing took too long. Try another browser (Chrome) or a shorter file.'
+      separationTimeout: 'Processing took too long. Try another browser (Chrome) or a shorter file.',
+      modeFastTitle: '⚡ Fast method', modeFastDesc: 'Instant, always works. Limited quality (phase-cancellation method).',
+      modeAiTitle: '✨ AI quality (HTDemucs)', modeAiDesc: 'Best quality, a real neural network. First use downloads the model (~160MB, one-time, cached), processing can take several minutes.',
+      modeAiNote: 'Tip: try a short clip first (15-30 sec) to gauge processing time on your device before running a whole track.',
+      aiNoteboxBold: 'AI mode active:', aiNoteboxText: 'the vocal was isolated by the HTDemucs FT neural network (open MIT license), the instrumental is obtained by subtracting the vocal from the original. Quality is significantly higher than the fast method. The intensity slider has no effect here — the model output is fixed.',
+      cancelBtn: '✕ Cancel',
+      aiStageModel: 'Downloading AI model…', aiStagePrep: 'Initializing model…', aiStageInfer: 'AI is processing the track…', aiStageFinalize: 'Finishing up…',
+      aiStatusBusy: 'AI is analyzing the track — this can take several minutes, especially the first time (model download) and on phones.',
+      aiReadyStatusOk: 'Done! Vocals isolated with AI. You can edit, listen, or download.',
+      aiCancelledStatus: 'AI processing cancelled.',
+      aiOrtLoadError: 'Failed to load the onnxruntime-web library. Check your internet connection.',
+      aiModelDownloadError: (status) => `Failed to download the AI model (HTTP ${status})`,
+      aiInitError: (msg) => `Failed to initialize the AI model in this browser: ${msg}`,
+      aiChunkTimeout: 'Processing one chunk took too long. Try a shorter track, a different browser (Chrome), or a computer instead of a phone.'
     }
   };
   let vLang = localStorage.getItem('lang') || 'uk';
@@ -488,6 +558,7 @@
     intensityVal.textContent = intensitySlider.value + '%';
   });
   intensitySlider.addEventListener('change', async () => {
+    if (currentMode() === 'ai') return;
     instrIntensity = parseInt(intensitySlider.value) / 100;
     if (!originalBuffer || originalBuffer.numberOfChannels < 2) return;
     setBusy(true);
@@ -524,6 +595,8 @@
     vocalBuffer = null;
     cuts = [];
     selection = null;
+    aiCancelled = false;
+    document.getElementById('aiCancelBtn').style.display = 'none';
     trackInfo.style.display = 'none';
     waveCanvas.style.display = 'none';
     panel.classList.remove('show');
@@ -566,6 +639,204 @@
     return p;
   }
 
+  const AI_MODEL_URL_FP16 = 'https://huggingface.co/StemSplitio/htdemucs-ft-vocals-onnx/resolve/main/htdemucs_ft_vocals_fp16weights.onnx';
+  const AI_MODEL_URL_FULL = 'https://huggingface.co/StemSplitio/htdemucs-ft-vocals-onnx/resolve/main/htdemucs_ft_vocals.onnx';
+  const AI_ORT_CDN = 'https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/';
+  const AI_CHUNK = 343980;
+  const AI_SR = 44100;
+  const AI_CACHE_NAME = 'inkbeat-ai-model-v1';
+
+  let aiCancelled = false;
+  let ortLoadPromise = null;
+
+  function loadOrt(){
+    if(window.ort) return Promise.resolve(window.ort);
+    if(ortLoadPromise) return ortLoadPromise;
+    ortLoadPromise = new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = AI_ORT_CDN + 'ort.min.js';
+      s.onload = () => {
+        if(window.ort){
+          ort.env.wasm.wasmPaths = AI_ORT_CDN;
+          resolve(window.ort);
+        } else {
+          reject(new Error('onnxruntime-web не завантажився коректно'));
+        }
+      };
+      s.onerror = () => reject(new Error(vt('aiOrtLoadError')));
+      document.head.appendChild(s);
+    });
+    return ortLoadPromise;
+  }
+
+  async function fetchModelWithCache(onProgress){
+    let cache = null;
+    try{ cache = await caches.open(AI_CACHE_NAME); }catch(e){}
+
+    if(cache){
+      for(const url of [AI_MODEL_URL_FP16, AI_MODEL_URL_FULL]){
+        try{
+          const cached = await cache.match(url);
+          if(cached){ onProgress(1); return await cached.arrayBuffer(); }
+        }catch(e){}
+      }
+    }
+
+    let res = null, usedUrl = AI_MODEL_URL_FP16;
+    try{
+      res = await fetch(AI_MODEL_URL_FP16);
+      if(!res.ok) throw new Error('fp16 not found');
+    }catch(e){
+      usedUrl = AI_MODEL_URL_FULL;
+      res = await fetch(AI_MODEL_URL_FULL);
+    }
+    if(!res.ok) throw new Error(vt('aiModelDownloadError')(res.status));
+
+    const total = parseInt(res.headers.get('content-length') || '0', 10);
+    const reader = res.body.getReader();
+    const chunks = [];
+    let received = 0;
+    while(true){
+      if(aiCancelled) throw new Error('cancelled');
+      const { done, value } = await reader.read();
+      if(done) break;
+      chunks.push(value);
+      received += value.length;
+      if(total) onProgress(received/total);
+    }
+    const buf = new Uint8Array(received);
+    let offset = 0;
+    for(const c of chunks){ buf.set(c, offset); offset += c.length; }
+
+    if(cache){
+      try{ await cache.put(usedUrl, new Response(buf)); }catch(e){}
+    }
+    return buf.buffer;
+  }
+
+  async function resampleBuffer(buffer, targetSR){
+    if(Math.round(buffer.sampleRate) === targetSR) return buffer;
+    const OfflineCtor = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+    const targetLength = Math.max(1, Math.ceil(buffer.duration * targetSR));
+    const offline = new OfflineCtor(buffer.numberOfChannels, targetLength, targetSR);
+    const src = offline.createBufferSource();
+    src.buffer = buffer;
+    src.connect(offline.destination);
+    src.start();
+    return await offline.startRendering();
+  }
+
+  async function aiSeparateVocals(buffer, onProgress){
+    aiCancelled = false;
+    const ortLib = await loadOrt();
+    if(aiCancelled) throw new Error('cancelled');
+    onProgress(0.01, vt('aiStageModel'));
+
+    const modelBuf = await fetchModelWithCache((p) => onProgress(0.01 + p*0.34, vt('aiStageModel')));
+    if(aiCancelled) throw new Error('cancelled');
+
+    onProgress(0.36, vt('aiStagePrep'));
+    let session;
+    try{
+      session = await ortLib.InferenceSession.create(modelBuf, { executionProviders: ['wasm'], graphOptimizationLevel: 'all' });
+    }catch(e){
+      throw new Error(vt('aiInitError')(e.message || e));
+    }
+    if(aiCancelled) throw new Error('cancelled');
+
+    const resampled = await resampleBuffer(buffer, AI_SR);
+    const ch0 = resampled.getChannelData(0);
+    const ch1 = resampled.numberOfChannels > 1 ? resampled.getChannelData(1) : resampled.getChannelData(0);
+    const len = resampled.length;
+
+    const CHUNK = AI_CHUNK;
+    const HOP = Math.floor(CHUNK / 4);
+    const numChunks = Math.max(1, Math.ceil(Math.max(1, len - CHUNK) / HOP) + 1);
+    const padLen = (numChunks - 1) * HOP + CHUNK;
+
+    const padded0 = new Float32Array(padLen);
+    const padded1 = new Float32Array(padLen);
+    padded0.set(ch0); padded1.set(ch1);
+
+    const outVocals = new Float32Array(padLen * 2);
+    const weightSum = new Float32Array(padLen);
+    const win = new Float32Array(CHUNK);
+    for(let i=0;i<CHUNK;i++){ win[i] = 0.5 - 0.5*Math.cos(2*Math.PI*i/(CHUNK-1)); }
+
+    for(let c=0;c<numChunks;c++){
+      if(aiCancelled) throw new Error('cancelled');
+      const start = c * HOP;
+      const inputData = new Float32Array(2 * CHUNK);
+      for(let i=0;i<CHUNK;i++){
+        inputData[i] = padded0[start+i];
+        inputData[CHUNK+i] = padded1[start+i];
+      }
+      const tensor = new ortLib.Tensor('float32', inputData, [1, 2, CHUNK]);
+      const results = await withTimeout(
+        session.run({ mix: tensor }),
+        120000,
+        vt('aiChunkTimeout')
+      );
+      const outKey = results.stems ? 'stems' : Object.keys(results)[0];
+      const data = results[outKey].data;
+      const vocalsOffset = 3 * 2 * CHUNK;
+      for(let i=0;i<CHUNK;i++){
+        outVocals[(start+i)*2] += data[vocalsOffset + i] * win[i];
+        outVocals[(start+i)*2+1] += data[vocalsOffset + CHUNK + i] * win[i];
+        weightSum[start+i] += win[i];
+      }
+      onProgress(0.38 + (c+1)/numChunks*0.5, vt('aiStageInfer'));
+    }
+
+    for(let i=0;i<padLen;i++){
+      const w = weightSum[i] || 1;
+      outVocals[i*2] /= w;
+      outVocals[i*2+1] /= w;
+    }
+
+    if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    const vocalAt44 = audioCtx.createBuffer(2, len, AI_SR);
+    const vc0 = vocalAt44.getChannelData(0);
+    const vc1 = vocalAt44.getChannelData(1);
+    for(let i=0;i<len;i++){ vc0[i] = outVocals[i*2]; vc1[i] = outVocals[i*2+1]; }
+
+    onProgress(0.9, vt('aiStageFinalize'));
+    const vocalFinal = await resampleBuffer(vocalAt44, Math.round(buffer.sampleRate));
+    if(aiCancelled) throw new Error('cancelled');
+
+    const vocalOut = audioCtx.createBuffer(buffer.numberOfChannels, buffer.length, buffer.sampleRate);
+    const instrOut = audioCtx.createBuffer(buffer.numberOfChannels, buffer.length, buffer.sampleRate);
+    for(let ch=0; ch<buffer.numberOfChannels; ch++){
+      const mixData = buffer.getChannelData(ch);
+      const vocData = vocalFinal.getChannelData(Math.min(ch, vocalFinal.numberOfChannels-1));
+      const vOut = vocalOut.getChannelData(ch);
+      const iOut = instrOut.getChannelData(ch);
+      const n = Math.min(buffer.length, vocData.length);
+      for(let i=0;i<n;i++){
+        const v = vocData[i] || 0;
+        vOut[i] = v;
+        iOut[i] = mixData[i] - v;
+      }
+    }
+
+    onProgress(1, vt('doneProgress'));
+    return { instrBuffer: instrOut, vocalBuffer: vocalOut };
+  }
+
+  function currentMode(){
+    return document.querySelector('input[name="sepMode"]:checked').value;
+  }
+  document.querySelectorAll('input[name="sepMode"]').forEach(r => {
+    r.addEventListener('change', () => {
+      const ai = currentMode() === 'ai';
+      document.getElementById('aiNote').style.display = ai ? 'block' : 'none';
+      document.getElementById('fastNotebox').style.display = ai ? 'none' : 'block';
+      document.getElementById('aiNotebox').style.display = ai ? 'block' : 'none';
+      document.getElementById('intensityBlock').style.display = ai ? 'none' : 'block';
+    });
+  });
+  document.getElementById('aiCancelBtn').addEventListener('click', () => { aiCancelled = true; });
+
   async function loadFile(file){
     resetAll();
     showProgress(true);
@@ -601,28 +872,51 @@
         return;
       }
 
-      setProgress(0, vt('calcMinusProgress'));
-      setStatus(vt('processingStatusBusy'), 'busy');
-      instrBuffer = await withTimeout(
-        buildVariantWithProgress(buf, 'instrumental', p => setProgress(p*0.5, vt('calcMinusProgress')), { intensity: instrIntensity }),
-        separationTimeoutMs(buf),
-        vt('separationTimeout')
-      );
-      setProgress(0.5, vt('calcVocalProgress'));
-      vocalBuffer = await withTimeout(
-        buildVariantWithProgress(buf, 'vocal', p => setProgress(0.5 + p*0.5, vt('calcVocalProgress'))),
-        separationTimeoutMs(buf),
-        vt('separationTimeout')
-      );
+      const mode = currentMode();
+      document.getElementById('aiCancelBtn').style.display = mode === 'ai' ? 'block' : 'none';
+
+      if (mode === 'ai'){
+        setProgress(0, vt('aiStageModel'));
+        setStatus(vt('aiStatusBusy'), 'busy');
+        try{
+          const result = await aiSeparateVocals(buf, (p, label) => setProgress(p, label));
+          instrBuffer = result.instrBuffer;
+          vocalBuffer = result.vocalBuffer;
+        }catch(err){
+          if(err && err.message === 'cancelled'){
+            showProgress(false);
+            document.getElementById('aiCancelBtn').style.display = 'none';
+            setStatus(vt('aiCancelledStatus'), 'err');
+            return;
+          }
+          throw err;
+        }
+        document.getElementById('aiCancelBtn').style.display = 'none';
+      } else {
+        setProgress(0, vt('calcMinusProgress'));
+        setStatus(vt('processingStatusBusy'), 'busy');
+        instrBuffer = await withTimeout(
+          buildVariantWithProgress(buf, 'instrumental', p => setProgress(p*0.5, vt('calcMinusProgress')), { intensity: instrIntensity }),
+          separationTimeoutMs(buf),
+          vt('separationTimeout')
+        );
+        setProgress(0.5, vt('calcVocalProgress'));
+        vocalBuffer = await withTimeout(
+          buildVariantWithProgress(buf, 'vocal', p => setProgress(0.5 + p*0.5, vt('calcVocalProgress'))),
+          separationTimeoutMs(buf),
+          vt('separationTimeout')
+        );
+      }
       setProgress(1, vt('doneProgress'));
       showProgress(false);
 
       panel.classList.add('show');
       drawEditor();
-      setStatus(vt('readyStatusOk'), 'ok');
+      setStatus(mode === 'ai' ? vt('aiReadyStatusOk') : vt('readyStatusOk'), 'ok');
     }catch(err){
       console.error(err);
       showProgress(false);
+      document.getElementById('aiCancelBtn').style.display = 'none';
       const reason = (err && (err.message || err.name)) ? (err.message || err.name) : 'невідома помилка';
       setStatus(vt('readError')(reason), 'err');
     }
