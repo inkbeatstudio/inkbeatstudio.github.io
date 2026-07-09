@@ -222,6 +222,7 @@
         </label>
       </div>
       <div class="modenote" id="aiNote" style="display:none" data-i18n-local="modeAiNote">Порада: спробуй спершу короткий фрагмент (15-30 сек), щоб оцінити час обробки на своєму пристрої, перш ніж запускати цілий трек.</div>
+      <div class="modenote" id="aiDeviceWarning" style="display:none;color:#ff6b6b;background:rgba(255,107,107,.08);border-color:rgba(255,107,107,.25)" data-i18n-local="aiDeviceWarningText">⚠ AI-модель важка (~150-300МБ) і потребує багато оперативної пам'яті під час обробки. На телефонах (особливо iPhone) є реальний ризик, що браузер аварійно закриє вкладку. Найнадійніше — комп'ютер із сучасним браузером (Chrome).</div>
     </div>
 
     <div class="drop" id="drop">
@@ -453,7 +454,9 @@
       aiModelDownloadError: (status) => `Не вдалося завантажити AI-модель (HTTP ${status})`,
       aiInitError: (msg) => `Не вдалося ініціалізувати AI-модель у цьому браузері: ${msg}`,
       aiChunkTimeout: "Обробка одного фрагмента зайняла надто багато часу. Спробуй коротший трек, інший браузер (Chrome) або на комп'ютері замість телефону.",
-      readTimeout: 'Читання файлу зайняло надто багато часу. Спробуйте закрити інші вкладки, перезавантажити сторінку або обрати інший файл.'
+      readTimeout: 'Читання файлу зайняло надто багато часу. Спробуйте закрити інші вкладки, перезавантажити сторінку або обрати інший файл.',
+      aiDeviceWarningText: "⚠ AI-модель важка (~150-300МБ) і потребує багато оперативної пам'яті під час обробки. На телефонах (особливо iPhone) є реальний ризик, що браузер аварійно закриє вкладку. Найнадійніше — комп'ютер із сучасним браузером (Chrome).",
+      aiMobileConfirm: "Цей пристрій може не впоратись із AI-моделлю (не вистачить пам'яті), і сторінка може аварійно перезавантажитись. Продовжити на власний ризик?"
     },
     en: {
       audioStudioLink: 'Audio Studio',
@@ -510,7 +513,9 @@
       aiModelDownloadError: (status) => `Failed to download the AI model (HTTP ${status})`,
       aiInitError: (msg) => `Failed to initialize the AI model in this browser: ${msg}`,
       aiChunkTimeout: 'Processing one chunk took too long. Try a shorter track, a different browser (Chrome), or a computer instead of a phone.',
-      readTimeout: 'Reading the file took too long. Try closing other tabs, reloading the page, or choosing a different file.'
+      readTimeout: 'Reading the file took too long. Try closing other tabs, reloading the page, or choosing a different file.',
+      aiDeviceWarningText: "⚠ The AI model is heavy (~150-300MB) and needs a lot of RAM during processing. On phones (especially iPhone) there's a real risk the browser will crash the tab. Most reliable: a computer with an up-to-date browser (Chrome).",
+      aiMobileConfirm: 'This device may not be able to handle the AI model (not enough memory), and the page might crash. Continue at your own risk?'
     }
   };
   let vLang = localStorage.getItem('lang') || 'uk';
@@ -625,16 +630,6 @@
     return Math.max(90000, Math.min(240000, duration * 4000));
   }
 
-  function readFileViaFileReader(file){
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = () => reject(reader.error || new Error('FileReader error'));
-      reader.onabort = () => reject(new Error('FileReader aborted'));
-      try{ reader.readAsArrayBuffer(file); }catch(e){ reject(e); }
-    });
-  }
-
   function readFileWithSimulatedProgress(file, onProgress){
     const sizeMb = file.size / (1024*1024);
     const estimatedMs = Math.max(600, Math.min(15000, sizeMb * 180));
@@ -645,10 +640,7 @@
       const pct = Math.min(0.92, (Date.now() - start) / estimatedMs);
       onProgress(pct);
     }, 120);
-    const p = Promise.race([
-      file.arrayBuffer(),
-      readFileViaFileReader(file)
-    ]);
+    const p = file.arrayBuffer();
     p.then(() => { done = true; clearInterval(timer); onProgress(1); },
            () => { done = true; clearInterval(timer); });
     return p;
@@ -800,7 +792,10 @@
         outVocals[(start+i)*2+1] += data[vocalsOffset + CHUNK + i] * win[i];
         weightSum[start+i] += win[i];
       }
+      for(const key in results){ if(results[key] && typeof results[key].dispose === 'function'){ results[key].dispose(); } }
+      if(typeof tensor.dispose === 'function'){ tensor.dispose(); }
       onProgress(0.38 + (c+1)/numChunks*0.5, vt('aiStageInfer'));
+      await new Promise(r => setTimeout(r, 0));
     }
 
     for(let i=0;i<padLen;i++){
@@ -841,9 +836,27 @@
   function currentMode(){
     return document.querySelector('input[name="sepMode"]:checked').value;
   }
+
+  const modeAiRadio = document.getElementById('modeAi');
+  const modeFastRadio = document.getElementById('modeFast');
+  const aiDeviceWarning = document.getElementById('aiDeviceWarning');
+
+  aiDeviceWarning.style.display = 'block';
+
   document.querySelectorAll('input[name="sepMode"]').forEach(r => {
     r.addEventListener('change', () => {
       const ai = currentMode() === 'ai';
+      if(ai){
+        const confirmed = confirm(vt('aiMobileConfirm'));
+        if(!confirmed){
+          modeFastRadio.checked = true;
+          document.getElementById('aiNote').style.display = 'none';
+          document.getElementById('fastNotebox').style.display = 'block';
+          document.getElementById('aiNotebox').style.display = 'none';
+          document.getElementById('intensityBlock').style.display = 'block';
+          return;
+        }
+      }
       document.getElementById('aiNote').style.display = ai ? 'block' : 'none';
       document.getElementById('fastNotebox').style.display = ai ? 'none' : 'block';
       document.getElementById('aiNotebox').style.display = ai ? 'block' : 'none';
