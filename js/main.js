@@ -71,29 +71,80 @@ function initLoading() {
   let finished = false
 
   function setProgress(p) {
-    progress = p
+    progress = Math.max(progress, Math.min(p, 100))
     if (bar) bar.style.width = progress + '%'
     if (pct) pct.textContent = Math.round(progress) + '%'
+    const stage = progress >= 100 ? 3 : progress >= 66 ? 2 : progress >= 33 ? 1 : 0
+    screen.setAttribute('data-stage', String(stage))
   }
 
+  // Real readiness signals: every real-world thing that has to finish loading
+  // AND running before we consider the page "done" — not a fake timer.
+  const tasks = []
+
+  // 1) All sub-resources the browser knows about (images, css, scripts, media).
+  tasks.push(new Promise(resolve => {
+    if (document.readyState === 'complete') resolve()
+    else window.addEventListener('load', () => resolve(), { once: true })
+  }))
+
+  // 2) Web fonts actually loaded and ready to paint (avoids flash of unstyled text
+  // counting as "loaded" before the real typography is in).
+  if (document.fonts && document.fonts.ready) {
+    tasks.push(document.fonts.ready.catch(() => {}))
+  }
+
+  // 3) Every <img> on the page fully decoded (covers late-inserted / lazy images
+  // already present in markup at load time).
+  tasks.push(Promise.all(
+    Array.from(document.images).map(img => {
+      if (img.complete) return Promise.resolve()
+      return new Promise(resolve => {
+        img.addEventListener('load', resolve, { once: true })
+        img.addEventListener('error', resolve, { once: true })
+      })
+    })
+  ))
+
+  // 4) Any in-flight data fetch kicked off at page start (e.g. the SoundCloud
+  // releases feed on the homepage) — the loader stays up until that data has
+  // actually arrived and is ready to render, not just until assets are cached.
+  if (window.__soundcloudDataPromise) {
+    tasks.push(window.__soundcloudDataPromise.catch(() => {}))
+  }
+
+  const allReady = Promise.all(tasks)
+
+  // Hard safety net: never trap the user behind the loader if something stalls.
+  const safetyTimeout = new Promise(resolve => setTimeout(resolve, 8000))
+
+  // Progress reflects genuine completion of the tasks above, weighted so the
+  // bar/equalizer only reaches 100% once everything has actually resolved.
+  let settledCount = 0
+  tasks.forEach(t => {
+    Promise.resolve(t).then(() => {
+      settledCount++
+      setProgress((settledCount / tasks.length) * 92)
+    })
+  })
+
+  // Gentle trickle underneath so the bar/equalizer never looks stuck while
+  // waiting on slow network tasks, but it can never finish the job on its own.
   function trickle() {
     if (finished) return
-    setProgress(Math.min(progress + (90 - progress) * 0.06 + 0.3, 90))
+    setProgress(Math.min(progress + (90 - progress) * 0.04 + 0.15, 90))
     requestAnimationFrame(trickle)
   }
   requestAnimationFrame(trickle)
 
-  const windowLoaded = new Promise(resolve => {
-    if (document.readyState === 'complete') resolve()
-    else window.addEventListener('load', () => resolve(), { once: true })
-  })
-
-  const safetyTimeout = new Promise(resolve => setTimeout(resolve, 4000))
-
-  Promise.race([windowLoaded, safetyTimeout]).then(() => {
-    finished = true
-    setProgress(100)
-    setTimeout(() => screen.classList.add('hidden'), 350)
+  Promise.race([allReady, safetyTimeout]).then(() => {
+    // Double rAF: let the browser actually paint the final frame before we
+    // declare victory, so "loaded" also means "rendered on screen".
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      finished = true
+      setProgress(100)
+      setTimeout(() => screen.classList.add('hidden'), 420)
+    }))
   })
 }
 
