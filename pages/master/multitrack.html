@@ -154,6 +154,12 @@
   }
   .tp-actions{ display:flex; gap:6px; grid-column:1/-1; flex-wrap:wrap; margin-top:2px; }
 
+  .master-section{ margin-top:20px; background:var(--bg); border:1px solid var(--line); border-radius:10px; padding:14px 16px; }
+  .ms-title{ font-family:var(--font-display); font-weight:700; font-size:13px; color:var(--lime); margin-bottom:10px; }
+  .ms-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:12px; }
+  .ms-grid .tp-field label{ display:flex; justify-content:space-between; margin-bottom:6px; }
+  .ms-grid .tp-field label b{ color:var(--lime); font-weight:600; }
+
   .btn{ font-family:var(--font-display); font-weight:700; font-size:13px; padding:10px 14px; border-radius:8px; border:1px solid var(--line); background:var(--panel-2); color:var(--text); cursor:pointer; transition:transform .1s, border-color .15s; }
   .btn:hover{ border-color:var(--muted); }
   .btn:active{ transform:scale(0.98); }
@@ -311,7 +317,21 @@
       <div class="trackpanel" id="trackPanel"></div>
 
       <div class="notebox" data-i18n-local="howItWorks">
-        <b data-i18n-local="howItWorksBold">Як це працює:</b> перетягуй доріжку по горизонталі, щоб змінити момент її вступу — це і є та сама «правильна вставка по таймінгу». Для точності до мілісекунди клацни на доріжку й онови поле «Початок» внизу. Коротші доріжки природно закінчуються раніше — просто розтягни їх по місцю або додай тишу через зсув. Fade in/out згладжують різкі початки й кінці, щоб не було клацань.
+        <b data-i18n-local="howItWorksBold">Як це працює:</b> перетягуй доріжку по горизонталі, щоб змінити момент її вступу — це і є та сама «правильна вставка по таймінгу». Для точності до мілісекунди клацни на доріжку й онови поле «Початок» внизу. Коротші доріжки природно закінчуються раніше — просто розтягни їх по місцю або додай тишу через зсув. Fade in/out згладжують різкі початки й кінці, щоб не було клацань. Щоб розрізати доріжку — постав відтворення (або клацни по лінійці) у потрібне місце, обери фрагмент і натисни «Розділити»: кожна частина після цього редагується і видаляється окремо.
+      </div>
+
+      <div class="master-section" id="masterSection">
+        <div class="ms-title" data-i18n-local="masterSectionTitle">Мастеринг готового міксу</div>
+        <div class="ms-grid">
+          <div class="tp-field"><label><span data-i18n-local="msLoud">Гучність</span> <b id="vLoud">+0 дБ</b></label><input type="range" id="loud" min="-3" max="12" step="0.5" value="0"></div>
+          <div class="tp-field"><label><span data-i18n-local="msComp">Компресія</span> <b id="vComp">0%</b></label><input type="range" id="comp" min="0" max="100" step="5" value="0"></div>
+          <div class="tp-field"><label><span data-i18n-local="msBass">Бас</span> <b id="vBass">+0 дБ</b></label><input type="range" id="bass" min="-6" max="6" step="0.5" value="0"></div>
+          <div class="tp-field"><label><span data-i18n-local="msTreb">Верхи</span> <b id="vTreb">+0 дБ</b></label><input type="range" id="treb" min="-6" max="6" step="0.5" value="0"></div>
+        </div>
+        <div class="tp-actions">
+          <button class="btn small lime" id="autoMasterBtn" type="button" data-i18n-local="msAuto">Авто-мастеринг</button>
+          <button class="btn small ghost" id="resetMasterBtn" type="button" data-i18n-local="msReset">Скинути мастеринг</button>
+        </div>
       </div>
 
       <div class="export-row">
@@ -402,6 +422,16 @@
   const exportBtn = document.getElementById('exportBtn');
   const exportName = document.getElementById('exportName');
   const normalizeToggle = document.getElementById('normalizeToggle');
+  const loudSlider = document.getElementById('loud');
+  const compSlider = document.getElementById('comp');
+  const bassSlider = document.getElementById('bass');
+  const trebSlider = document.getElementById('treb');
+  const vLoud = document.getElementById('vLoud');
+  const vComp = document.getElementById('vComp');
+  const vBass = document.getElementById('vBass');
+  const vTreb = document.getElementById('vTreb');
+  const autoMasterBtn = document.getElementById('autoMasterBtn');
+  const resetMasterBtn = document.getElementById('resetMasterBtn');
 
   window.addEventListener('error', (e) => {
     showProgress(false);
@@ -423,7 +453,7 @@
       masterLabel: 'MASTER', masterVolLabel: 'VOL', loopLabel: 'Loop',
       addTrackBtn: '+ Додати доріжку', zoomLabel: 'Масштаб',
       howItWorksBold: 'Як це працює:',
-      howItWorks: 'перетягуй доріжку по горизонталі, щоб змінити момент її вступу — це і є та сама «правильна вставка по таймінгу». Для точності до мілісекунди клацни на доріжку й онови поле «Початок» внизу. Коротші доріжки природно закінчуються раніше — просто розтягни їх по місцю або додай тишу через зсув. Fade in/out згладжують різкі початки й кінці, щоб не було клацань.',
+      howItWorks: 'перетягуй доріжку по горизонталі, щоб змінити момент її вступу — це і є та сама «правильна вставка по таймінгу». Для точності до мілісекунди клацни на доріжку й онови поле «Початок» внизу. Коротші доріжки природно закінчуються раніше — просто розтягни їх по місцю або додай тишу через зсув. Fade in/out згладжують різкі початки й кінці, щоб не було клацань. Щоб розрізати доріжку — постав відтворення (або клацни по лінійці) у потрібне місце, обери фрагмент і натисни «Розділити»: кожна частина після цього редагується і видаляється окремо.',
       filenameLabel: 'Назва файлу', normalizeLabel: 'Авто-нормалізація (без кліпінгу)', exportBtn: 'Звести й завантажити WAV',
       toolnavMaster: 'Потрібно ще й підняти гучність та вирівняти звук? →', toolnavMasterLink: 'Окремий інструмент MASTER.WAV',
       toolnavAllLink: 'Усі аудіо-інструменти',
@@ -439,13 +469,23 @@
       trackName: (n) => `Доріжка ${n}`,
       snapToPrev: '⇤ До кінця попередньої', resetOffset: '⇤ На нуль',
       tpStart: 'Початок (с)', tpTrimStart: 'Обрізати з (с)', tpTrimEnd: 'Обрізати до (с)',
-      tpFadeIn: 'Fade in (с)', tpFadeOut: 'Fade out (с)',
+      tpFadeIn: 'Fade in (с)', tpFadeOut: 'Fade out (с)', tpGain: 'Гучність фрагмента (дБ)',
       nudgeBack: '−0.1с', nudgeFwd: '+0.1с', nudgeBackBig: '−1с', nudgeFwdBig: '+1с',
+      splitBtn: '✂ Розділити тут', deleteClipBtn: '🗑 Видалити фрагмент',
+      splitOutOfRange: 'Постав лінію відтворення всередині обраного фрагмента (не скраю), щоб розділити його там.',
+      selectClipFirst: 'Спершу клацни на фрагмент, який хочеш розділити.',
+      splitDone: 'Фрагмент розділено на два — редагуй кожен окремо.',
+      clipDeleted: 'Фрагмент видалено.',
+      noClipSelected: 'Клацни на будь-який фрагмент на шкалі часу, щоб побачити тут його точні налаштування.',
       exportingLabel: 'Зведення міксу…', exportDone: 'Готово! Файл завантажено.',
       exportError: (reason) => `Не вдалося звести трек (${reason}). Спробуй ще раз.`,
       noTracksError: 'Спершу додай хоча б одну доріжку.',
       exportTimeout: 'Зведення зайняло надто багато часу. Спробуй коротший мікс або інший браузер.',
-      deleteConfirm: (name) => `Видалити доріжку «${name}»?`
+      deleteConfirm: (name) => `Видалити доріжку «${name}» повністю (з усіма фрагментами)?`,
+      masterSectionTitle: 'Мастеринг готового міксу',
+      msLoud: 'Гучність', msComp: 'Компресія', msBass: 'Бас', msTreb: 'Верхи',
+      msAuto: 'Авто-мастеринг', msReset: 'Скинути мастеринг',
+      dbUnit: ' дБ'
     },
     en: {
       audioStudioLink: 'Audio Studio',
@@ -456,7 +496,7 @@
       masterLabel: 'MASTER', masterVolLabel: 'VOL', loopLabel: 'Loop',
       addTrackBtn: '+ Add track', zoomLabel: 'Zoom',
       howItWorksBold: 'How it works:',
-      howItWorks: "drag a track horizontally to change when it comes in — that's the correct way to line up timing. For millisecond precision, click a track and update the \"Start\" field below. Shorter tracks naturally end earlier — just stretch them into place or add silence via offset. Fade in/out smooth out abrupt starts and ends so there are no clicks.",
+      howItWorks: 'drag a track horizontally to change when it comes in — that\'s the correct way to line up timing. For millisecond precision, click a track and update the "Start" field below. Shorter tracks naturally end earlier — just stretch them into place or add silence via offset. Fade in/out smooth out abrupt starts and ends so there are no clicks. To split a track — position playback (or click the ruler) where you want to cut, select the segment and press "Split": each piece can then be edited and deleted independently.',
       filenameLabel: 'File name', normalizeLabel: 'Auto-normalize (no clipping)', exportBtn: 'Mix down & download WAV',
       toolnavMaster: 'Also need to boost loudness and even out the sound? →', toolnavMasterLink: 'Separate tool: MASTER.WAV',
       toolnavAllLink: 'All audio tools',
@@ -472,13 +512,23 @@
       trackName: (n) => `Track ${n}`,
       snapToPrev: '⇤ To end of previous', resetOffset: '⇤ To zero',
       tpStart: 'Start (sec)', tpTrimStart: 'Trim from (sec)', tpTrimEnd: 'Trim to (sec)',
-      tpFadeIn: 'Fade in (sec)', tpFadeOut: 'Fade out (sec)',
+      tpFadeIn: 'Fade in (sec)', tpFadeOut: 'Fade out (sec)', tpGain: 'Segment gain (dB)',
       nudgeBack: '−0.1s', nudgeFwd: '+0.1s', nudgeBackBig: '−1s', nudgeFwdBig: '+1s',
+      splitBtn: '✂ Split here', deleteClipBtn: '🗑 Delete segment',
+      splitOutOfRange: 'Move the playhead inside the selected segment (not at the very edge) to split it there.',
+      selectClipFirst: 'Click a segment first to select the one you want to split.',
+      splitDone: 'Segment split into two — edit each one independently.',
+      clipDeleted: 'Segment deleted.',
+      noClipSelected: 'Click any segment on the timeline to see its exact settings here.',
       exportingLabel: 'Mixing down…', exportDone: 'Done! File downloaded.',
       exportError: (reason) => `Couldn't mix down the track (${reason}). Try again.`,
       noTracksError: 'Add at least one track first.',
       exportTimeout: 'Mixing down took too long. Try a shorter mix or a different browser.',
-      deleteConfirm: (name) => `Delete track "${name}"?`
+      deleteConfirm: (name) => `Delete track "${name}" entirely (with all its segments)?`,
+      masterSectionTitle: 'Master bus mastering',
+      msLoud: 'Loudness', msComp: 'Compression', msBass: 'Bass', msTreb: 'Treble',
+      msAuto: 'Auto-master', msReset: 'Reset mastering',
+      dbUnit: ' dB'
     }
   };
   let mLang = localStorage.getItem('lang') || 'uk';
@@ -489,6 +539,7 @@
       const k = el.getAttribute('data-i18n-local');
       if(TL[mLang][k] !== undefined) el.textContent = TL[mLang][k];
     });
+    refreshMasterLabels();
     renderTrackPanel();
   }
   window.onLangChange = function(){ applyLocalI18n(); };
@@ -518,15 +569,18 @@
 
   let audioCtx = null;
   let tracks = [];
-  let nextId = 1;
+  let nextTrackId = 1;
+  let nextClipId = 1;
   let pxPerSec = parseFloat(zoomSlider.value);
-  let selectedTrackId = null;
+  let selectedClipId = null;
   let isPlaying = false;
   let activeSources = [];
   let playStartCtxTime = 0;
   let playStartTimelineTime = 0;
   let rafId = null;
+  let endTimer = null;
   let masterGain = null;
+  let masterBass = null, masterTreble = null, masterComp = null, masterMakeup = null;
   let analyser = null;
   let analyserData = null;
 
@@ -536,19 +590,79 @@
     if(!audioCtx){
       audioCtx = new (window.AudioContext||window.webkitAudioContext)();
       masterGain = audioCtx.createGain();
+      masterBass = audioCtx.createBiquadFilter();
+      masterBass.type = 'lowshelf'; masterBass.frequency.value = 150;
+      masterTreble = audioCtx.createBiquadFilter();
+      masterTreble.type = 'highshelf'; masterTreble.frequency.value = 8000;
+      masterComp = audioCtx.createDynamicsCompressor();
+      masterComp.attack.value = 0.003; masterComp.release.value = 0.25; masterComp.knee.value = 18;
+      masterMakeup = audioCtx.createGain();
       analyser = audioCtx.createAnalyser();
       analyser.fftSize = 256;
       analyserData = new Uint8Array(analyser.frequencyBinCount);
-      masterGain.connect(analyser);
+
+      masterGain.connect(masterBass);
+      masterBass.connect(masterTreble);
+      masterTreble.connect(masterComp);
+      masterComp.connect(masterMakeup);
+      masterMakeup.connect(analyser);
       analyser.connect(audioCtx.destination);
+
       masterGain.gain.value = dbToGain(parseFloat(masterVol.value));
+      applyMasteringParamsLive();
     }
     if(audioCtx.state === 'suspended'){ audioCtx.resume().catch(()=>{}); }
     return audioCtx;
   }
 
+  function applyMasteringParamsLive(){
+    if(!audioCtx) return;
+    const loud = parseFloat(loudSlider.value);
+    const comp = parseFloat(compSlider.value)/100;
+    const bass = parseFloat(bassSlider.value);
+    const treb = parseFloat(trebSlider.value);
+    masterBass.gain.value = bass;
+    masterTreble.gain.value = treb;
+    masterComp.threshold.value = -6 - comp*24;
+    masterComp.ratio.value = 1 + comp*11;
+    masterMakeup.gain.value = dbToGain(loud);
+  }
+
+  function refreshMasterLabels(){
+    const db = vt('dbUnit');
+    vLoud.textContent = (loudSlider.value>=0?'+':'') + loudSlider.value + db;
+    vComp.textContent = compSlider.value + '%';
+    vBass.textContent = (bassSlider.value>=0?'+':'') + bassSlider.value + db;
+    vTreb.textContent = (trebSlider.value>=0?'+':'') + trebSlider.value + db;
+  }
+  [loudSlider, compSlider, bassSlider, trebSlider].forEach(el => {
+    el.addEventListener('input', () => { refreshMasterLabels(); applyMasteringParamsLive(); });
+  });
+  refreshMasterLabels();
+
+  autoMasterBtn.addEventListener('click', () => {
+    loudSlider.value = 7; compSlider.value = 45; bassSlider.value = 2.5; trebSlider.value = 2.5;
+    refreshMasterLabels(); applyMasteringParamsLive();
+  });
+  resetMasterBtn.addEventListener('click', () => {
+    loudSlider.value = 0; compSlider.value = 0; bassSlider.value = 0; trebSlider.value = 0;
+    refreshMasterLabels(); applyMasteringParamsLive();
+  });
+
+  function allClips(){
+    const out = [];
+    tracks.forEach(t => t.clips.forEach(c => out.push({ track:t, clip:c })));
+    return out;
+  }
+  function findClipById(id){
+    for(const t of tracks){
+      const c = t.clips.find(c=>c.id===id);
+      if(c) return { track:t, clip:c };
+    }
+    return null;
+  }
   function totalDuration(){
-    return tracks.reduce((max,t) => Math.max(max, t.offset + (t.trimEnd - t.trimStart)), 0.1);
+    return allClips().reduce((max,{clip}) => Math.max(max, clip.offset + (clip.trimEnd-clip.trimStart)), 0.1);
   }
 
   function computePeaks(buffer, buckets){
@@ -585,7 +699,7 @@
     return p;
   }
 
-  async function addTrackFromFile(file, index, total){
+  async function addTrackFromFile(file){
     const ctx = ensureAudioCtx();
     setStatus(vt('readingFile')(file.name), 'busy');
     setProgress(0.02, vt('readingFile')(file.name));
@@ -606,21 +720,26 @@
       setProgress(0.9, vt('decodingFile')(file.name));
 
       const track = {
-        id: nextId++,
+        id: nextTrackId++,
         name: file.name.replace(/\.[^/.]+$/, '') || vt('trackName')(tracks.length+1),
         color: COLORS[tracks.length % COLORS.length],
         buffer,
-        offset: 0,
-        trimStart: 0,
-        trimEnd: buffer.duration,
         volumeDb: 0,
         pan: 0,
         muted: false,
         solo: false,
+        peaks: computePeaks(buffer, 1600),
+        clips: []
+      };
+      track.clips.push({
+        id: nextClipId++,
+        offset: 0,
+        trimStart: 0,
+        trimEnd: buffer.duration,
         fadeIn: 0,
         fadeOut: 0,
-        peaks: computePeaks(buffer, 1600)
-      };
+        gainDb: 0
+      });
       tracks.push(track);
       setProgress(1, vt('decodingFile')(file.name));
       setStatus(vt('trackAdded')(track.name), 'ok');
@@ -639,7 +758,7 @@
     if(!files.length) return;
     const failures = [];
     for(let i=0;i<files.length;i++){
-      const result = await addTrackFromFile(files[i], i, files.length);
+      const result = await addTrackFromFile(files[i]);
       if(!result.ok) failures.push(result.message);
     }
     showProgress(false);
@@ -683,7 +802,7 @@
     }
   }
 
-  function drawClipCanvas(canvas, track, widthPx, heightPx){
+  function drawClipCanvas(canvas, track, clip, widthPx, heightPx){
     canvas.width = Math.max(1, Math.round(widthPx * (window.devicePixelRatio||1)));
     canvas.height = Math.max(1, Math.round(heightPx * (window.devicePixelRatio||1)));
     const ctx = canvas.getContext('2d');
@@ -693,8 +812,8 @@
     const peaks = track.peaks;
     const buckets = peaks.length/2;
     const totalTrackSec = track.buffer.duration;
-    const visStart = track.trimStart/totalTrackSec;
-    const visEnd = track.trimEnd/totalTrackSec;
+    const visStart = clip.trimStart/totalTrackSec;
+    const visEnd = clip.trimEnd/totalTrackSec;
     const startIdx = Math.floor(visStart*buckets);
     const endIdx = Math.max(startIdx+1, Math.floor(visEnd*buckets));
     const count = endIdx-startIdx;
@@ -711,14 +830,15 @@
       ctx.lineTo(x, mid + max*mid*0.92);
     }
     ctx.stroke();
-    if(track.fadeIn > 0){
-      const fadePx = (track.fadeIn/(track.trimEnd-track.trimStart)) * canvas.width;
+    const clipDur = clip.trimEnd - clip.trimStart;
+    if(clip.fadeIn > 0){
+      const fadePx = (clip.fadeIn/clipDur) * canvas.width;
       const g = ctx.createLinearGradient(0,0,fadePx,0);
       g.addColorStop(0,'rgba(0,0,0,.75)'); g.addColorStop(1,'rgba(0,0,0,0)');
       ctx.fillStyle = g; ctx.fillRect(0,0,fadePx,canvas.height);
     }
-    if(track.fadeOut > 0){
-      const fadePx = (track.fadeOut/(track.trimEnd-track.trimStart)) * canvas.width;
+    if(clip.fadeOut > 0){
+      const fadePx = (clip.fadeOut/clipDur) * canvas.width;
       const g = ctx.createLinearGradient(canvas.width-fadePx,0,canvas.width,0);
       g.addColorStop(0,'rgba(0,0,0,0)'); g.addColorStop(1,'rgba(0,0,0,.75)');
       ctx.fillStyle = g; ctx.fillRect(canvas.width-fadePx,0,fadePx,canvas.height);
@@ -731,52 +851,54 @@
     tracks.forEach(track => {
       const lane = document.createElement('div');
       lane.className = 'lane';
-      const clipW = (track.trimEnd-track.trimStart) * pxPerSec;
-      const clip = document.createElement('div');
-      clip.className = 'clip';
-      clip.dataset.trackId = track.id;
-      clip.style.left = (track.offset*pxPerSec) + 'px';
-      clip.style.width = Math.max(4,clipW) + 'px';
-      clip.style.background = track.color + '22';
-      clip.style.borderColor = selectedTrackId===track.id ? '#fff' : 'rgba(255,255,255,.18)';
-      const label = document.createElement('div');
-      label.className = 'clip-label';
-      label.textContent = track.name;
-      const canvas = document.createElement('canvas');
-      clip.appendChild(canvas);
-      clip.appendChild(label);
-      lane.appendChild(clip);
+      track.clips.forEach(clip => {
+        const clipW = (clip.trimEnd-clip.trimStart) * pxPerSec;
+        const clipEl = document.createElement('div');
+        clipEl.className = 'clip';
+        clipEl.dataset.clipId = clip.id;
+        clipEl.style.left = (clip.offset*pxPerSec) + 'px';
+        clipEl.style.width = Math.max(4,clipW) + 'px';
+        clipEl.style.background = track.color + '22';
+        clipEl.style.borderColor = selectedClipId===clip.id ? '#ffffff' : 'rgba(255,255,255,.18)';
+        const label = document.createElement('div');
+        label.className = 'clip-label';
+        label.textContent = track.name;
+        const canvas = document.createElement('canvas');
+        clipEl.appendChild(canvas);
+        clipEl.appendChild(label);
+        lane.appendChild(clipEl);
+        requestAnimationFrame(() => drawClipCanvas(canvas, track, clip, Math.max(4,clipW), 60));
+        wireClipDrag(clipEl, track, clip);
+        clipEl.addEventListener('click', (e) => { e.stopPropagation(); selectClipLight(clip.id); });
+      });
       lanesEl.appendChild(lane);
-      requestAnimationFrame(() => drawClipCanvas(canvas, track, Math.max(4,clipW), 60));
-      wireClipDrag(clip, track);
-      clip.addEventListener('click', (e) => { e.stopPropagation(); selectTrackLight(track.id); });
     });
     renderRuler();
     updatePlayheadPosition();
   }
 
-  function wireClipDrag(clip, track){
+  function wireClipDrag(clipEl, track, clip){
     let dragging = false, startX = 0, startOffset = 0;
-    clip.addEventListener('pointerdown', (e) => {
+    clipEl.addEventListener('pointerdown', (e) => {
       dragging = true;
       startX = e.clientX;
-      startOffset = track.offset;
-      clip.setPointerCapture(e.pointerId);
-      selectTrackLight(track.id);
+      startOffset = clip.offset;
+      clipEl.setPointerCapture(e.pointerId);
+      selectClipLight(clip.id);
     });
-    clip.addEventListener('pointermove', (e) => {
+    clipEl.addEventListener('pointermove', (e) => {
       if(!dragging) return;
       const dx = e.clientX - startX;
       const newOffset = Math.max(0, startOffset + dx/pxPerSec);
-      track.offset = newOffset;
-      clip.style.left = (newOffset*pxPerSec) + 'px';
+      clip.offset = newOffset;
+      clipEl.style.left = (newOffset*pxPerSec) + 'px';
       lanesEl.style.width = rulerWidth() + 'px';
       renderRuler();
       renderTrackPanel();
     });
     function endDrag(){ dragging = false; }
-    clip.addEventListener('pointerup', endDrag);
-    clip.addEventListener('pointercancel', endDrag);
+    clipEl.addEventListener('pointerup', endDrag);
+    clipEl.addEventListener('pointercancel', endDrag);
   }
 
   function renderHeaders(){
@@ -811,8 +933,9 @@
       el.addEventListener('click', () => {
         const t = tracks.find(t=>t.id==el.dataset.id);
         if(t && confirm(vt('deleteConfirm')(t.name))){
+          const hadSelected = t.clips.some(c=>c.id===selectedClipId);
           tracks = tracks.filter(tr=>tr.id!==t.id);
-          if(selectedTrackId===t.id) selectedTrackId = null;
+          if(hadSelected) selectedClipId = null;
           renderAll();
           if(!tracks.length){ mixerEl.classList.remove('show'); emptyHint.classList.add('show'); }
         }
@@ -844,30 +967,30 @@
     });
   }
 
-  function selectTrackLight(id){
-    selectedTrackId = id;
+  function selectClipLight(id){
+    selectedClipId = id;
     document.querySelectorAll('.clip').forEach(c => {
-      c.style.borderColor = (String(c.dataset.trackId) === String(id)) ? '#ffffff' : 'rgba(255,255,255,.18)';
+      c.style.borderColor = (String(c.dataset.clipId) === String(id)) ? '#ffffff' : 'rgba(255,255,255,.18)';
     });
     renderTrackPanel();
   }
 
-  function selectTrack(id){
-    selectedTrackId = id;
-    renderLanes();
-    renderTrackPanel();
-  }
-
   function renderTrackPanel(){
-    const track = tracks.find(t=>t.id===selectedTrackId);
-    if(!track){ trackPanel.classList.remove('show'); trackPanel.innerHTML=''; return; }
+    const found = findClipById(selectedClipId);
+    if(!found){
+      trackPanel.classList.add('show');
+      trackPanel.innerHTML = `<div style="grid-column:1/-1;color:var(--muted);font-family:var(--font-mono);font-size:12px">${vt('noClipSelected')}</div>`;
+      return;
+    }
+    const { track, clip } = found;
     trackPanel.classList.add('show');
     trackPanel.innerHTML = `
-      <div class="tp-field"><label>${vt('tpStart')}</label><input type="number" step="0.01" min="0" id="tpOffset" value="${track.offset.toFixed(2)}"></div>
-      <div class="tp-field"><label>${vt('tpTrimStart')}</label><input type="number" step="0.01" min="0" id="tpTrimStart" value="${track.trimStart.toFixed(2)}"></div>
-      <div class="tp-field"><label>${vt('tpTrimEnd')}</label><input type="number" step="0.01" min="0" id="tpTrimEnd" value="${track.trimEnd.toFixed(2)}"></div>
-      <div class="tp-field"><label>${vt('tpFadeIn')}</label><input type="number" step="0.01" min="0" id="tpFadeIn" value="${track.fadeIn.toFixed(2)}"></div>
-      <div class="tp-field"><label>${vt('tpFadeOut')}</label><input type="number" step="0.01" min="0" id="tpFadeOut" value="${track.fadeOut.toFixed(2)}"></div>
+      <div class="tp-field"><label>${vt('tpStart')}</label><input type="number" step="0.01" min="0" id="tpOffset" value="${clip.offset.toFixed(2)}"></div>
+      <div class="tp-field"><label>${vt('tpTrimStart')}</label><input type="number" step="0.01" min="0" id="tpTrimStart" value="${clip.trimStart.toFixed(2)}"></div>
+      <div class="tp-field"><label>${vt('tpTrimEnd')}</label><input type="number" step="0.01" min="0" id="tpTrimEnd" value="${clip.trimEnd.toFixed(2)}"></div>
+      <div class="tp-field"><label>${vt('tpFadeIn')}</label><input type="number" step="0.01" min="0" id="tpFadeIn" value="${clip.fadeIn.toFixed(2)}"></div>
+      <div class="tp-field"><label>${vt('tpFadeOut')}</label><input type="number" step="0.01" min="0" id="tpFadeOut" value="${clip.fadeOut.toFixed(2)}"></div>
+      <div class="tp-field"><label>${vt('tpGain')}</label><input type="number" step="0.5" id="tpGain" value="${clip.gainDb.toFixed(1)}"></div>
       <div class="tp-actions">
         <button class="btn small ghost" id="tpNudgeBackBig" type="button">${vt('nudgeBackBig')}</button>
         <button class="btn small ghost" id="tpNudgeBack" type="button">${vt('nudgeBack')}</button>
@@ -875,37 +998,77 @@
         <button class="btn small ghost" id="tpNudgeFwdBig" type="button">${vt('nudgeFwdBig')}</button>
         <button class="btn small lime" id="tpSnapPrev" type="button">${vt('snapToPrev')}</button>
         <button class="btn small ghost" id="tpReset" type="button">${vt('resetOffset')}</button>
+        <button class="btn small blue" id="tpSplit" type="button">${vt('splitBtn')}</button>
+        <button class="btn small danger" id="tpDeleteClip" type="button">${vt('deleteClipBtn')}</button>
       </div>`;
 
     const clamp0 = v => Math.max(0, v);
-    document.getElementById('tpOffset').addEventListener('change', e => { track.offset = clamp0(parseFloat(e.target.value)||0); renderLanes(); });
+    document.getElementById('tpOffset').addEventListener('change', e => { clip.offset = clamp0(parseFloat(e.target.value)||0); renderLanes(); });
     document.getElementById('tpTrimStart').addEventListener('change', e => {
       let v = clamp0(parseFloat(e.target.value)||0);
-      track.trimStart = Math.min(v, track.trimEnd-0.05);
-      track.peaks = track.peaks;
+      clip.trimStart = Math.min(v, clip.trimEnd-0.05);
       renderLanes(); renderTrackPanel();
     });
     document.getElementById('tpTrimEnd').addEventListener('change', e => {
       let v = parseFloat(e.target.value)||track.buffer.duration;
-      track.trimEnd = Math.max(Math.min(v, track.buffer.duration), track.trimStart+0.05);
+      clip.trimEnd = Math.max(Math.min(v, track.buffer.duration), clip.trimStart+0.05);
       renderLanes(); renderTrackPanel();
     });
-    document.getElementById('tpFadeIn').addEventListener('change', e => { track.fadeIn = clamp0(parseFloat(e.target.value)||0); renderLanes(); });
-    document.getElementById('tpFadeOut').addEventListener('change', e => { track.fadeOut = clamp0(parseFloat(e.target.value)||0); renderLanes(); });
+    document.getElementById('tpFadeIn').addEventListener('change', e => { clip.fadeIn = clamp0(parseFloat(e.target.value)||0); renderLanes(); });
+    document.getElementById('tpFadeOut').addEventListener('change', e => { clip.fadeOut = clamp0(parseFloat(e.target.value)||0); renderLanes(); });
+    document.getElementById('tpGain').addEventListener('change', e => { clip.gainDb = parseFloat(e.target.value)||0; });
 
-    document.getElementById('tpNudgeBack').addEventListener('click', () => { track.offset = clamp0(track.offset-0.1); renderLanes(); renderTrackPanel(); });
-    document.getElementById('tpNudgeFwd').addEventListener('click', () => { track.offset = clamp0(track.offset+0.1); renderLanes(); renderTrackPanel(); });
-    document.getElementById('tpNudgeBackBig').addEventListener('click', () => { track.offset = clamp0(track.offset-1); renderLanes(); renderTrackPanel(); });
-    document.getElementById('tpNudgeFwdBig').addEventListener('click', () => { track.offset = clamp0(track.offset+1); renderLanes(); renderTrackPanel(); });
-    document.getElementById('tpReset').addEventListener('click', () => { track.offset = 0; renderLanes(); renderTrackPanel(); });
+    document.getElementById('tpNudgeBack').addEventListener('click', () => { clip.offset = clamp0(clip.offset-0.1); renderLanes(); renderTrackPanel(); });
+    document.getElementById('tpNudgeFwd').addEventListener('click', () => { clip.offset = clamp0(clip.offset+0.1); renderLanes(); renderTrackPanel(); });
+    document.getElementById('tpNudgeBackBig').addEventListener('click', () => { clip.offset = clamp0(clip.offset-1); renderLanes(); renderTrackPanel(); });
+    document.getElementById('tpNudgeFwdBig').addEventListener('click', () => { clip.offset = clamp0(clip.offset+1); renderLanes(); renderTrackPanel(); });
+    document.getElementById('tpReset').addEventListener('click', () => { clip.offset = 0; renderLanes(); renderTrackPanel(); });
     document.getElementById('tpSnapPrev').addEventListener('click', () => {
-      const idx = tracks.findIndex(t=>t.id===track.id);
+      const idx = track.clips.findIndex(c=>c.id===clip.id);
       if(idx > 0){
-        const prev = tracks[idx-1];
-        track.offset = prev.offset + (prev.trimEnd-prev.trimStart);
+        const prev = track.clips[idx-1];
+        clip.offset = prev.offset + (prev.trimEnd-prev.trimStart);
       }
       renderLanes(); renderTrackPanel();
     });
+    document.getElementById('tpSplit').addEventListener('click', splitSelectedClipAtPlayhead);
+    document.getElementById('tpDeleteClip').addEventListener('click', () => {
+      const idx = track.clips.findIndex(c=>c.id===clip.id);
+      track.clips.splice(idx,1);
+      selectedClipId = null;
+      if(!track.clips.length){
+        tracks = tracks.filter(t=>t.id!==track.id);
+      }
+      renderAll();
+      if(!tracks.length){ mixerEl.classList.remove('show'); emptyHint.classList.add('show'); }
+      setStatus(vt('clipDeleted'), 'ok');
+    });
+  }
+
+  function splitSelectedClipAtPlayhead(){
+    const found = findClipById(selectedClipId);
+    if(!found){ setStatus(vt('selectClipFirst'), 'err'); return; }
+    const { track, clip } = found;
+    const playhead = getCurrentPlaybackTime();
+    const clipDur = clip.trimEnd - clip.trimStart;
+    const clipStart = clip.offset, clipEnd = clip.offset + clipDur;
+    if(playhead <= clipStart + 0.03 || playhead >= clipEnd - 0.03){
+      setStatus(vt('splitOutOfRange'), 'err');
+      return;
+    }
+    const splitBufferTime = clip.trimStart + (playhead - clip.offset);
+    const clipA = Object.assign({}, clip, { fadeOut: 0, trimEnd: splitBufferTime });
+    const clipB = Object.assign({}, clip, {
+      id: nextClipId++,
+      fadeIn: 0,
+      trimStart: splitBufferTime,
+      offset: clip.offset + (splitBufferTime - clip.trimStart)
+    });
+    const idx = track.clips.findIndex(c=>c.id===clip.id);
+    track.clips.splice(idx, 1, clipA, clipB);
+    selectedClipId = clipB.id;
+    renderAll();
+    setStatus(vt('splitDone'), 'ok');
   }
 
   function renderAll(){
@@ -927,8 +1090,6 @@
     return playStartTimelineTime + (audioCtx.currentTime - playStartCtxTime);
   }
 
-  let endTimer = null;
-
   function stopAll(){
     activeSources.forEach(s => { try{ s.stop(); }catch(e){} });
     activeSources = [];
@@ -939,22 +1100,22 @@
     if(endTimer){ clearTimeout(endTimer); endTimer = null; }
   }
 
-  function scheduleTrack(track, fromTime, ctxStart, anySolo){
-    const trackDur = track.trimEnd - track.trimStart;
-    const trackEndOnTimeline = track.offset + trackDur;
-    if(fromTime >= trackEndOnTimeline - 0.01) return;
+  function scheduleClip(track, clip, fromTime, ctxStart, anySolo){
+    const clipDur = clip.trimEnd - clip.trimStart;
+    const clipEndOnTimeline = clip.offset + clipDur;
+    if(fromTime >= clipEndOnTimeline - 0.01) return;
     const effMuted = track.muted || (anySolo && !track.solo);
     if(effMuted) return;
 
-    const startDelay = Math.max(0, track.offset - fromTime);
-    const bufferOffset = track.trimStart + Math.max(0, fromTime - track.offset);
-    const playDuration = trackEndOnTimeline - Math.max(fromTime, track.offset);
+    const startDelay = Math.max(0, clip.offset - fromTime);
+    const bufferOffset = clip.trimStart + Math.max(0, fromTime - clip.offset);
+    const playDuration = clipEndOnTimeline - Math.max(fromTime, clip.offset);
     if(playDuration <= 0.01) return;
 
     const src = audioCtx.createBufferSource();
     src.buffer = track.buffer;
     const gainNode = audioCtx.createGain();
-    const targetGain = dbToGain(track.volumeDb);
+    const targetGain = dbToGain(track.volumeDb + clip.gainDb);
     let panNode = null;
     if(audioCtx.createStereoPanner){
       panNode = audioCtx.createStereoPanner();
@@ -962,14 +1123,14 @@
     }
     const when = ctxStart + startDelay;
 
-    if(fromTime <= track.offset + 0.02 && track.fadeIn > 0){
+    if(fromTime <= clip.offset + 0.02 && clip.fadeIn > 0){
       gainNode.gain.setValueAtTime(0, when);
-      gainNode.gain.linearRampToValueAtTime(targetGain, when + Math.min(track.fadeIn, playDuration));
+      gainNode.gain.linearRampToValueAtTime(targetGain, when + Math.min(clip.fadeIn, playDuration));
     } else {
       gainNode.gain.setValueAtTime(targetGain, when);
     }
-    if(track.fadeOut > 0){
-      const fadeOutStart = when + Math.max(0, playDuration - track.fadeOut);
+    if(clip.fadeOut > 0){
+      const fadeOutStart = when + Math.max(0, playDuration - clip.fadeOut);
       gainNode.gain.setValueAtTime(targetGain, fadeOutStart);
       gainNode.gain.linearRampToValueAtTime(0, when + playDuration);
     }
@@ -990,7 +1151,7 @@
     playStartCtxTime = ctxStart;
     playStartTimelineTime = fromTime;
     const anySolo = tracks.some(t=>t.solo);
-    tracks.forEach(t => scheduleTrack(t, fromTime, ctxStart, anySolo));
+    tracks.forEach(t => t.clips.forEach(c => scheduleClip(t, c, fromTime, ctxStart, anySolo)));
     isPlaying = true;
     playBtn.textContent = '⏸';
     playBtn.classList.add('active');
@@ -1042,6 +1203,22 @@
     if(masterGain) masterGain.gain.value = dbToGain(parseFloat(masterVol.value));
   });
 
+  function buildOfflineMasterChain(offline){
+    const bass = offline.createBiquadFilter();
+    bass.type = 'lowshelf'; bass.frequency.value = 150; bass.gain.value = parseFloat(bassSlider.value);
+    const treble = offline.createBiquadFilter();
+    treble.type = 'highshelf'; treble.frequency.value = 8000; treble.gain.value = parseFloat(trebSlider.value);
+    const comp = offline.createDynamicsCompressor();
+    const compVal = parseFloat(compSlider.value)/100;
+    comp.threshold.value = -6 - compVal*24;
+    comp.ratio.value = 1 + compVal*11;
+    comp.attack.value = 0.003; comp.release.value = 0.25; comp.knee.value = 18;
+    const makeup = offline.createGain();
+    makeup.gain.value = dbToGain(parseFloat(loudSlider.value));
+    bass.connect(treble); treble.connect(comp); comp.connect(makeup);
+    return { input: bass, output: makeup };
+  }
+
   async function renderMix(){
     const dur = totalDuration();
     const sampleRate = 44100;
@@ -1049,36 +1226,40 @@
     const offline = new OfflineCtor(2, Math.ceil(dur*sampleRate)+sampleRate, sampleRate);
     const master = offline.createGain();
     master.gain.value = dbToGain(parseFloat(masterVol.value));
-    master.connect(offline.destination);
+    const chain = buildOfflineMasterChain(offline);
+    master.connect(chain.input);
+    chain.output.connect(offline.destination);
 
     const anySolo = tracks.some(t=>t.solo);
     tracks.forEach(track => {
       const effMuted = track.muted || (anySolo && !track.solo);
       if(effMuted) return;
-      const trackDur = track.trimEnd - track.trimStart;
-      if(trackDur <= 0) return;
-      const src = offline.createBufferSource();
-      src.buffer = track.buffer;
-      const gainNode = offline.createGain();
-      const targetGain = dbToGain(track.volumeDb);
-      let panNode = null;
-      if(offline.createStereoPanner){ panNode = offline.createStereoPanner(); panNode.pan.value = track.pan; }
-      const when = track.offset;
-      if(track.fadeIn > 0){
-        gainNode.gain.setValueAtTime(0, when);
-        gainNode.gain.linearRampToValueAtTime(targetGain, when + Math.min(track.fadeIn, trackDur));
-      } else {
-        gainNode.gain.setValueAtTime(targetGain, when);
-      }
-      if(track.fadeOut > 0){
-        const fadeOutStart = when + Math.max(0, trackDur - track.fadeOut);
-        gainNode.gain.setValueAtTime(targetGain, fadeOutStart);
-        gainNode.gain.linearRampToValueAtTime(0, when + trackDur);
-      }
-      src.connect(gainNode);
-      if(panNode){ gainNode.connect(panNode); panNode.connect(master); }
-      else { gainNode.connect(master); }
-      src.start(when, track.trimStart, trackDur);
+      track.clips.forEach(clip => {
+        const clipDur = clip.trimEnd - clip.trimStart;
+        if(clipDur <= 0) return;
+        const src = offline.createBufferSource();
+        src.buffer = track.buffer;
+        const gainNode = offline.createGain();
+        const targetGain = dbToGain(track.volumeDb + clip.gainDb);
+        let panNode = null;
+        if(offline.createStereoPanner){ panNode = offline.createStereoPanner(); panNode.pan.value = track.pan; }
+        const when = clip.offset;
+        if(clip.fadeIn > 0){
+          gainNode.gain.setValueAtTime(0, when);
+          gainNode.gain.linearRampToValueAtTime(targetGain, when + Math.min(clip.fadeIn, clipDur));
+        } else {
+          gainNode.gain.setValueAtTime(targetGain, when);
+        }
+        if(clip.fadeOut > 0){
+          const fadeOutStart = when + Math.max(0, clipDur - clip.fadeOut);
+          gainNode.gain.setValueAtTime(targetGain, fadeOutStart);
+          gainNode.gain.linearRampToValueAtTime(0, when + clipDur);
+        }
+        src.connect(gainNode);
+        if(panNode){ gainNode.connect(panNode); panNode.connect(master); }
+        else { gainNode.connect(master); }
+        src.start(when, clip.trimStart, clipDur);
+      });
     });
 
     const estimatedMs = Math.max(500, Math.min(15000, dur*400));
@@ -1173,8 +1354,6 @@
       setTimeout(() => showProgress(false), 400);
     }
   });
-
-  timelineScroll.addEventListener('scroll', () => {});
 
   applyLocalI18n();
 })();
