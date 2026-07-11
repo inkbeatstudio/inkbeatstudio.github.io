@@ -16,8 +16,12 @@
 <div class="cursor-dot"></div>
 <div class="cursor-ring"></div>
 
-<div id="loading-screen">
-  <div class="loading-letters">
+<div id="loading-screen" data-stage="0">
+  <div class="loading-glow"></div>
+  <div class="loading-eq">
+    <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+  </div>
+  <div class="loading-wordmark">
     <span class="loading-letter gradient-text" style="animation-delay:.3s">I</span>
     <span class="loading-letter gradient-text" style="animation-delay:.35s">N</span>
     <span class="loading-letter gradient-text" style="animation-delay:.4s">K</span>
@@ -26,8 +30,10 @@
     <span class="loading-letter gradient-text" style="animation-delay:.55s">A</span>
     <span class="loading-letter gradient-text" style="animation-delay:.6s">T</span>
   </div>
-  <div class="loading-bar-wrap"><div class="loading-bar" style="width:0%"></div></div>
-  <div class="loading-pct">0%</div>
+  <div class="loading-meta">
+    <div class="loading-bar-wrap"><div class="loading-bar" style="width:0%"></div></div>
+    <div class="loading-pct">0%</div>
+  </div>
 </div>
 
 <nav id="navbar">
