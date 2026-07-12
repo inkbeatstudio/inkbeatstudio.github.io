@@ -20,9 +20,9 @@
     --line:rgba(255,255,255,.08);
     --text:#ffffff;
     --muted:rgba(255,255,255,.45);
-    --accent1:#BF5FFF;
-    --accent2:#00BFFF;
-    --led:#00FFE5;
+    --accent1:#241F3D;
+    --accent2:#B8452C;
+    --led:#8D84C4;
     --led-off:#232323;
   }
   *{box-sizing:border-box;}
@@ -116,7 +116,7 @@
     text-overflow:ellipsis; white-space:nowrap; max-width:60%;
   }
   input[type=file]{display:none;}
-  .drop-zone.drag-over{ border-color:var(--accent1); background:rgba(191,95,255,.08); }
+  .drop-zone.drag-over{ border-color:var(--accent1); background:rgba(36,31,61,.08); }
   input[type=text]{
     width:100%; background:var(--bg); border:1px solid var(--line); border-radius:10px;
     padding:11px 14px; color:var(--text); font-family:'JetBrains Mono',monospace; font-size:13px;
@@ -228,7 +228,7 @@
         <span class="lang-sep">|</span>
         <span class="lang-en lang-toggle" data-lang="en">EN</span>
       </div>
-      <a href="index.html" class="nav-order nav-master active"><span class="nav-master-dot"></span><span data-i18n="nav.master">Студія</span></a>
+      <a href="index.html" class="nav-order nav-master active"><span class="nav-master-dot"></span><span data-i18n="nav.master">Мастеринг</span></a><a href="../studio/index.html" class="nav-order nav-studio"><span class="nav-master-dot"></span><span data-i18n="nav.studio">Studio</span></a>
     </div>
     <button class="burger"><svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
   </div>
@@ -242,7 +242,7 @@
   <a href="../services.html" data-i18n="nav.services">Послуги</a>
   <a href="../portfolio.html" data-i18n="nav.portfolio">Портфоліо</a>
   <a href="../contact.html" data-i18n="nav.contact">Контакти</a>
-  <a href="index.html" data-i18n="nav.master">Студія</a>
+  <a href="index.html" data-i18n="nav.master">Мастеринг</a>
   <div class="mobile-lang-switch">
     <span class="lang-ua lang-toggle active" data-lang="uk">UA</span>
     <span class="lang-sep">|</span>
@@ -415,7 +415,7 @@
       </div>
       <div class="field">
         <label data-i18n-local="colorLabel">Колір</label>
-        <input type="color" id="colorPick" value="#BF5FFF">
+        <input type="color" id="colorPick" value="#241F3D">
       </div>
     </div>
 
@@ -598,7 +598,7 @@
           <li><a href="../services.html" data-i18n="nav.services">Послуги</a></li>
           <li><a href="../portfolio.html" data-i18n="nav.portfolio">Портфоліо</a></li>
           <li><a href="../contact.html" data-i18n="nav.contact">Контакти</a></li>
-          <li><a href="index.html" data-i18n="nav.master">Студія</a></li>
+          <li><a href="index.html" data-i18n="nav.master">Мастеринг</a></li><li><a href="../studio/index.html" data-i18n="nav.studio">Studio</a></li>
         </ul>
       </div>
       <div>
@@ -1005,7 +1005,7 @@ function getColors(t){
   if(mode === 'solid'){
     return { a: colorPick.value, b: colorPick.value };
   }
-  return { a: colorPick.value, b: '#00BFFF' };
+  return { a: colorPick.value, b: '#B8452C' };
 }
 
 function initStars(){

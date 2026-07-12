@@ -19,7 +19,7 @@
     --text:#ffffff;
     --muted:rgba(255,255,255,.45);
     --lime:#8CFF6B;
-    --blue:#00BFFF;
+    --blue:#B8452C;
     --danger:#FF4D4D;
     --font-display: 'Syne', sans-serif;
     --font-body: 'Space Grotesk', sans-serif;
@@ -228,7 +228,7 @@
         <span class="lang-sep">|</span>
         <span class="lang-en lang-toggle" data-lang="en">EN</span>
       </div>
-      <a href="index.html" class="nav-order nav-master active"><span class="nav-master-dot"></span><span data-i18n="nav.master">Студія</span></a>
+      <a href="index.html" class="nav-order nav-master active"><span class="nav-master-dot"></span><span data-i18n="nav.master">Мастеринг</span></a><a href="../studio/index.html" class="nav-order nav-studio"><span class="nav-master-dot"></span><span data-i18n="nav.studio">Studio</span></a>
     </div>
     <button class="burger"><svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
   </div>
@@ -242,7 +242,7 @@
   <a href="../services.html" data-i18n="nav.services">Послуги</a>
   <a href="../portfolio.html" data-i18n="nav.portfolio">Портфоліо</a>
   <a href="../contact.html" data-i18n="nav.contact">Контакти</a>
-  <a href="index.html" data-i18n="nav.master">Стадія</a>
+  <a href="index.html" data-i18n="nav.master">Мастеринг</a>
   <div class="mobile-lang-switch">
     <span class="lang-ua lang-toggle active" data-lang="uk">UA</span>
     <span class="lang-sep">|</span>
@@ -369,7 +369,7 @@
           <li><a href="../services.html" data-i18n="nav.services">Послуги</a></li>
           <li><a href="../portfolio.html" data-i18n="nav.portfolio">Портфоліо</a></li>
           <li><a href="../contact.html" data-i18n="nav.contact">Контакти</a></li>
-          <li><a href="index.html" data-i18n="nav.master">Студія</a></li>
+          <li><a href="index.html" data-i18n="nav.master">Мастеринг</a></li><li><a href="../studio/index.html" data-i18n="nav.studio">Studio</a></li>
         </ul>
       </div>
       <div>
@@ -583,7 +583,7 @@
   let analyser = null;
   let analyserData = null;
 
-  const COLORS = ['#BF5FFF','#00BFFF','#8CFF6B','#FFB020','#FF4D8D','#00FFE5','#FF7A45','#5B8CFF'];
+  const COLORS = ['#241F3D','#B8452C','#8CFF6B','#FFB020','#FF4D8D','#8D84C4','#FF7A45','#5B8CFF'];
 
   function ensureAudioCtx(){
     if(!audioCtx){
