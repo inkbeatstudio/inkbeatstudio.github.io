@@ -2,7 +2,7 @@ function initParticles(canvasId) {
   const canvas = document.getElementById(canvasId)
   if (!canvas) return
   const ctx = canvas.getContext('2d')
-  const colors = ['#00BFFF','#BF5FFF','#00FFE5']
+  const colors = ['#B8452C','#241F3D','#8D84C4']
 
   function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight }
   resize()
@@ -39,7 +39,7 @@ function initParticles(canvasId) {
           ctx.beginPath()
           ctx.moveTo(particles[i].x,particles[i].y)
           ctx.lineTo(particles[j].x,particles[j].y)
-          ctx.strokeStyle=`rgba(0,191,255,${(1-dist/120)*.08})`
+          ctx.strokeStyle=`rgba(184,69,44,${(1-dist/120)*.08})`
           ctx.lineWidth=.5; ctx.stroke()
         }
       }
