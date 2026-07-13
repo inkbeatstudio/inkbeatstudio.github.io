@@ -1,4 +1,3 @@
-
 (function () {
   'use strict';
 
@@ -20,7 +19,6 @@
   ];
   const TRACK_COLORS = ['#B8452C', '#8D84C4', '#8C5A3C', '#6E1423', '#5C6E8C', '#A8763F'];
 
-  
   const PIANO_NOTES = [];
   for (let midi = 72; midi >= 48; midi--) {
     const names = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
@@ -30,7 +28,6 @@
   }
   function midiToFreq(midi) { return 440 * Math.pow(2, (midi - 69) / 12); }
 
-  
   const KITS = {
     modern:   { kickStart:150, kickEnd:35, kickDecay:0.28, snareFreq:1800, snareDecay:0.18, hatClosed:0.06, hatOpen:0.35, clapFreq:1500, tomStart:180, tomEnd:70, tomDecay:0.32, lofi:false },
     '808':    { kickStart:120, kickEnd:28, kickDecay:0.5,  snareFreq:1600, snareDecay:0.22, hatClosed:0.05, hatOpen:0.3,  clapFreq:1400, tomStart:140, tomEnd:50, tomDecay:0.4,  lofi:false },
@@ -39,10 +36,10 @@
   };
   function currentKit() { return KITS[state.kit] || KITS.modern; }
 
-  
   const state = {
     tracks: [],
     nextTrackId: 1,
+    nextClipId: 1,
     bpm: 120,
     seqBars: 2,
     seqSwing: 0,
@@ -54,6 +51,7 @@
     isPlaying: false,
     isLooping: false,
     metronomeOn: false,
+    splitMode: false,
     playbackPosition: 0,
     originTime: 0,
     schedulerTimer: null,
@@ -78,9 +76,8 @@
   DRUM_ROWS.forEach(r => { state.pattern[r.key] = new Array(64).fill(false); });
   PIANO_NOTES.forEach(n => { state.melody[n.midi] = new Array(64).fill(false); });
 
-  const trackBufferCache = new Map();
+  const clipBufferCache = new Map();
 
-  
   const graph = {};
 
   function ensureAudioContext() {
@@ -226,7 +223,6 @@
     graph.masterGain.gain.value = state.masterVolume;
   }
 
-  
   function triggerSidechain(ctx, duckNode, t) {
     if (!state.sidechain.on) return;
     const amt = state.sidechain.amount;
@@ -236,7 +232,6 @@
     duckNode.gain.linearRampToValueAtTime(1, t + rel);
   }
 
-  
   function noiseBuffer(ctx, duration) {
     const len = Math.max(1, Math.floor(ctx.sampleRate * duration));
     const buf = ctx.createBuffer(1, len, ctx.sampleRate);
@@ -341,7 +336,6 @@
   const DRUM_FN = { kick: playKick, snare: playSnare, clap: playClap, tom: playTom, perc: playPerc,
     hihat: (c, d, t, k) => playHat(c, d, t, false, k), ohat: (c, d, t, k) => playHat(c, d, t, true, k) };
 
-  
   function playSynthNote(ctx, dest, freq, t, dur, instrument) {
     if (instrument === 'bass') {
       const osc = ctx.createOscillator(); osc.type = 'triangle'; osc.frequency.value = freq;
@@ -384,23 +378,24 @@
     }
   }
 
-  
   function totalSteps() { return state.seqBars * 16; }
   function melodyTotalSteps() { return state.melodyBars * 16; }
   function stepDuration() { return (60 / state.bpm) / 4; }
 
+  function clipDuration(clip) {
+    if (!clip || !clip.buffer) return 0;
+    const full = clip.buffer.duration - (clip.trimStart || 0);
+    return clip.trimDuration != null ? Math.min(clip.trimDuration, full) : full;
+  }
+
+  function clipEnd(clip) { return clip.clipStart + clipDuration(clip); }
+
   function projectDuration() {
     let end = 0;
-    state.tracks.forEach(tr => { if (tr.buffer) end = Math.max(end, tr.clipStart + clipDuration(tr)); });
+    state.tracks.forEach(tr => tr.clips.forEach(c => { if (c.buffer) end = Math.max(end, clipEnd(c)); }));
     const seqLen = totalSteps() * stepDuration();
     if (end === 0) end = seqLen * 4;
     return Math.max(end, seqLen);
-  }
-
-  function clipDuration(tr) {
-    if (!tr.buffer) return 0;
-    const full = tr.buffer.duration - (tr.trimStart || 0);
-    return tr.trimDuration != null ? Math.min(tr.trimDuration, full) : full;
   }
 
   function play() {
@@ -440,39 +435,44 @@
   }
 
   function stopAllSources() {
-    state.tracks.forEach(tr => {
-      if (tr._source) { try { tr._source.stop(); } catch (e) {} tr._source = null; }
-    });
+    state.tracks.forEach(tr => tr.clips.forEach(c => {
+      if (c._source) { try { c._source.stop(); } catch (e) {} c._source = null; }
+      c._gainNode = null;
+    }));
   }
 
   function scheduleTrackSources() {
     const pos = state.playbackPosition;
     state.tracks.forEach(tr => {
-      if (!tr.buffer) return;
-      const dur = clipDuration(tr);
-      const clipEnd = tr.clipStart + dur;
-      if (clipEnd <= pos) return;
-      const src = actx.createBufferSource();
-      src.buffer = tr.buffer;
-      src.playbackRate.value = tr.playbackRate || 1;
-      src.connect(tr.nodes.gain);
-      let when, offsetIntoClip;
-      if (tr.clipStart >= pos) { when = state.originTime + tr.clipStart; offsetIntoClip = 0; }
-      else { when = actx.currentTime; offsetIntoClip = pos - tr.clipStart; }
-      const bufferOffset = (tr.trimStart || 0) + offsetIntoClip;
-      const remaining = dur - offsetIntoClip;
-      applyClipGainEnvelope(tr, when, Math.max(0, remaining));
-      try { src.start(when, bufferOffset, Math.max(0, remaining)); } catch (e) {}
-      tr._source = src;
+      tr.clips.forEach(clip => {
+        if (!clip.buffer) return;
+        const dur = clipDuration(clip);
+        const end = clip.clipStart + dur;
+        if (end <= pos) return;
+        const src = actx.createBufferSource();
+        src.buffer = clip.buffer;
+        src.playbackRate.value = clip.playbackRate || 1;
+        const clipGain = actx.createGain();
+        src.connect(clipGain); clipGain.connect(tr.nodes.gain);
+        let when, offsetIntoClip;
+        if (clip.clipStart >= pos) { when = state.originTime + clip.clipStart; offsetIntoClip = 0; }
+        else { when = actx.currentTime; offsetIntoClip = pos - clip.clipStart; }
+        const bufferOffset = (clip.trimStart || 0) + offsetIntoClip;
+        const remaining = dur - offsetIntoClip;
+        applyClipGainEnvelope(clipGain, clip, when, Math.max(0, remaining));
+        try { src.start(when, bufferOffset, Math.max(0, remaining)); } catch (e) {}
+        clip._source = src;
+        clip._gainNode = clipGain;
+      });
     });
   }
 
-  function applyClipGainEnvelope(tr, when, remaining) {
-    const g = tr.nodes.gain.gain;
-    const vol = tr.volume;
+  function applyClipGainEnvelope(gainNode, clip, when, remaining) {
+    const g = gainNode.gain;
+    const vol = clip.gain != null ? clip.gain : 1;
     g.cancelScheduledValues(when);
-    const fadeIn = Math.min(tr.fadeIn || 0, remaining);
-    const fadeOut = Math.min(tr.fadeOut || 0, remaining);
+    const fadeIn = Math.min(clip.fadeIn || 0, remaining);
+    const fadeOut = Math.min(clip.fadeOut || 0, remaining);
     if (fadeIn > 0) {
       g.setValueAtTime(0, when);
       g.linearRampToValueAtTime(vol, when + fadeIn);
@@ -583,7 +583,6 @@
     playBtn.querySelector('.icon-pause').style.display = state.isPlaying ? 'block' : 'none';
   }
 
-  
   function rmsFromAnalyser(analyser) {
     const arr = new Uint8Array(analyser.fftSize);
     analyser.getByteTimeDomainData(arr);
@@ -639,7 +638,6 @@
     }
   }
 
-  
   function createTrackNodes(tr) {
     const ctx = actx;
     const gain = ctx.createGain(); gain.gain.value = tr.volume;
@@ -661,27 +659,57 @@
       id: state.nextTrackId++,
       name: 'Доріжка',
       color: TRACK_COLORS[state.tracks.length % TRACK_COLORS.length],
-      buffer: null,
-      fileName: '',
       volume: 0.9,
       pan: 0,
       mute: false,
       solo: false,
+      reverbSend: 0,
+      eqTilt: 0,
+      clips: []
+    }, opts || {});
+    createTrackNodes(tr);
+    state.tracks.push(tr);
+    renderTracks();
+    renderMixer();
+    return tr;
+  }
+
+  function findOrCreateTrackByName(name) {
+    let tr = state.tracks.find(t => t.name === name);
+    if (!tr) tr = addTrack({ name }, true);
+    return tr;
+  }
+
+  function addClipToTrack(track, opts, skipHistory) {
+    if (!skipHistory) commit();
+    const clip = Object.assign({
+      id: state.nextClipId++,
+      trackId: track.id,
+      buffer: null,
+      fileName: '',
       clipStart: 0,
       trimStart: 0,
       trimDuration: null,
       fadeIn: 0,
       fadeOut: 0,
-      playbackRate: 1,
-      reverbSend: 0,
-      eqTilt: 0
+      gain: 1,
+      playbackRate: 1
     }, opts || {});
-    createTrackNodes(tr);
-    state.tracks.push(tr);
-    if (tr.buffer) trackBufferCache.set(tr.id, tr.buffer);
+    track.clips.push(clip);
+    if (clip.buffer) clipBufferCache.set(clip.id, clip.buffer);
+    return clip;
+  }
+
+  function removeClip(trackId, clipId) {
+    const tr = state.tracks.find(t => t.id === trackId);
+    if (!tr) return;
+    const idx = tr.clips.findIndex(c => c.id === clipId);
+    if (idx === -1) return;
+    commit();
+    const clip = tr.clips[idx];
+    if (clip._source) { try { clip._source.stop(); } catch (e) {} }
+    tr.clips.splice(idx, 1);
     renderTracks();
-    renderMixer();
-    return tr;
   }
 
   function removeTrack(id) {
@@ -689,7 +717,7 @@
     const idx = state.tracks.findIndex(t => t.id === id);
     if (idx === -1) return;
     const tr = state.tracks[idx];
-    if (tr._source) { try { tr._source.stop(); } catch (e) {} }
+    tr.clips.forEach(c => { if (c._source) { try { c._source.stop(); } catch (e) {} } });
     if (tr.nodes) { try { tr.nodes.gain.disconnect(); } catch (e) {} }
     state.tracks.splice(idx, 1);
     renderTracks();
@@ -701,37 +729,50 @@
     if (!tr) return;
     commit();
     const copy = addTrack({
-      name: tr.name + ' (копія)', color: tr.color, fileName: tr.fileName,
-      volume: tr.volume, pan: tr.pan, mute: tr.mute, solo: false, clipStart: tr.clipStart,
-      trimStart: tr.trimStart, trimDuration: tr.trimDuration, fadeIn: tr.fadeIn, fadeOut: tr.fadeOut,
-      playbackRate: tr.playbackRate, reverbSend: tr.reverbSend, eqTilt: tr.eqTilt
+      name: tr.name + ' (копія)', color: tr.color,
+      volume: tr.volume, pan: tr.pan, mute: tr.mute, solo: false,
+      reverbSend: tr.reverbSend, eqTilt: tr.eqTilt
     }, true);
-    if (tr.buffer) { copy.buffer = tr.buffer; trackBufferCache.set(copy.id, tr.buffer); }
+    tr.clips.forEach(c => {
+      const nc = addClipToTrack(copy, {
+        buffer: c.buffer, fileName: c.fileName, clipStart: c.clipStart,
+        trimStart: c.trimStart, trimDuration: c.trimDuration, fadeIn: c.fadeIn, fadeOut: c.fadeOut,
+        gain: c.gain, playbackRate: c.playbackRate
+      }, true);
+    });
     renderTracks(); renderMixer();
     showToast('Доріжку продубльовано');
   }
 
-  function splitTrackAtPlayhead(id) {
-    const tr = state.tracks.find(t => t.id === id);
-    if (!tr || !tr.buffer) return;
-    const dur = clipDuration(tr);
-    const splitPoint = state.playbackPosition - tr.clipStart;
-    if (splitPoint <= 0.02 || splitPoint >= dur - 0.02) { showToast('Плейхед має бути всередині кліпу'); return; }
+  function splitClipAt(trackId, clipId, localSeconds) {
+    const tr = state.tracks.find(t => t.id === trackId);
+    if (!tr) return;
+    const clip = tr.clips.find(c => c.id === clipId);
+    if (!clip || !clip.buffer) return;
+    const dur = clipDuration(clip);
+    if (localSeconds <= 0.03 || localSeconds >= dur - 0.03) return;
     commit();
-    const secondTrimStart = (tr.trimStart || 0) + splitPoint;
-    const secondDuration = dur - splitPoint;
-    const second = addTrack({
-      name: tr.name + ' (2)', color: tr.color, fileName: tr.fileName,
-      volume: tr.volume, pan: tr.pan, mute: tr.mute, solo: tr.solo,
-      clipStart: tr.clipStart + splitPoint, trimStart: secondTrimStart, trimDuration: secondDuration,
-      fadeIn: 0, fadeOut: tr.fadeOut, playbackRate: tr.playbackRate, reverbSend: tr.reverbSend, eqTilt: tr.eqTilt
+    const secondTrimStart = (clip.trimStart || 0) + localSeconds;
+    const secondDuration = dur - localSeconds;
+    const second = addClipToTrack(tr, {
+      buffer: clip.buffer, fileName: clip.fileName,
+      clipStart: clip.clipStart + localSeconds,
+      trimStart: secondTrimStart, trimDuration: secondDuration,
+      fadeIn: 0, fadeOut: clip.fadeOut, gain: clip.gain, playbackRate: clip.playbackRate
     }, true);
-    second.buffer = tr.buffer;
-    trackBufferCache.set(second.id, tr.buffer);
-    tr.trimDuration = splitPoint;
-    tr.fadeOut = 0;
-    renderTracks(); renderMixer();
-    showToast('Кліп розділено');
+    clip.trimDuration = localSeconds;
+    clip.fadeOut = 0;
+    renderTracks();
+    showToast('Сегмент розділено');
+  }
+
+  function splitClipAtPlayhead(trackId, clipId) {
+    const tr = state.tracks.find(t => t.id === trackId);
+    if (!tr) return;
+    const clip = tr.clips.find(c => c.id === clipId);
+    if (!clip) return;
+    const local = state.playbackPosition - clip.clipStart;
+    splitClipAt(trackId, clipId, local);
   }
 
   function updateTrackGains() {
@@ -758,19 +799,11 @@
         const file = item.file || item;
         const arrayBuf = await file.arrayBuffer();
         const audioBuf = await actx.decodeAudioData(arrayBuf.slice(0));
-        if (targetTrack) {
-          targetTrack.buffer = audioBuf;
-          targetTrack.trimStart = 0; targetTrack.trimDuration = null;
-          targetTrack.fileName = file.name;
-          if (targetTrack.name === 'Доріжка') targetTrack.name = file.name.replace(/\.[^.]+$/, '').slice(0, 24);
-          if (typeof dropXSeconds === 'number') targetTrack.clipStart = Math.max(0, dropXSeconds);
-          trackBufferCache.set(targetTrack.id, audioBuf);
-        } else {
-          const tr = addTrack({ name: file.name.replace(/\.[^.]+$/, '').slice(0, 24), fileName: file.name }, true);
-          tr.buffer = audioBuf;
-          trackBufferCache.set(tr.id, audioBuf);
-          if (typeof dropXSeconds === 'number') tr.clipStart = Math.max(0, dropXSeconds);
-        }
+        const tr = targetTrack || addTrack({ name: file.name.replace(/\.[^.]+$/, '').slice(0, 24) }, true);
+        addClipToTrack(tr, {
+          buffer: audioBuf, fileName: file.name,
+          clipStart: Math.max(0, dropXSeconds || 0)
+        }, true);
       } catch (err) {
         showToast('Не вдалося імпортувати файл: ' + (item.name || item.file?.name || ''));
       }
@@ -779,7 +812,6 @@
     renderMixer();
   }
 
-  
   function renderTracks() {
     const headersEl = document.getElementById('track-headers');
     const lanesEl = document.getElementById('tracks-lanes');
@@ -818,29 +850,37 @@
       lane.className = 'st-track-lane';
       lane.style.width = widthPx + 'px';
       lane.dataset.id = tr.id;
-      if (tr.buffer) {
-        const cDur = clipDuration(tr);
-        const clip = document.createElement('div');
-        clip.className = 'st-clip';
-        clip.style.left = (tr.clipStart * PX_PER_SEC) + 'px';
-        clip.style.width = Math.max(30, cDur * PX_PER_SEC) + 'px';
-        clip.style.borderColor = tr.color;
-        clip.dataset.id = tr.id;
-        clip.innerHTML = `
+
+      tr.clips.forEach(clip => {
+        if (!clip.buffer) return;
+        const cDur = clipDuration(clip);
+        const clipEl = document.createElement('div');
+        clipEl.className = 'st-clip';
+        clipEl.style.left = (clip.clipStart * PX_PER_SEC) + 'px';
+        clipEl.style.width = Math.max(30, cDur * PX_PER_SEC) + 'px';
+        clipEl.style.borderColor = tr.color;
+        clipEl.dataset.clipId = clip.id;
+        clipEl.innerHTML = `
           <div class="st-clip-inner">
-            <span class="st-clip-label">${escapeHtml(tr.fileName || tr.name)}</span>
+            <span class="st-clip-label">${escapeHtml(clip.fileName || tr.name)}</span>
             <canvas></canvas>
           </div>
-          <div class="st-fade-handle in" data-id="${tr.id}" title="Fade in"></div>
-          <div class="st-fade-handle out" data-id="${tr.id}" title="Fade out"></div>
-          <div class="st-trim-handle left" data-id="${tr.id}"></div>
-          <div class="st-trim-handle right" data-id="${tr.id}"></div>
-          <button class="st-clip-split-btn" data-id="${tr.id}" title="Розділити на плейхеді">✂</button>`;
-        lane.appendChild(clip);
-        requestAnimationFrame(() => drawWaveform(clip.querySelector('canvas'), tr.buffer, tr.color, tr));
-        makeClipDraggable(clip, tr);
-        wireClipHandles(clip, tr);
-      }
+          <div class="st-fade-handle in" data-clip-id="${clip.id}" title="Fade in"></div>
+          <div class="st-fade-handle out" data-clip-id="${clip.id}" title="Fade out"></div>
+          <div class="st-trim-handle left" data-clip-id="${clip.id}"></div>
+          <div class="st-trim-handle right" data-clip-id="${clip.id}"></div>
+          <button class="st-clip-remove-btn" data-clip-id="${clip.id}" title="Видалити сегмент">✕</button>
+          <button class="st-clip-vol-btn" data-clip-id="${clip.id}" title="Гучність сегмента">🔉</button>
+          <div class="st-clip-vol-popover" id="vol-pop-${clip.id}">
+            <input type="range" min="0" max="200" value="${Math.round((clip.gain != null ? clip.gain : 1) * 100)}"/>
+            <span>${Math.round((clip.gain != null ? clip.gain : 1) * 100)}%</span>
+          </div>
+          <button class="st-clip-split-btn" data-clip-id="${clip.id}" title="Розділити на плейхеді">✂</button>`;
+        lane.appendChild(clipEl);
+        requestAnimationFrame(() => drawWaveform(clipEl.querySelector('canvas'), clip.buffer, tr.color, clip));
+        wireClipInteractions(clipEl, tr, clip);
+      });
+
       lanesEl.appendChild(lane);
       wireLaneDropTarget(lane, tr);
     });
@@ -916,7 +956,7 @@
     rulerEl.appendChild(marksWrap);
   }
 
-  function drawWaveform(canvas, buffer, color, tr) {
+  function drawWaveform(canvas, buffer, color, clip) {
     const dpr = window.devicePixelRatio || 1;
     const rect = canvas.getBoundingClientRect();
     canvas.width = Math.max(1, rect.width * dpr);
@@ -925,8 +965,8 @@
     ctx2d.scale(dpr, dpr);
     const data = buffer.getChannelData(0);
     const w = rect.width, h = rect.height;
-    const startSample = Math.floor((tr && tr.trimStart || 0) * buffer.sampleRate);
-    const durSamples = Math.floor(clipDuration(tr || { buffer, trimStart: 0, trimDuration: null }) * buffer.sampleRate);
+    const startSample = Math.floor((clip && clip.trimStart || 0) * buffer.sampleRate);
+    const durSamples = Math.floor(clipDuration(clip || { buffer, trimStart: 0, trimDuration: null }) * buffer.sampleRate);
     const step = Math.max(1, Math.floor(durSamples / w));
     ctx2d.fillStyle = color;
     ctx2d.globalAlpha = 0.85;
@@ -944,75 +984,103 @@
     }
   }
 
-  function makeClipDraggable(clipEl, tr) {
-    let dragging = false, startX = 0, startClipStart = 0;
-    clipEl.querySelector('.st-clip-inner').addEventListener('mousedown', e => {
-      dragging = true; startX = e.clientX; startClipStart = tr.clipStart;
+  function wireClipInteractions(clipEl, tr, clip) {
+    const inner = clipEl.querySelector('.st-clip-inner');
+    let dragging = false, moved = false, startX = 0, startClipStart = 0;
+
+    inner.addEventListener('mousedown', e => {
+      if (state.splitMode) return;
+      dragging = true; moved = false; startX = e.clientX; startClipStart = clip.clipStart;
       e.preventDefault();
     });
     window.addEventListener('mousemove', e => {
       if (!dragging) return;
+      moved = true;
       const deltaSec = (e.clientX - startX) / PX_PER_SEC;
-      tr.clipStart = Math.max(0, startClipStart + deltaSec);
-      clipEl.style.left = (tr.clipStart * PX_PER_SEC) + 'px';
+      clip.clipStart = Math.max(0, startClipStart + deltaSec);
+      clipEl.style.left = (clip.clipStart * PX_PER_SEC) + 'px';
     });
     window.addEventListener('mouseup', () => {
-      if (dragging) { dragging = false; commit(); renderTracks(); }
+      if (dragging) { dragging = false; if (moved) { commit(); renderTracks(); } }
     });
-  }
+    inner.addEventListener('click', e => {
+      if (!state.splitMode) return;
+      const rect = clipEl.getBoundingClientRect();
+      const localSeconds = (e.clientX - rect.left) / PX_PER_SEC;
+      splitClipAt(tr.id, clip.id, localSeconds);
+    });
 
-  function wireClipHandles(clipEl, tr) {
     ['left', 'right'].forEach(side => {
       const handle = clipEl.querySelector('.st-trim-handle.' + side);
-      let dragging = false, startX = 0, startTrimStart = 0, startTrimDur = 0, startClipStart = 0;
+      let tdragging = false, tstartX = 0, startTrimStart = 0, startTrimDur = 0, tstartClipStart = 0;
       handle.addEventListener('mousedown', e => {
-        e.stopPropagation(); dragging = true; startX = e.clientX;
-        startTrimStart = tr.trimStart || 0;
-        startTrimDur = tr.trimDuration != null ? tr.trimDuration : (tr.buffer.duration - startTrimStart);
-        startClipStart = tr.clipStart;
+        e.stopPropagation(); tdragging = true; tstartX = e.clientX;
+        startTrimStart = clip.trimStart || 0;
+        startTrimDur = clip.trimDuration != null ? clip.trimDuration : (clip.buffer.duration - startTrimStart);
+        tstartClipStart = clip.clipStart;
       });
       window.addEventListener('mousemove', e => {
-        if (!dragging) return;
-        const deltaSec = (e.clientX - startX) / PX_PER_SEC;
+        if (!tdragging) return;
+        const deltaSec = (e.clientX - tstartX) / PX_PER_SEC;
         if (side === 'left') {
           const newTrimStart = Math.max(0, Math.min(startTrimStart + startTrimDur - 0.05, startTrimStart + deltaSec));
           const shift = newTrimStart - startTrimStart;
-          tr.trimStart = newTrimStart;
-          tr.trimDuration = startTrimDur - shift;
-          tr.clipStart = Math.max(0, startClipStart + shift);
+          clip.trimStart = newTrimStart;
+          clip.trimDuration = startTrimDur - shift;
+          clip.clipStart = Math.max(0, tstartClipStart + shift);
         } else {
-          const maxDur = tr.buffer.duration - startTrimStart;
-          tr.trimDuration = Math.max(0.05, Math.min(maxDur, startTrimDur + deltaSec));
+          const maxDur = clip.buffer.duration - startTrimStart;
+          clip.trimDuration = Math.max(0.05, Math.min(maxDur, startTrimDur + deltaSec));
         }
-        clipEl.style.left = (tr.clipStart * PX_PER_SEC) + 'px';
-        clipEl.style.width = Math.max(30, clipDuration(tr) * PX_PER_SEC) + 'px';
+        clipEl.style.left = (clip.clipStart * PX_PER_SEC) + 'px';
+        clipEl.style.width = Math.max(30, clipDuration(clip) * PX_PER_SEC) + 'px';
       });
       window.addEventListener('mouseup', () => {
-        if (dragging) { dragging = false; commit(); renderTracks(); }
+        if (tdragging) { tdragging = false; commit(); renderTracks(); }
       });
     });
 
     ['in', 'out'].forEach(side => {
       const handle = clipEl.querySelector('.st-fade-handle.' + side);
-      let dragging = false, startX = 0, startVal = 0;
+      let fdragging = false, fstartX = 0, fstartVal = 0;
       handle.addEventListener('mousedown', e => {
-        e.stopPropagation(); dragging = true; startX = e.clientX;
-        startVal = side === 'in' ? (tr.fadeIn || 0) : (tr.fadeOut || 0);
+        e.stopPropagation(); fdragging = true; fstartX = e.clientX;
+        fstartVal = side === 'in' ? (clip.fadeIn || 0) : (clip.fadeOut || 0);
       });
       window.addEventListener('mousemove', e => {
-        if (!dragging) return;
-        const deltaSec = (e.clientX - startX) / PX_PER_SEC * (side === 'in' ? 1 : -1);
-        const cDur = clipDuration(tr);
-        const val = Math.max(0, Math.min(cDur / 2, startVal + deltaSec));
-        if (side === 'in') tr.fadeIn = val; else tr.fadeOut = val;
+        if (!fdragging) return;
+        const deltaSec = (e.clientX - fstartX) / PX_PER_SEC * (side === 'in' ? 1 : -1);
+        const cDur = clipDuration(clip);
+        const val = Math.max(0, Math.min(cDur / 2, fstartVal + deltaSec));
+        if (side === 'in') clip.fadeIn = val; else clip.fadeOut = val;
       });
-      window.addEventListener('mouseup', () => { if (dragging) { dragging = false; commit(); } });
+      window.addEventListener('mouseup', () => { if (fdragging) { fdragging = false; commit(); } });
     });
 
     clipEl.querySelector('.st-clip-split-btn').addEventListener('click', e => {
       e.stopPropagation();
-      splitTrackAtPlayhead(+e.target.dataset.id);
+      splitClipAtPlayhead(tr.id, clip.id);
     });
+    clipEl.querySelector('.st-clip-remove-btn').addEventListener('click', e => {
+      e.stopPropagation();
+      removeClip(tr.id, clip.id);
+    });
+
+    const volBtn = clipEl.querySelector('.st-clip-vol-btn');
+    const volPop = clipEl.querySelector('.st-clip-vol-popover');
+    const volInput = volPop.querySelector('input');
+    const volSpan = volPop.querySelector('span');
+    volBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      document.querySelectorAll('.st-clip-vol-popover').forEach(p => { if (p !== volPop) p.classList.remove('open'); });
+      volPop.classList.toggle('open');
+    });
+    volInput.addEventListener('input', () => {
+      clip.gain = volInput.value / 100;
+      volSpan.textContent = volInput.value + '%';
+      if (clip._gainNode) clip._gainNode.gain.value = clip.gain;
+    });
+    volInput.addEventListener('change', () => commit());
   }
 
   function wireLaneDropTarget(lane, tr) {
@@ -1023,16 +1091,15 @@
       const rect = lane.getBoundingClientRect();
       const xSec = (e.clientX - rect.left) / PX_PER_SEC;
       if (e.dataTransfer.files && e.dataTransfer.files.length) {
-        importFiles(Array.from(e.dataTransfer.files), tr.buffer ? null : tr, xSec);
+        importFiles(Array.from(e.dataTransfer.files), tr, xSec);
       } else if (window.__draggedBrowserItem) {
-        importFiles([window.__draggedBrowserItem], tr.buffer ? null : tr, xSec);
+        importFiles([window.__draggedBrowserItem], tr, xSec);
       }
     });
   }
 
   function escapeHtml(s) { return (s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 
-  
   function renderSequencer() {
     const wrap = document.getElementById('seq-rows');
     wrap.innerHTML = '';
@@ -1063,7 +1130,6 @@
     });
   }
 
-  
   function renderPianoRoll() {
     const keysEl = document.getElementById('piano-keys');
     const gridEl = document.getElementById('piano-grid');
@@ -1094,7 +1160,6 @@
     });
   }
 
-  
   function renderMixer() {
     const wrap = document.getElementById('mixer-strips');
     wrap.innerHTML = '';
@@ -1192,7 +1257,6 @@
     el.addEventListener('dblclick', () => { val = 0; render(); onChange(val); });
   }
 
-  
   function initKnob(id, valId, fmt, onChange) {
     const el = document.getElementById(id);
     if (!el) return;
@@ -1244,7 +1308,6 @@
     document.getElementById('fx-sidechain-on').addEventListener('change', e => { state.sidechain.on = e.target.checked; });
   }
 
-  
   let toastTimer = null;
   function showToast(msg) {
     const el = document.getElementById('toast');
@@ -1254,7 +1317,6 @@
     toastTimer = setTimeout(() => el.classList.remove('show'), 2600);
   }
 
-  
   const AUDIO_RE = /\.(mp3|wav|ogg|m4a|flac|aac|webm)$/i;
 
   async function openFolder() {
@@ -1272,7 +1334,7 @@
         state.browserItems = items;
         renderBrowserItems();
         openBrowserDrawer();
-      } catch (e) {  }
+      } catch (e) {}
     } else {
       document.getElementById('input-file-fallback').click();
     }
@@ -1295,7 +1357,6 @@
   function openBrowserDrawer() { document.getElementById('sample-browser').classList.add('open'); }
   function closeBrowserDrawer() { document.getElementById('sample-browser').classList.remove('open'); }
 
-  
   let mediaRecorder = null, recordedChunks = [], micStream = null;
 
   async function toggleRecording() {
@@ -1322,11 +1383,14 @@
         const arrBuf = await blob.arrayBuffer();
         const audioBuf = await actx.decodeAudioData(arrBuf);
         commit();
-        const tr = addTrack({ name: 'Запис ' + (state.tracks.length + 1), clipStart: state.playbackPosition }, true);
-        tr.buffer = audioBuf;
-        trackBufferCache.set(tr.id, audioBuf);
+        const vocalTrack = findOrCreateTrackByName('Вокал');
+        const takeNum = vocalTrack.clips.length + 1;
+        addClipToTrack(vocalTrack, {
+          buffer: audioBuf, fileName: 'Дубль ' + takeNum,
+          clipStart: state.playbackPosition
+        }, true);
         renderTracks(); renderMixer();
-        showToast('Запис додано як нову доріжку');
+        showToast('Запис додано як новий сегмент на доріжці «Вокал»');
       } catch (err) {
         showToast('Не вдалося обробити запис');
       }
@@ -1336,7 +1400,6 @@
     showToast('Запис… натисніть ще раз, щоб зупинити');
   }
 
-  
   const historyStack = [];
   const redoStack = [];
   const HISTORY_LIMIT = 60;
@@ -1344,12 +1407,16 @@
   function serializeState() {
     return JSON.stringify({
       tracks: state.tracks.map(t => ({
-        id: t.id, name: t.name, color: t.color, fileName: t.fileName,
-        volume: t.volume, pan: t.pan, mute: t.mute, solo: t.solo, clipStart: t.clipStart,
-        trimStart: t.trimStart, trimDuration: t.trimDuration, fadeIn: t.fadeIn, fadeOut: t.fadeOut,
-        playbackRate: t.playbackRate, reverbSend: t.reverbSend, eqTilt: t.eqTilt, hasBuffer: !!t.buffer
+        id: t.id, name: t.name, color: t.color,
+        volume: t.volume, pan: t.pan, mute: t.mute, solo: t.solo,
+        reverbSend: t.reverbSend, eqTilt: t.eqTilt,
+        clips: t.clips.map(c => ({
+          id: c.id, fileName: c.fileName, clipStart: c.clipStart,
+          trimStart: c.trimStart, trimDuration: c.trimDuration, fadeIn: c.fadeIn, fadeOut: c.fadeOut,
+          gain: c.gain, playbackRate: c.playbackRate, hasBuffer: !!c.buffer
+        }))
       })),
-      nextTrackId: state.nextTrackId,
+      nextTrackId: state.nextTrackId, nextClipId: state.nextClipId,
       bpm: state.bpm, seqBars: state.seqBars, seqSwing: state.seqSwing, kit: state.kit,
       pattern: state.pattern, melody: state.melody, melodyBars: state.melodyBars, melodyInstrument: state.melodyInstrument,
       seqTrack: { volume: state.seqTrack.volume, pan: state.seqTrack.pan, mute: state.seqTrack.mute, solo: state.seqTrack.solo },
@@ -1362,13 +1429,17 @@
     const d = JSON.parse(json);
     state.tracks.forEach(tr => { if (tr.nodes) try { tr.nodes.gain.disconnect(); } catch (e) {} });
     state.tracks = d.tracks.map(td => {
-      const tr = Object.assign({}, td);
+      const tr = Object.assign({}, td, { clips: [] });
       createTrackNodes(tr);
-      if (td.hasBuffer && trackBufferCache.has(td.id)) tr.buffer = trackBufferCache.get(td.id);
+      td.clips.forEach(cd => {
+        const clip = Object.assign({}, cd);
+        if (cd.hasBuffer && clipBufferCache.has(cd.id)) clip.buffer = clipBufferCache.get(cd.id);
+        tr.clips.push(clip);
+      });
       tr.nodes.pan.pan.value = tr.pan;
       return tr;
     });
-    state.nextTrackId = d.nextTrackId;
+    state.nextTrackId = d.nextTrackId; state.nextClipId = d.nextClipId || state.nextClipId;
     state.bpm = d.bpm; state.seqBars = d.seqBars; state.seqSwing = d.seqSwing; state.kit = d.kit || 'modern';
     state.pattern = d.pattern; state.melody = d.melody || state.melody;
     state.melodyBars = d.melodyBars || 2; state.melodyInstrument = d.melodyInstrument || 'bass';
@@ -1413,7 +1484,6 @@
     showToast('Повторено');
   }
 
-  
   const DB_NAME = 'inkbeat-studio';
   const DB_STORE = 'projects';
   function openDB() {
@@ -1479,11 +1549,15 @@
     state.currentProjectId = id;
     const payload = Object.assign(buildProjectPayload(), {
       tracks: await Promise.all(state.tracks.map(async tr => ({
-        id: tr.id, name: tr.name, color: tr.color, fileName: tr.fileName,
-        volume: tr.volume, pan: tr.pan, mute: tr.mute, solo: tr.solo, clipStart: tr.clipStart,
-        trimStart: tr.trimStart, trimDuration: tr.trimDuration, fadeIn: tr.fadeIn, fadeOut: tr.fadeOut,
-        playbackRate: tr.playbackRate, reverbSend: tr.reverbSend, eqTilt: tr.eqTilt,
-        audio: tr.buffer ? await bufferToWavArrayBuffer(tr.buffer) : null
+        id: tr.id, name: tr.name, color: tr.color,
+        volume: tr.volume, pan: tr.pan, mute: tr.mute, solo: tr.solo,
+        reverbSend: tr.reverbSend, eqTilt: tr.eqTilt,
+        clips: await Promise.all(tr.clips.map(async c => ({
+          id: c.id, fileName: c.fileName, clipStart: c.clipStart,
+          trimStart: c.trimStart, trimDuration: c.trimDuration, fadeIn: c.fadeIn, fadeOut: c.fadeOut,
+          gain: c.gain, playbackRate: c.playbackRate,
+          audio: c.buffer ? await bufferToWavArrayBuffer(c.buffer) : null
+        })))
       })))
     });
     await idbSet('proj:' + id, payload);
@@ -1529,17 +1603,21 @@
 
     for (const trData of (payload.tracks || [])) {
       const tr = addTrack({
-        name: trData.name, color: trData.color, fileName: trData.fileName,
-        volume: trData.volume, pan: trData.pan, mute: trData.mute, solo: trData.solo, clipStart: trData.clipStart,
-        trimStart: trData.trimStart || 0, trimDuration: trData.trimDuration != null ? trData.trimDuration : null,
-        fadeIn: trData.fadeIn || 0, fadeOut: trData.fadeOut || 0, playbackRate: trData.playbackRate || 1,
+        name: trData.name, color: trData.color,
+        volume: trData.volume, pan: trData.pan, mute: trData.mute, solo: trData.solo,
         reverbSend: trData.reverbSend || 0, eqTilt: trData.eqTilt || 0
       }, true);
       tr.nodes.pan.pan.value = trData.pan;
-      if (trData.audio) {
-        const audioBuf = await actx.decodeAudioData(trData.audio.slice(0));
-        tr.buffer = audioBuf;
-        trackBufferCache.set(tr.id, audioBuf);
+      for (const cd of (trData.clips || [])) {
+        let buffer = null;
+        if (cd.audio) buffer = await actx.decodeAudioData(cd.audio.slice(0));
+        const clip = addClipToTrack(tr, {
+          fileName: cd.fileName, clipStart: cd.clipStart,
+          trimStart: cd.trimStart || 0, trimDuration: cd.trimDuration != null ? cd.trimDuration : null,
+          fadeIn: cd.fadeIn || 0, fadeOut: cd.fadeOut || 0, gain: cd.gain != null ? cd.gain : 1,
+          playbackRate: cd.playbackRate || 1
+        }, true);
+        if (buffer) { clip.buffer = buffer; clipBufferCache.set(clip.id, buffer); }
       }
     }
     updateTrackGains();
@@ -1609,7 +1687,6 @@
     showToast('Новий проєкт створено');
   }
 
-  
   function audioBufferToWavBlob(buffer) {
     const numCh = buffer.numberOfChannels;
     const len = buffer.length * numCh * 2 + 44;
@@ -1654,20 +1731,25 @@
     const anySolo = state.tracks.some(t => t.solo) || state.seqTrack.solo || state.melodyTrack.solo;
 
     state.tracks.forEach(tr => {
-      if (!tr.buffer) return;
-      if (options.onlyTrackId != null && tr.id !== options.onlyTrackId) return;
-      const cDur = clipDuration(tr);
-      const src = offlineCtx.createBufferSource(); src.buffer = tr.buffer; src.playbackRate.value = tr.playbackRate || 1;
-      const g = offlineCtx.createGain();
+      if (options.onlyTrackId != null && options.onlyTrackId !== -1 && tr.id !== options.onlyTrackId) return;
       const audible = options.onlyTrackId != null ? true : (anySolo ? tr.solo : !tr.mute);
-      g.gain.value = audible ? tr.volume : 0;
-      const p = offlineCtx.createStereoPanner(); p.pan.value = tr.pan;
+      const tGain = offlineCtx.createGain(); tGain.gain.value = audible ? tr.volume : 0;
       const tiltLow = offlineCtx.createBiquadFilter(); tiltLow.type = 'lowshelf'; tiltLow.frequency.value = 300; tiltLow.gain.value = -(tr.eqTilt || 0);
       const tiltHigh = offlineCtx.createBiquadFilter(); tiltHigh.type = 'highshelf'; tiltHigh.frequency.value = 3000; tiltHigh.gain.value = (tr.eqTilt || 0);
-      src.connect(g); g.connect(tiltLow); tiltLow.connect(tiltHigh); tiltHigh.connect(p); p.connect(graph.mixBus);
+      const p = offlineCtx.createStereoPanner(); p.pan.value = tr.pan;
+      tGain.connect(tiltLow); tiltLow.connect(tiltHigh); tiltHigh.connect(p); p.connect(graph.mixBus);
       const sendGain = offlineCtx.createGain(); sendGain.gain.value = tr.reverbSend || 0;
       p.connect(sendGain); sendGain.connect(graph.reverbIn);
-      src.start(tr.clipStart, tr.trimStart || 0, cDur);
+
+      tr.clips.forEach(clip => {
+        if (!clip.buffer) return;
+        const cDur = clipDuration(clip);
+        const src = offlineCtx.createBufferSource(); src.buffer = clip.buffer; src.playbackRate.value = clip.playbackRate || 1;
+        const clipGain = offlineCtx.createGain();
+        applyClipGainEnvelope(clipGain, clip, clip.clipStart, cDur);
+        src.connect(clipGain); clipGain.connect(tGain);
+        src.start(clip.clipStart, clip.trimStart || 0, cDur);
+      });
     });
 
     if (options.includeBeat !== false) {
@@ -1739,12 +1821,13 @@
 
   async function exportStems() {
     ensureAudioContext();
-    if (!state.tracks.length && !Object.values(state.pattern).some(a => a.some(Boolean)) && !Object.values(state.melody).some(a => a.some(Boolean))) {
+    const hasAnyClip = state.tracks.some(t => t.clips.some(c => c.buffer));
+    if (!hasAnyClip && !Object.values(state.pattern).some(a => a.some(Boolean)) && !Object.values(state.melody).some(a => a.some(Boolean))) {
       showToast('Немає що експортувати'); return;
     }
     showToast('Рендеринг стемів… це може зайняти хвилину');
     for (const tr of state.tracks) {
-      if (!tr.buffer) continue;
+      if (!tr.clips.some(c => c.buffer)) continue;
       const rendered = await renderOfflineMix({ onlyTrackId: tr.id, includeBeat: false, includeMelody: false });
       downloadBlob(audioBufferToWavBlob(rendered), `inkbeat-${tr.name.replace(/[^a-zA-Zа-яА-ЯіІїЇєЄ0-9]+/g, '_')}.wav`);
       await new Promise(r => setTimeout(r, 250));
@@ -1761,7 +1844,6 @@
     showToast('Стеми експортовано ✓');
   }
 
-  
   const GENRE_PRESETS = {
     hiphop: { bpm: 90,  pattern: {
       kick:  [1,0,0,0,0,0,0,0,1,0,0,1,0,0,0,0],
@@ -1827,7 +1909,6 @@
     showToast(`Пресет «${key}» застосовано`);
   }
 
-  
   let tapTimes = [];
   function tapTempo() {
     const now = performance.now();
@@ -1843,13 +1924,11 @@
     document.getElementById('bpm-input').value = state.bpm;
   }
 
-  
   function zoomTimeline(factor) {
     PX_PER_SEC = Math.max(20, Math.min(240, PX_PER_SEC * factor));
     renderTracks();
   }
 
-  
   function wireTabs() {
     document.querySelectorAll('.st-tab').forEach(tab => {
       tab.addEventListener('click', () => {
@@ -1928,6 +2007,9 @@
       if (!e.target.closest('.st-color-picker') && !e.target.closest('.st-track-color')) {
         document.querySelectorAll('.st-color-picker').forEach(p => p.classList.remove('open'));
       }
+      if (!e.target.closest('.st-clip-vol-popover') && !e.target.closest('.st-clip-vol-btn')) {
+        document.querySelectorAll('.st-clip-vol-popover').forEach(p => p.classList.remove('open'));
+      }
     });
   }
 
@@ -1935,6 +2017,11 @@
     const scroll = document.getElementById('timeline-scroll');
     ['dragover', 'drop'].forEach(evt => scroll.addEventListener(evt, e => e.preventDefault()));
     document.getElementById('btn-add-track').addEventListener('click', () => addTrack());
+    document.getElementById('btn-split-mode').addEventListener('click', e => {
+      state.splitMode = !state.splitMode;
+      e.currentTarget.classList.toggle('active', state.splitMode);
+      document.getElementById('timeline-scroll').classList.toggle('split-mode', state.splitMode);
+    });
 
     document.addEventListener('dragover', e => {
       if (e.dataTransfer.types.includes('Files')) { e.preventDefault(); document.getElementById('drop-overlay').classList.add('active'); }

@@ -278,6 +278,15 @@
 .st-fade-handle.in { left: 4px; }
 .st-fade-handle.out { right: 4px; }
 .st-clip-split-btn { position: absolute; bottom: 3px; right: 4px; font-size: .6rem; background: rgba(0,0,0,.5); border: 1px solid rgba(255,255,255,.2); color: #fff; border-radius: 4px; padding: 1px 5px; cursor: pointer; z-index: 6; }
+.st-clip-vol-btn { position: absolute; bottom: 3px; left: 4px; font-size: .6rem; background: rgba(0,0,0,.5); border: 1px solid rgba(255,255,255,.2); color: #fff; border-radius: 4px; padding: 1px 5px; cursor: pointer; z-index: 6; }
+.st-clip-remove-btn { position: absolute; top: 3px; right: 4px; font-size: .62rem; background: rgba(0,0,0,.5); border: 1px solid rgba(255,255,255,.2); color: rgba(255,255,255,.7); border-radius: 4px; padding: 0 4px; cursor: pointer; z-index: 6; line-height: 1.4; }
+.st-clip-remove-btn:hover { color: #ff5f5f; border-color: #ff5f5f; }
+.st-clip-vol-popover { position: absolute; bottom: 22px; left: 4px; z-index: 30; background: #151515; border: 1px solid rgba(255,255,255,.15); border-radius: 8px; padding: 8px 10px; display: none; align-items: center; gap: 8px; width: 130px; box-shadow: 0 10px 30px rgba(0,0,0,.5); }
+.st-clip-vol-popover.open { display: flex; }
+.st-clip-vol-popover input { flex: 1; }
+.st-clip-vol-popover span { font-family: 'JetBrains Mono',monospace; font-size: .6rem; color: rgba(255,255,255,.6); min-width: 30px; text-align: right; }
+.st-timeline-scroll.split-mode .st-clip-inner { cursor: crosshair; }
+#btn-split-mode.active { background: rgba(184,69,44,.2); border-color: var(--brick); color: #fff; }
 
 .st-strip-fx { display: flex; gap: 6px; margin-top: 4px; }
 .st-strip-fx .st-knob-item { transform: scale(.72); margin: -6px; }
