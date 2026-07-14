@@ -320,6 +320,35 @@
 .st-project-item-btns button:hover { color: #fff; border-color: var(--brick); }
 .st-project-item-btns button.danger:hover { color: #ff5f5f; border-color: #ff5f5f; }
 
+.st-record-settings { position: absolute; top: 46px; right: 20px; z-index: 40; background: #151515; border: 1px solid rgba(255,255,255,.12); border-radius: 10px; padding: 10px 14px; display: none; flex-direction: column; gap: 8px; box-shadow: 0 10px 30px rgba(0,0,0,.5); }
+.st-record-settings.open { display: flex; }
+.st-record-settings label { display: flex; align-items: center; gap: 8px; font-size: .78rem; color: rgba(255,255,255,.8); cursor: pointer; }
+
+.st-loudness { font-family: 'JetBrains Mono',monospace; font-size: .7rem; color: rgba(255,255,255,.5); min-width: 50px; }
+
+.st-markers-lane { height: 20px; position: relative; background: #0a0a0a; border-bottom: 1px solid rgba(255,255,255,.06); }
+.st-marker-flag { position: absolute; top: 0; display: flex; align-items: center; gap: 3px; font-family: 'JetBrains Mono',monospace; font-size: .62rem; color: var(--violet); background: rgba(141,132,196,.12); border-left: 2px solid var(--violet); padding: 2px 6px; cursor: pointer; white-space: nowrap; }
+.st-marker-flag:hover { background: rgba(141,132,196,.25); }
+.st-marker-line { position: absolute; top: 20px; bottom: 0; width: 1px; background: rgba(141,132,196,.25); pointer-events: none; }
+
+.st-countdown-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.75); backdrop-filter: blur(6px); z-index: 300; display: none; align-items: center; justify-content: center; }
+.st-countdown-overlay.show { display: flex; }
+.st-countdown-overlay span { font-family: 'Syne',sans-serif; font-weight: 800; font-size: 8rem; background: linear-gradient(135deg, var(--brick), var(--violet)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+
+.st-punch-bar { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); z-index: 60; background: #131313; border: 1px solid rgba(184,69,44,.4); border-radius: 999px; padding: 10px 16px; display: none; align-items: center; gap: 12px; box-shadow: 0 10px 40px rgba(0,0,0,.5); }
+.st-punch-bar.show { display: flex; }
+.st-punch-bar span { font-size: .78rem; color: rgba(255,255,255,.7); font-family: 'Space Grotesk',sans-serif; }
+.st-punch-bar .btn-primary { padding: 8px 16px; font-size: .78rem; }
+
+.st-clip.selected { outline: 2px solid var(--violet); outline-offset: 1px; }
+.st-punch-range { position: absolute; top: 0; bottom: 0; background: rgba(184,69,44,.25); border-left: 2px solid var(--brick); border-right: 2px solid var(--brick); z-index: 4; pointer-events: none; }
+
+.st-clip-tune-btn { position: absolute; bottom: 3px; left: 24px; font-size: .6rem; background: rgba(0,0,0,.5); border: 1px solid rgba(255,255,255,.2); color: #fff; border-radius: 4px; padding: 1px 5px; cursor: pointer; z-index: 6; }
+.st-clip-tune-popover { position: absolute; bottom: 22px; left: 24px; z-index: 30; background: #151515; border: 1px solid rgba(255,255,255,.15); border-radius: 8px; padding: 10px; display: none; flex-direction: column; gap: 8px; width: 160px; box-shadow: 0 10px 30px rgba(0,0,0,.5); }
+.st-clip-tune-popover.open { display: flex; }
+.st-clip-tune-popover label { font-size: .65rem; color: rgba(255,255,255,.5); display: flex; justify-content: space-between; }
+.st-clip-tune-popover button { background: linear-gradient(135deg,var(--brick),var(--indigo)); color: var(--paper,#EFEAE2); border: none; border-radius: 6px; padding: 6px; font-size: .7rem; font-weight: 700; cursor: pointer; }
+
 .studio-body ::-webkit-scrollbar { width: 8px; height: 8px; }
 .studio-body ::-webkit-scrollbar-track { background: transparent; }
 .studio-body ::-webkit-scrollbar-thumb { background: rgba(255,255,255,.15); border-radius: 4px; }

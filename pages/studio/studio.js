@@ -68,10 +68,19 @@
       distOn: false, distAmount: 0.20, distMix: 0.5
     },
     sidechain: { on: false, amount: 0.6, release: 0.18 },
+    limiter: { on: true, threshold: -1 },
     masterVolume: 0.85,
     browserItems: [],
     currentProjectId: null,
-    currentProjectName: 'Проєкт без назви'
+    currentProjectName: 'Проєкт без назви',
+    snapEnabled: true,
+    punchMode: false,
+    punchTarget: null,
+    selectedClip: null,
+    clipboard: null,
+    markers: [],
+    nextMarkerId: 1,
+    recSettings: { countdown: true, highpass: true, noiseGate: false, trimSilence: true }
   };
   DRUM_ROWS.forEach(r => { state.pattern[r.key] = new Array(64).fill(false); });
   PIANO_NOTES.forEach(n => { state.melody[n.midi] = new Array(64).fill(false); });
@@ -129,8 +138,10 @@
     reverbIn.connect(convolver); convolver.connect(reverbWet); reverbWet.connect(reverbOut);
 
     const masterGain = ctx.createGain();
+    const limiter = ctx.createDynamicsCompressor();
+    limiter.ratio.value = 20; limiter.attack.value = 0.002; limiter.release.value = 0.15; limiter.knee.value = 0;
     const masterAnalyser = ctx.createAnalyser(); masterAnalyser.fftSize = 1024;
-    reverbOut.connect(masterGain); masterGain.connect(masterAnalyser); masterAnalyser.connect(ctx.destination);
+    reverbOut.connect(masterGain); masterGain.connect(limiter); limiter.connect(masterAnalyser); masterAnalyser.connect(ctx.destination);
 
     const seqGain = ctx.createGain();
     const seqAnalyser = ctx.createAnalyser(); seqAnalyser.fftSize = 512;
@@ -153,7 +164,7 @@
       eqLow, eqMid, eqHigh, compressor,
       delayIn, delayDry, delayNode, delayFeedback, delayWet, delayOut,
       reverbIn, reverbDry, convolver, reverbWet, reverbOut,
-      masterGain, masterAnalyser, metronomeGain
+      masterGain, limiter, masterAnalyser, metronomeGain
     });
 
     applyFxToGraph();
@@ -221,6 +232,9 @@
     graph.reverbWet.gain.value = f.reverbOn ? f.reverbMix : 0;
 
     graph.masterGain.gain.value = state.masterVolume;
+
+    graph.limiter.threshold.value = state.limiter.on ? state.limiter.threshold : 0;
+    graph.limiter.ratio.value = state.limiter.on ? 20 : 1;
   }
 
   function triggerSidechain(ctx, duckNode, t) {
@@ -593,9 +607,15 @@
 
   function updateMeters() {
     if (graph.masterAnalyser) {
-      const v = Math.min(1, rmsFromAnalyser(graph.masterAnalyser) * 2.2);
+      const rms = rmsFromAnalyser(graph.masterAnalyser);
+      const v = Math.min(1, rms * 2.2);
       const fill = document.getElementById('master-meter-fill');
       if (fill) fill.style.width = (v * 100) + '%';
+      const loudnessEl = document.getElementById('loudness-readout');
+      if (loudnessEl) {
+        if (rms < 0.0005) loudnessEl.textContent = '-∞ dB';
+        else loudnessEl.textContent = (20 * Math.log10(rms)).toFixed(1) + ' dB';
+      }
     }
     state.tracks.forEach(tr => {
       if (!tr.nodes || !tr.nodes.analyser) return;
@@ -700,7 +720,7 @@
     return clip;
   }
 
-  function removeClip(trackId, clipId) {
+  function removeClip(trackId, clipId, ripple) {
     const tr = state.tracks.find(t => t.id === trackId);
     if (!tr) return;
     const idx = tr.clips.findIndex(c => c.id === clipId);
@@ -708,7 +728,13 @@
     commit();
     const clip = tr.clips[idx];
     if (clip._source) { try { clip._source.stop(); } catch (e) {} }
+    const removedEnd = clip.clipStart + clipDuration(clip);
+    const removedDur = clipDuration(clip);
     tr.clips.splice(idx, 1);
+    if (ripple) {
+      tr.clips.forEach(c => { if (c.clipStart >= removedEnd - 0.02) c.clipStart = Math.max(0, c.clipStart - removedDur); });
+    }
+    if (state.selectedClip && state.selectedClip.clipId === clipId) state.selectedClip = null;
     renderTracks();
   }
 
@@ -773,6 +799,94 @@
     if (!clip) return;
     const local = state.playbackPosition - clip.clipStart;
     splitClipAt(trackId, clipId, local);
+  }
+
+  function selectClip(trackId, clipId) {
+    state.selectedClip = { trackId, clipId };
+    document.querySelectorAll('.st-clip').forEach(el => el.classList.remove('selected'));
+    const el = document.querySelector(`.st-clip[data-clip-id="${clipId}"]`);
+    if (el) el.classList.add('selected');
+  }
+
+  function deselectClip() {
+    state.selectedClip = null;
+    document.querySelectorAll('.st-clip').forEach(el => el.classList.remove('selected'));
+  }
+
+  function getSelectedClip() {
+    if (!state.selectedClip) return null;
+    const tr = state.tracks.find(t => t.id === state.selectedClip.trackId);
+    if (!tr) return null;
+    const clip = tr.clips.find(c => c.id === state.selectedClip.clipId);
+    return clip ? { tr, clip } : null;
+  }
+
+  function copySelectedClip() {
+    const sel = getSelectedClip();
+    if (!sel) { showToast('Спочатку виберіть сегмент'); return; }
+    state.clipboard = {
+      trackId: sel.tr.id, buffer: sel.clip.buffer, fileName: sel.clip.fileName,
+      trimStart: sel.clip.trimStart, trimDuration: sel.clip.trimDuration,
+      fadeIn: sel.clip.fadeIn, fadeOut: sel.clip.fadeOut, gain: sel.clip.gain, playbackRate: sel.clip.playbackRate
+    };
+    showToast('Сегмент скопійовано');
+  }
+
+  function pasteClip() {
+    if (!state.clipboard) { showToast('Буфер обміну порожній'); return; }
+    const tr = state.tracks.find(t => t.id === state.clipboard.trackId) || state.tracks[0];
+    if (!tr) { showToast('Немає доріжки для вставки'); return; }
+    commit();
+    const clip = addClipToTrack(tr, {
+      buffer: state.clipboard.buffer, fileName: state.clipboard.fileName,
+      clipStart: state.playbackPosition,
+      trimStart: state.clipboard.trimStart, trimDuration: state.clipboard.trimDuration,
+      fadeIn: state.clipboard.fadeIn, fadeOut: state.clipboard.fadeOut,
+      gain: state.clipboard.gain, playbackRate: state.clipboard.playbackRate
+    }, true);
+    renderTracks();
+    selectClip(tr.id, clip.id);
+    showToast('Сегмент вставлено');
+  }
+
+  const SNAP_THRESHOLD_SEC = 10 / PX_PER_SEC;
+  function findSnapPosition(excludeClipId, proposedStart, clipDur) {
+    if (!state.snapEnabled) return proposedStart;
+    let best = proposedStart, bestDist = SNAP_THRESHOLD_SEC;
+    const proposedEnd = proposedStart + clipDur;
+    state.tracks.forEach(tr => {
+      tr.clips.forEach(c => {
+        if (c.id === excludeClipId) return;
+        const cStart = c.clipStart, cEnd = c.clipStart + clipDuration(c);
+        [cStart, cEnd].forEach(edge => {
+          if (Math.abs(proposedStart - edge) < bestDist) { bestDist = Math.abs(proposedStart - edge); best = edge; }
+          if (Math.abs(proposedEnd - edge) < bestDist) { bestDist = Math.abs(proposedEnd - edge); best = edge - clipDur; }
+        });
+      });
+    });
+    if (Math.abs(proposedStart - 0) < SNAP_THRESHOLD_SEC) best = 0;
+    return Math.max(0, best);
+  }
+
+  function autoCrossfadeAll() {
+    commit();
+    const XFADE = 0.08;
+    let count = 0;
+    state.tracks.forEach(tr => {
+      const sorted = [...tr.clips].filter(c => c.buffer).sort((a, b) => a.clipStart - b.clipStart);
+      for (let i = 0; i < sorted.length - 1; i++) {
+        const cur = sorted[i], next = sorted[i + 1];
+        const curEnd = cur.clipStart + clipDuration(cur);
+        const gap = next.clipStart - curEnd;
+        if (gap > -0.3 && gap < 0.15) {
+          cur.fadeOut = Math.max(cur.fadeOut || 0, XFADE);
+          next.fadeIn = Math.max(next.fadeIn || 0, XFADE);
+          count++;
+        }
+      }
+    });
+    renderTracks();
+    showToast(count ? `Кросфейд застосовано (${count})` : 'Не знайдено сусідніх сегментів для кросфейду');
   }
 
   function updateTrackGains() {
@@ -869,11 +983,17 @@
           <div class="st-fade-handle out" data-clip-id="${clip.id}" title="Fade out"></div>
           <div class="st-trim-handle left" data-clip-id="${clip.id}"></div>
           <div class="st-trim-handle right" data-clip-id="${clip.id}"></div>
-          <button class="st-clip-remove-btn" data-clip-id="${clip.id}" title="Видалити сегмент">✕</button>
+          <button class="st-clip-remove-btn" data-clip-id="${clip.id}" title="Видалити сегмент (Shift+клік — ripple delete)">✕</button>
           <button class="st-clip-vol-btn" data-clip-id="${clip.id}" title="Гучність сегмента">🔉</button>
           <div class="st-clip-vol-popover" id="vol-pop-${clip.id}">
             <input type="range" min="0" max="200" value="${Math.round((clip.gain != null ? clip.gain : 1) * 100)}"/>
             <span>${Math.round((clip.gain != null ? clip.gain : 1) * 100)}%</span>
+          </div>
+          <button class="st-clip-tune-btn" data-clip-id="${clip.id}" title="Корекція висоти вокалу">🎤</button>
+          <div class="st-clip-tune-popover" id="tune-pop-${clip.id}">
+            <label>Сила корекції <span>60%</span></label>
+            <input type="range" min="0" max="100" value="60"/>
+            <button type="button">Застосувати</button>
           </div>
           <button class="st-clip-split-btn" data-clip-id="${clip.id}" title="Розділити на плейхеді">✂</button>`;
         lane.appendChild(clipEl);
@@ -954,6 +1074,39 @@
     }
     rulerEl.innerHTML = '';
     rulerEl.appendChild(marksWrap);
+    renderMarkers();
+  }
+
+  function renderMarkers() {
+    const lane = document.getElementById('markers-lane');
+    const lanesEl = document.getElementById('tracks-lanes');
+    if (!lane) return;
+    lane.style.width = lanesEl.style.width;
+    lane.innerHTML = state.markers.map(m => `
+      <div class="st-marker-flag" style="left:${m.time * PX_PER_SEC}px" data-id="${m.id}">🚩 ${escapeHtml(m.label)}</div>
+    `).join('');
+    lane.querySelectorAll('.st-marker-flag').forEach(el => {
+      el.addEventListener('click', () => {
+        if (confirm('Видалити мітку «' + el.textContent.replace('🚩 ', '') + '»?')) {
+          removeMarker(+el.dataset.id);
+        }
+      });
+    });
+  }
+
+  function addMarkerAtPlayhead() {
+    const label = prompt('Назва секції (напр. Verse, Chorus, Bridge):', 'Verse');
+    if (!label) return;
+    commit();
+    state.markers.push({ id: state.nextMarkerId++, time: state.playbackPosition, label });
+    renderMarkers();
+    showToast('Мітку додано');
+  }
+
+  function removeMarker(id) {
+    commit();
+    state.markers = state.markers.filter(m => m.id !== id);
+    renderMarkers();
   }
 
   function drawWaveform(canvas, buffer, color, clip) {
@@ -990,6 +1143,10 @@
 
     inner.addEventListener('mousedown', e => {
       if (state.splitMode) return;
+      if (state.punchMode) {
+        punchDragStart(e, tr, clip, clipEl);
+        return;
+      }
       dragging = true; moved = false; startX = e.clientX; startClipStart = clip.clipStart;
       e.preventDefault();
     });
@@ -997,17 +1154,24 @@
       if (!dragging) return;
       moved = true;
       const deltaSec = (e.clientX - startX) / PX_PER_SEC;
-      clip.clipStart = Math.max(0, startClipStart + deltaSec);
+      let newStart = Math.max(0, startClipStart + deltaSec);
+      newStart = findSnapPosition(clip.id, newStart, clipDuration(clip));
+      clip.clipStart = newStart;
       clipEl.style.left = (clip.clipStart * PX_PER_SEC) + 'px';
     });
     window.addEventListener('mouseup', () => {
       if (dragging) { dragging = false; if (moved) { commit(); renderTracks(); } }
     });
     inner.addEventListener('click', e => {
-      if (!state.splitMode) return;
-      const rect = clipEl.getBoundingClientRect();
-      const localSeconds = (e.clientX - rect.left) / PX_PER_SEC;
-      splitClipAt(tr.id, clip.id, localSeconds);
+      if (state.splitMode) {
+        const rect = clipEl.getBoundingClientRect();
+        const localSeconds = (e.clientX - rect.left) / PX_PER_SEC;
+        splitClipAt(tr.id, clip.id, localSeconds);
+        return;
+      }
+      if (state.punchMode) return;
+      if (moved) return;
+      selectClip(tr.id, clip.id);
     });
 
     ['left', 'right'].forEach(side => {
@@ -1063,8 +1227,27 @@
     });
     clipEl.querySelector('.st-clip-remove-btn').addEventListener('click', e => {
       e.stopPropagation();
-      removeClip(tr.id, clip.id);
+      removeClip(tr.id, clip.id, e.shiftKey);
     });
+
+    const tuneBtn = clipEl.querySelector('.st-clip-tune-btn');
+    const tunePop = clipEl.querySelector('.st-clip-tune-popover');
+    if (tuneBtn && tunePop) {
+      tuneBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        document.querySelectorAll('.st-clip-tune-popover').forEach(p => { if (p !== tunePop) p.classList.remove('open'); });
+        tunePop.classList.toggle('open');
+      });
+      tunePop.querySelector('input').addEventListener('input', e => {
+        tunePop.querySelector('label span').textContent = e.target.value + '%';
+      });
+      tunePop.querySelector('button').addEventListener('click', async e => {
+        e.stopPropagation();
+        const strength = tunePop.querySelector('input').value / 100;
+        tunePop.classList.remove('open');
+        await applyVocalTune(tr.id, clip.id, strength);
+      });
+    }
 
     const volBtn = clipEl.querySelector('.st-clip-vol-btn');
     const volPop = clipEl.querySelector('.st-clip-vol-popover');
@@ -1306,6 +1489,9 @@
     document.getElementById('fx-reverb-on').addEventListener('change', e => { state.fx.reverbOn = e.target.checked; applyFxToGraph(); });
     document.getElementById('fx-dist-on').addEventListener('change', e => { state.fx.distOn = e.target.checked; applyFxToGraph(); });
     document.getElementById('fx-sidechain-on').addEventListener('change', e => { state.sidechain.on = e.target.checked; });
+
+    initKnob('knob-limiter-thresh', 'val-limiter-thresh', v => v.toFixed(0) + ' dB', v => { state.limiter.threshold = v; applyFxToGraph(); });
+    document.getElementById('fx-limiter-on').addEventListener('change', e => { state.limiter.on = e.target.checked; applyFxToGraph(); });
   }
 
   let toastTimer = null;
@@ -1359,45 +1545,313 @@
 
   let mediaRecorder = null, recordedChunks = [], micStream = null;
 
+  function runCountdown() {
+    return new Promise(resolve => {
+      if (!state.recSettings.countdown) { resolve(); return; }
+      ensureAudioContext();
+      const overlay = document.getElementById('countdown-overlay');
+      const numEl = document.getElementById('countdown-num');
+      overlay.classList.add('show');
+      let n = 3;
+      numEl.textContent = n;
+      playMetronomeClick(actx, graph.metronomeGain, actx.currentTime, true);
+      const timer = setInterval(() => {
+        n--;
+        if (n <= 0) {
+          clearInterval(timer);
+          overlay.classList.remove('show');
+          resolve();
+          return;
+        }
+        numEl.textContent = n;
+        playMetronomeClick(actx, graph.metronomeGain, actx.currentTime, true);
+      }, 700);
+    });
+  }
+
+  async function processRecordedBuffer(buffer) {
+    let result = buffer;
+    if (state.recSettings.highpass) {
+      const offline = new OfflineAudioContext(result.numberOfChannels, result.length, result.sampleRate);
+      const src = offline.createBufferSource(); src.buffer = result;
+      const hp = offline.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 90;
+      src.connect(hp); hp.connect(offline.destination);
+      src.start();
+      result = await offline.startRendering();
+    }
+    if (state.recSettings.noiseGate) {
+      result = applyNoiseGate(result, 0.02);
+    }
+    if (state.recSettings.trimSilence) {
+      result = trimSilence(result, 0.012);
+    }
+    return result;
+  }
+
+  function applyNoiseGate(buffer, threshold) {
+    const ctx = actx;
+    const out = ctx.createBuffer(buffer.numberOfChannels, buffer.length, buffer.sampleRate);
+    const windowSize = Math.floor(buffer.sampleRate * 0.02);
+    for (let ch = 0; ch < buffer.numberOfChannels; ch++) {
+      const data = buffer.getChannelData(ch);
+      const outData = out.getChannelData(ch);
+      for (let i = 0; i < data.length; i += windowSize) {
+        let sum = 0;
+        const end = Math.min(data.length, i + windowSize);
+        for (let j = i; j < end; j++) sum += data[j] * data[j];
+        const rms = Math.sqrt(sum / (end - i));
+        const gateMul = rms < threshold ? Math.max(0, rms / threshold) * 0.15 : 1;
+        for (let j = i; j < end; j++) outData[j] = data[j] * gateMul;
+      }
+    }
+    return out;
+  }
+
+  function trimSilence(buffer, threshold) {
+    const data = buffer.getChannelData(0);
+    const windowSize = Math.floor(buffer.sampleRate * 0.02);
+    let startIdx = 0, endIdx = data.length;
+    for (let i = 0; i < data.length; i += windowSize) {
+      let sum = 0; const end = Math.min(data.length, i + windowSize);
+      for (let j = i; j < end; j++) sum += data[j] * data[j];
+      if (Math.sqrt(sum / (end - i)) > threshold) { startIdx = i; break; }
+    }
+    for (let i = data.length - windowSize; i > 0; i -= windowSize) {
+      let sum = 0; const end = Math.min(data.length, i + windowSize);
+      for (let j = i; j < end; j++) sum += data[j] * data[j];
+      if (Math.sqrt(sum / (end - i)) > threshold) { endIdx = end; break; }
+    }
+    if (endIdx <= startIdx) return buffer;
+    const len = endIdx - startIdx;
+    const out = actx.createBuffer(buffer.numberOfChannels, len, buffer.sampleRate);
+    for (let ch = 0; ch < buffer.numberOfChannels; ch++) {
+      out.getChannelData(ch).set(buffer.getChannelData(ch).subarray(startIdx, endIdx));
+    }
+    return out;
+  }
+
+  function recordMicToBuffer() {
+    return new Promise(async (resolve, reject) => {
+      try {
+        micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      } catch (e) { reject(e); return; }
+      recordedChunks = [];
+      mediaRecorder = new MediaRecorder(micStream);
+      mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recordedChunks.push(e.data); };
+      mediaRecorder.onstop = async () => {
+        micStream.getTracks().forEach(t => t.stop());
+        const blob = new Blob(recordedChunks, { type: 'audio/webm' });
+        try {
+          const arrBuf = await blob.arrayBuffer();
+          const audioBuf = await actx.decodeAudioData(arrBuf);
+          resolve(audioBuf);
+        } catch (err) { reject(err); }
+      };
+      mediaRecorder.start();
+    });
+  }
+
   async function toggleRecording() {
     const btn = document.getElementById('btn-record');
     if (mediaRecorder && mediaRecorder.state === 'recording') {
       mediaRecorder.stop();
       return;
     }
-    try {
-      micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    } catch (e) {
-      showToast('Не вдалося отримати доступ до мікрофона');
-      return;
-    }
     ensureAudioContext();
-    recordedChunks = [];
-    mediaRecorder = new MediaRecorder(micStream);
-    mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recordedChunks.push(e.data); };
-    mediaRecorder.onstop = async () => {
-      btn.classList.remove('recording');
-      micStream.getTracks().forEach(t => t.stop());
-      const blob = new Blob(recordedChunks, { type: 'audio/webm' });
-      try {
-        const arrBuf = await blob.arrayBuffer();
-        const audioBuf = await actx.decodeAudioData(arrBuf);
-        commit();
-        const vocalTrack = findOrCreateTrackByName('Вокал');
-        const takeNum = vocalTrack.clips.length + 1;
-        addClipToTrack(vocalTrack, {
-          buffer: audioBuf, fileName: 'Дубль ' + takeNum,
-          clipStart: state.playbackPosition
-        }, true);
-        renderTracks(); renderMixer();
-        showToast('Запис додано як новий сегмент на доріжці «Вокал»');
-      } catch (err) {
-        showToast('Не вдалося обробити запис');
-      }
-    };
-    mediaRecorder.start();
+    await runCountdown();
     btn.classList.add('recording');
     showToast('Запис… натисніть ще раз, щоб зупинити');
+    try {
+      const raw = await recordMicToBuffer();
+      btn.classList.remove('recording');
+      const processed = await processRecordedBuffer(raw);
+      commit();
+      const vocalTrack = findOrCreateTrackByName('Вокал');
+      const takeNum = vocalTrack.clips.length + 1;
+      const clip = addClipToTrack(vocalTrack, {
+        buffer: processed, fileName: 'Дубль ' + takeNum,
+        clipStart: state.playbackPosition
+      }, true);
+      renderTracks(); renderMixer();
+      selectClip(vocalTrack.id, clip.id);
+      showToast('Запис додано як новий сегмент на доріжці «Вокал»');
+    } catch (err) {
+      btn.classList.remove('recording');
+      showToast('Не вдалося отримати доступ до мікрофона або обробити запис');
+    }
+  }
+
+  function showPunchBar() { document.getElementById('punch-bar').classList.add('show'); document.getElementById('punch-info').textContent = 'Перетягніть по кліпу, щоб виділити діапазон для punch-in'; document.getElementById('btn-punch-record').style.display = 'none'; }
+  function hidePunchBar() { document.getElementById('punch-bar').classList.remove('show'); }
+
+  function punchDragStart(e, tr, clip, clipEl) {
+    e.preventDefault();
+    const rect = clipEl.getBoundingClientRect();
+    const startLocal = (e.clientX - rect.left) / PX_PER_SEC;
+    let overlay = clipEl.querySelector('.st-punch-range');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.className = 'st-punch-range';
+      clipEl.appendChild(overlay);
+    }
+    const onMove = (ev) => {
+      const curLocal = (ev.clientX - rect.left) / PX_PER_SEC;
+      const a = Math.max(0, Math.min(startLocal, curLocal));
+      const b = Math.min(clipDuration(clip), Math.max(startLocal, curLocal));
+      overlay.style.left = (a * PX_PER_SEC) + 'px';
+      overlay.style.width = Math.max(2, (b - a) * PX_PER_SEC) + 'px';
+      state.punchTarget = { trackId: tr.id, clipId: clip.id, start: a, end: b };
+    };
+    const onUp = () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+      if (state.punchTarget && state.punchTarget.end - state.punchTarget.start > 0.05) {
+        document.getElementById('punch-info').textContent = `Діапазон: ${state.punchTarget.start.toFixed(2)}s – ${state.punchTarget.end.toFixed(2)}s`;
+        document.getElementById('btn-punch-record').style.display = 'inline-flex';
+      }
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  }
+
+  async function startPunchRecording() {
+    if (!state.punchTarget) { showToast('Спочатку виділіть діапазон на кліпі'); return; }
+    const { trackId, clipId, start, end } = state.punchTarget;
+    const tr = state.tracks.find(t => t.id === trackId);
+    const clip = tr && tr.clips.find(c => c.id === clipId);
+    if (!tr || !clip) { showToast('Сегмент не знайдено'); return; }
+
+    const btn = document.getElementById('btn-punch-record');
+    ensureAudioContext();
+    await runCountdown();
+    document.getElementById('btn-record').classList.add('recording');
+    showToast('Punch-in запис… натисніть «Запис» ще раз, щоб зупинити');
+    try {
+      const raw = await recordMicToBuffer();
+      document.getElementById('btn-record').classList.remove('recording');
+      const processed = await processRecordedBuffer(raw);
+      commit();
+      splitClipAt(trackId, clipId, start);
+      const afterFirstSplit = tr.clips.find(c => c.clipStart <= clip.clipStart + start + 0.001 && c.clipStart >= clip.clipStart + start - 0.05) || clip;
+      const middleLocalEnd = end - start;
+      const stillHasMiddle = clipDuration(afterFirstSplit) > middleLocalEnd + 0.03;
+      if (stillHasMiddle) splitClipAt(trackId, afterFirstSplit.id, middleLocalEnd);
+      removeClip(trackId, afterFirstSplit.id, false);
+      const inserted = addClipToTrack(tr, {
+        buffer: processed, fileName: 'Punch-in',
+        clipStart: clip.clipStart + start
+      }, true);
+      renderTracks(); renderMixer();
+      selectClip(tr.id, inserted.id);
+      showToast('Punch-in записано і вставлено');
+    } catch (err) {
+      document.getElementById('btn-record').classList.remove('recording');
+      showToast('Не вдалося записати punch-in');
+    } finally {
+      state.punchMode = false; state.punchTarget = null;
+      document.getElementById('btn-punch-mode').classList.remove('active');
+      hidePunchBar();
+    }
+  }
+
+  function autocorrelatePitch(buf, sampleRate) {
+    const SIZE = buf.length;
+    let rms = 0;
+    for (let i = 0; i < SIZE; i++) rms += buf[i] * buf[i];
+    rms = Math.sqrt(rms / SIZE);
+    if (rms < 0.008) return -1;
+    let r1 = 0, r2 = SIZE - 1;
+    const thresh = 0.2;
+    for (let i = 0; i < SIZE / 2; i++) if (Math.abs(buf[i]) < thresh) { r1 = i; break; }
+    for (let i = 1; i < SIZE / 2; i++) if (Math.abs(buf[SIZE - i]) < thresh) { r2 = SIZE - i; break; }
+    const trimmed = buf.slice(r1, r2);
+    const n = trimmed.length;
+    const c = new Array(n).fill(0);
+    for (let lag = 0; lag < n; lag++) {
+      for (let i = 0; i < n - lag; i++) c[lag] += trimmed[i] * trimmed[i + lag];
+    }
+    let d = 0; while (d < n - 1 && c[d] > c[d + 1]) d++;
+    let maxVal = -1, maxPos = -1;
+    for (let i = d; i < n; i++) { if (c[i] > maxVal) { maxVal = c[i]; maxPos = i; } }
+    if (maxPos <= 0) return -1;
+    const freq = sampleRate / maxPos;
+    if (freq < 70 || freq > 900) return -1;
+    return freq;
+  }
+
+  function nearestSemitoneFreq(freq) {
+    const midi = 69 + 12 * Math.log2(freq / 440);
+    const rounded = Math.round(midi);
+    return 440 * Math.pow(2, (rounded - 69) / 12);
+  }
+
+  function pitchCorrectBuffer(buffer, strength) {
+    const sampleRate = buffer.sampleRate;
+    const windowSize = Math.floor(sampleRate * 0.04);
+    const hop = Math.floor(windowSize / 4);
+    const numCh = buffer.numberOfChannels;
+    const outLen = buffer.length;
+    const out = actx.createBuffer(numCh, outLen, sampleRate);
+    const hann = new Float32Array(windowSize);
+    for (let i = 0; i < windowSize; i++) hann[i] = 0.5 - 0.5 * Math.cos((2 * Math.PI * i) / (windowSize - 1));
+
+    for (let ch = 0; ch < numCh; ch++) {
+      const input = buffer.getChannelData(ch);
+      const output = out.getChannelData(ch);
+      const weight = new Float32Array(outLen);
+      for (let pos = 0; pos + windowSize < input.length; pos += hop) {
+        const frame = input.subarray(pos, pos + windowSize);
+        const freq = autocorrelatePitch(frame, sampleRate);
+        let ratio = 1;
+        if (freq > 0) {
+          const target = nearestSemitoneFreq(freq);
+          const rawRatio = target / freq;
+          ratio = 1 + (rawRatio - 1) * strength;
+          ratio = Math.max(0.75, Math.min(1.33, ratio));
+        }
+        for (let i = 0; i < windowSize; i++) {
+          const srcPos = pos + i * ratio;
+          const idx = Math.floor(srcPos);
+          if (idx < 0 || idx >= input.length - 1) continue;
+          const frac = srcPos - idx;
+          const sample = input[idx] * (1 - frac) + input[idx + 1] * frac;
+          const outIdx = pos + i;
+          if (outIdx < outLen) {
+            output[outIdx] += sample * hann[i];
+            weight[outIdx] += hann[i];
+          }
+        }
+      }
+      for (let i = 0; i < outLen; i++) if (weight[i] > 0.0001) output[i] /= weight[i];
+    }
+    return out;
+  }
+
+  async function applyVocalTune(trackId, clipId, strength) {
+    const tr = state.tracks.find(t => t.id === trackId);
+    if (!tr) return;
+    const clip = tr.clips.find(c => c.id === clipId);
+    if (!clip || !clip.buffer) return;
+    showToast('Аналізую та коригую висоту вокалу…');
+    ensureAudioContext();
+    await new Promise(r => setTimeout(r, 30));
+    try {
+      const tuned = pitchCorrectBuffer(clip.buffer, strength);
+      commit();
+      const idx = tr.clips.findIndex(c => c.id === clipId);
+      const newClip = addClipToTrack(tr, {
+        buffer: tuned, fileName: (clip.fileName || 'Сегмент') + ' (tuned)',
+        clipStart: clip.clipStart, trimStart: clip.trimStart, trimDuration: clip.trimDuration,
+        fadeIn: clip.fadeIn, fadeOut: clip.fadeOut, gain: clip.gain, playbackRate: clip.playbackRate
+      }, true);
+      tr.clips.splice(tr.clips.indexOf(newClip), 1);
+      tr.clips[idx] = newClip;
+      renderTracks();
+      showToast('Корекцію висоти застосовано ✓');
+    } catch (err) {
+      console.error(err);
+      showToast('Не вдалося застосувати корекцію');
+    }
   }
 
   const historyStack = [];
@@ -1421,7 +1875,8 @@
       pattern: state.pattern, melody: state.melody, melodyBars: state.melodyBars, melodyInstrument: state.melodyInstrument,
       seqTrack: { volume: state.seqTrack.volume, pan: state.seqTrack.pan, mute: state.seqTrack.mute, solo: state.seqTrack.solo },
       melodyTrack: { volume: state.melodyTrack.volume, pan: state.melodyTrack.pan, mute: state.melodyTrack.mute, solo: state.melodyTrack.solo },
-      fx: state.fx, sidechain: state.sidechain, masterVolume: state.masterVolume
+      fx: state.fx, sidechain: state.sidechain, masterVolume: state.masterVolume,
+      limiter: state.limiter, markers: state.markers, nextMarkerId: state.nextMarkerId
     });
   }
 
@@ -1448,6 +1903,9 @@
     Object.assign(state.fx, d.fx);
     Object.assign(state.sidechain, d.sidechain || {});
     state.masterVolume = d.masterVolume;
+    Object.assign(state.limiter, d.limiter || {});
+    state.markers = d.markers || [];
+    state.nextMarkerId = d.nextMarkerId || state.nextMarkerId;
 
     updateTrackGains();
     applyFxToGraph(); regenerateImpulse();
@@ -1538,6 +1996,7 @@
       bpm: state.bpm, seqBars: state.seqBars, seqSwing: state.seqSwing, kit: state.kit,
       pattern: state.pattern, melody: state.melody, melodyBars: state.melodyBars, melodyInstrument: state.melodyInstrument,
       fx: state.fx, sidechain: state.sidechain, masterVolume: state.masterVolume,
+      limiter: state.limiter, markers: state.markers, nextMarkerId: state.nextMarkerId,
       seqTrack: { volume: state.seqTrack.volume, pan: state.seqTrack.pan, mute: state.seqTrack.mute, solo: state.seqTrack.solo },
       melodyTrack: { volume: state.melodyTrack.volume, pan: state.melodyTrack.pan, mute: state.melodyTrack.mute, solo: state.melodyTrack.solo }
     };
@@ -1590,6 +2049,9 @@
     Object.assign(state.fx, payload.fx || {});
     Object.assign(state.sidechain, payload.sidechain || {});
     state.masterVolume = payload.masterVolume ?? 0.85;
+    Object.assign(state.limiter, payload.limiter || {});
+    state.markers = payload.markers || [];
+    state.nextMarkerId = payload.nextMarkerId || state.nextMarkerId;
     if (payload.seqTrack) Object.assign(state.seqTrack, payload.seqTrack);
     if (payload.melodyTrack) Object.assign(state.melodyTrack, payload.melodyTrack);
 
@@ -1682,6 +2144,7 @@
     state.currentProjectName = 'Проєкт без назви';
     DRUM_ROWS.forEach(r => { state.pattern[r.key] = new Array(64).fill(false); });
     PIANO_NOTES.forEach(n => { state.melody[n.midi] = new Array(64).fill(false); });
+    state.markers = [];
     historyStack.length = 0; redoStack.length = 0;
     renderTracks(); renderSequencer(); renderPianoRoll(); renderMixer();
     showToast('Новий проєкт створено');
@@ -1974,6 +2437,17 @@
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y' && !['INPUT', 'TEXTAREA'].includes(tag)) {
         e.preventDefault(); redo();
       }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'c' && !['INPUT', 'TEXTAREA'].includes(tag)) {
+        e.preventDefault(); copySelectedClip();
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v' && !['INPUT', 'TEXTAREA'].includes(tag)) {
+        e.preventDefault(); pasteClip();
+      }
+      if ((e.key === 'Delete' || e.key === 'Backspace') && !['INPUT', 'TEXTAREA'].includes(tag)) {
+        const sel = getSelectedClip();
+        if (sel) { e.preventDefault(); removeClip(sel.tr.id, sel.clip.id, e.shiftKey); }
+      }
+      if (e.key === 'Escape') { deselectClip(); }
     });
   }
 
@@ -1984,6 +2458,14 @@
     document.getElementById('btn-export-stems').addEventListener('click', exportStems);
     document.getElementById('btn-open-folder').addEventListener('click', openFolder);
     document.getElementById('btn-record').addEventListener('click', toggleRecording);
+    document.getElementById('btn-record-settings').addEventListener('click', e => {
+      e.stopPropagation();
+      document.getElementById('record-settings-pop').classList.toggle('open');
+    });
+    document.getElementById('rec-countdown').addEventListener('change', e => { state.recSettings.countdown = e.target.checked; });
+    document.getElementById('rec-highpass').addEventListener('change', e => { state.recSettings.highpass = e.target.checked; });
+    document.getElementById('rec-noisegate').addEventListener('change', e => { state.recSettings.noiseGate = e.target.checked; });
+    document.getElementById('rec-trimsilence').addEventListener('change', e => { state.recSettings.trimSilence = e.target.checked; });
     document.getElementById('btn-undo').addEventListener('click', undo);
     document.getElementById('btn-redo').addEventListener('click', redo);
     document.getElementById('btn-projects').addEventListener('click', openProjectsModal);
@@ -2010,6 +2492,15 @@
       if (!e.target.closest('.st-clip-vol-popover') && !e.target.closest('.st-clip-vol-btn')) {
         document.querySelectorAll('.st-clip-vol-popover').forEach(p => p.classList.remove('open'));
       }
+      if (!e.target.closest('.st-clip-tune-popover') && !e.target.closest('.st-clip-tune-btn')) {
+        document.querySelectorAll('.st-clip-tune-popover').forEach(p => p.classList.remove('open'));
+      }
+      if (!e.target.closest('#record-settings-pop') && !e.target.closest('#btn-record-settings')) {
+        document.getElementById('record-settings-pop').classList.remove('open');
+      }
+      if (!e.target.closest('.st-clip') && !e.target.closest('.st-punch-bar')) {
+        deselectClip();
+      }
     });
   }
 
@@ -2019,9 +2510,25 @@
     document.getElementById('btn-add-track').addEventListener('click', () => addTrack());
     document.getElementById('btn-split-mode').addEventListener('click', e => {
       state.splitMode = !state.splitMode;
+      if (state.splitMode) { state.punchMode = false; document.getElementById('btn-punch-mode').classList.remove('active'); hidePunchBar(); }
       e.currentTarget.classList.toggle('active', state.splitMode);
       document.getElementById('timeline-scroll').classList.toggle('split-mode', state.splitMode);
     });
+    document.getElementById('btn-snap').addEventListener('click', e => {
+      state.snapEnabled = !state.snapEnabled;
+      e.currentTarget.classList.toggle('active', state.snapEnabled);
+    });
+    document.getElementById('btn-punch-mode').addEventListener('click', e => {
+      state.punchMode = !state.punchMode;
+      if (state.punchMode) { state.splitMode = false; document.getElementById('btn-split-mode').classList.remove('active'); document.getElementById('timeline-scroll').classList.remove('split-mode'); }
+      e.currentTarget.classList.toggle('active', state.punchMode);
+      if (state.punchMode) showPunchBar(); else hidePunchBar();
+      state.punchTarget = null;
+    });
+    document.getElementById('btn-punch-cancel').addEventListener('click', () => { state.punchMode = false; state.punchTarget = null; document.getElementById('btn-punch-mode').classList.remove('active'); hidePunchBar(); renderTracks(); });
+    document.getElementById('btn-punch-record').addEventListener('click', startPunchRecording);
+    document.getElementById('btn-crossfade-all').addEventListener('click', autoCrossfadeAll);
+    document.getElementById('btn-add-marker').addEventListener('click', addMarkerAtPlayhead);
 
     document.addEventListener('dragover', e => {
       if (e.dataTransfer.types.includes('Files')) { e.preventDefault(); document.getElementById('drop-overlay').classList.add('active'); }

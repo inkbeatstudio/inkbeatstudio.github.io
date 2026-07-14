@@ -58,6 +58,13 @@
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="7"/></svg>
       <span>Запис</span>
     </button>
+    <button class="st-icon-btn" id="btn-record-settings" title="Налаштування запису">⚙</button>
+    <div class="st-record-settings" id="record-settings-pop">
+      <label><input type="checkbox" id="rec-countdown" checked/> Відлік 3-2-1</label>
+      <label><input type="checkbox" id="rec-highpass" checked/> High-pass фільтр</label>
+      <label><input type="checkbox" id="rec-noisegate"/> Noise gate</label>
+      <label><input type="checkbox" id="rec-trimsilence" checked/> Обрізати тишу</label>
+    </div>
     <button class="st-icon-btn" id="btn-save-project" title="Зберегти проєкт локально">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
       <span>Зберегти</span>
@@ -113,6 +120,7 @@
     <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" style="opacity:.5"><path d="M11 5L6 9H2v6h4l5 4V5zM19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
     <input type="range" id="master-volume" min="0" max="120" value="85" class="st-slider-h"/>
     <div class="st-master-meter"><div class="st-master-meter-fill" id="master-meter-fill"></div></div>
+    <span class="st-loudness" id="loudness-readout">-∞ dB</span>
   </div>
 </div>
 
@@ -152,6 +160,7 @@
       </div>
       <div class="st-timeline-scroll" id="timeline-scroll">
         <div class="st-timeline-ruler" id="timeline-ruler"></div>
+        <div class="st-markers-lane" id="markers-lane"></div>
         <div class="st-tracks-lanes" id="tracks-lanes">
           <div class="st-playhead" id="playhead"></div>
         </div>
@@ -166,6 +175,10 @@
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4L8.12 15.88M14.47 14.48L20 20M8.12 8.12L12 12"/></svg>
         Розрізати
       </button>
+      <button class="st-icon-btn active" id="btn-snap" title="Прилипання до сусідніх кліпів">🧲 Snap</button>
+      <button class="st-icon-btn" id="btn-punch-mode" title="Виділіть діапазон на кліпі, щоб перезаписати лише його">🎯 Punch-in</button>
+      <button class="st-icon-btn" id="btn-crossfade-all" title="Авто-кросфейд між сусідніми сегментами">🔀 Кросфейд</button>
+      <button class="st-icon-btn" id="btn-add-marker" title="Додати мітку секції на плейхеді">🚩 Мітка</button>
       <div class="st-zoom-controls">
         <button class="st-icon-btn" id="btn-zoom-out" title="Зменшити">−</button>
         <button class="st-icon-btn" id="btn-zoom-in" title="Збільшити">+</button>
@@ -332,6 +345,18 @@
         </div>
       </div>
 
+      <div class="st-fx-card">
+        <div class="st-fx-head">
+          <div class="st-fx-name"><span class="st-fx-dot" style="background:var(--violet)"></span>Лімітер (майстер)</div>
+          <label class="st-toggle"><input type="checkbox" id="fx-limiter-on" checked/><span></span></label>
+        </div>
+        <div class="st-fx-body">
+          <div class="st-knob-group">
+            <div class="st-knob-item"><div class="st-knob" id="knob-limiter-thresh" data-min="-24" data-max="0" data-val="-1"></div><label>Ceiling</label><span class="st-knob-val" id="val-limiter-thresh">-1 dB</span></div>
+          </div>
+        </div>
+      </div>
+
       <div class="st-fx-card st-fx-card-wide">
         <div class="st-fx-head">
           <div class="st-fx-name"><span class="st-fx-dot" style="background:var(--violet)"></span>Аналізатор спектра</div>
@@ -365,6 +390,14 @@
 
 <!-- ---- TOAST ---- -->
 <div class="st-toast" id="toast"></div>
+
+<div class="st-countdown-overlay" id="countdown-overlay"><span id="countdown-num">3</span></div>
+
+<div class="st-punch-bar" id="punch-bar">
+  <span id="punch-info">Виділіть діапазон на кліпі для punch-in запису</span>
+  <button class="btn-primary" id="btn-punch-record" style="display:none">🎤 Записати punch-in</button>
+  <button class="st-icon-btn" id="btn-punch-cancel">Скасувати</button>
+</div>
 
 <!-- ---- PROJECTS MODAL ---- -->
 <div class="st-modal-overlay" id="projects-modal">
