@@ -19,7 +19,7 @@ body {
   color: #fff;
   font-family: 'Space Grotesk', sans-serif;
   overflow-x: hidden;
-  cursor: none;
+  cursor: auto;
 }
 
 ::-webkit-scrollbar { width: 4px; }
@@ -27,27 +27,7 @@ body {
 ::-webkit-scrollbar-thumb { background: linear-gradient(to bottom, var(--brick), var(--indigo)); border-radius: 2px; }
 ::selection { background: rgba(184,69,44,.3); color: #fff; }
 
-.cursor-dot {
-  position: fixed; top: 0; left: 0;
-  width: 12px; height: 12px;
-  background: var(--brick);
-  border-radius: 50%;
-  pointer-events: none;
-  z-index: 99999;
-  transform: translate(-50%,-50%);
-  mix-blend-mode: screen;
-  transition: width .2s, height .2s, background .2s;
-}
-.cursor-ring {
-  position: fixed; top: 0; left: 0;
-  width: 36px; height: 36px;
-  border: 1px solid rgba(184,69,44,.5);
-  border-radius: 50%;
-  pointer-events: none;
-  z-index: 99998;
-  transform: translate(-50%,-50%);
-  transition: width .3s, height .3s, border-color .3s;
-}
+.cursor-dot, .cursor-ring { display: none; }
 
 .glass {
   background: rgba(255,255,255,.03);
