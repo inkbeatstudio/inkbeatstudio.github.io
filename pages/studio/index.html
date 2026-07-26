@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1"/>
-<title>InkBeat Студія — Створення музики онлайн | INKBEAT</title>
-<meta name="description" content="Безкоштовна музична студія у браузері: багатодоріжковий редактор, степ-секвенсор, мікшер та вбудовані ефекти. Все зберігається локально на вашому пристрої."/>
+<title id="page-title">InkBeat Студія — Створення музики онлайн | INKBEAT</title>
+<meta name="description" id="page-desc" content="Безкоштовна музична студія у браузері: багатодоріжковий редактор, степ-секвенсор, мікшер та вбудовані ефекти. Все зберігається локально на вашому пристрої."/>
 <link rel="icon" href="../../public/favicon-optimized.jpg"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
@@ -36,45 +36,50 @@
   <div class="st-topbar-left">
     <a href="../../index.html" class="st-logo gradient-text">INKBEAT</a>
     <span class="st-sep">/</span>
-    <span class="st-title">InkBeat Студія</span>
-    <span class="st-badge-local"><span class="dot"></span>Локально на пристрої</span>
+    <span class="st-title" data-i18n-local="topTitle">InkBeat Студія</span>
+    <span class="st-badge-local"><span class="dot"></span><span data-i18n-local="badgeLocal">Локально на пристрої</span></span>
+    <div class="lang-btn st-lang-btn">
+      <span class="lang-ua lang-toggle active" data-lang="uk">UA</span>
+      <span class="lang-sep">|</span>
+      <span class="lang-en lang-toggle" data-lang="en">EN</span>
+    </div>
   </div>
   <div class="st-topbar-right">
-    <button class="st-icon-btn" id="btn-undo" title="Скасувати (Ctrl+Z)">↶</button>
-    <button class="st-icon-btn" id="btn-redo" title="Повторити (Ctrl+Y)">↷</button>
-    <button class="st-icon-btn" id="btn-new-project" title="Новий проєкт">
+    <button class="st-icon-btn" id="btn-undo" title="Скасувати (Ctrl+Z)" data-i18n-local-title="titleUndo">↶</button>
+    <button class="st-icon-btn" id="btn-redo" title="Повторити (Ctrl+Y)" data-i18n-local-title="titleRedo">↷</button>
+    <button class="st-icon-btn" id="btn-new-project" title="Новий проєкт" data-i18n-local-title="titleNewProject">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
     </button>
-    <button class="st-icon-btn" id="btn-projects" title="Мої проєкти">
+    <button class="st-icon-btn" id="btn-projects" title="Мої проєкти" data-i18n-local-title="titleMyProjects">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></svg>
-      <span>Проєкти</span>
+      <span data-i18n-local="btnProjects">Проєкти</span>
     </button>
-    <button class="st-icon-btn" id="btn-open-folder" title="Відкрити папку із семплами">
+    <button class="st-icon-btn" id="btn-open-folder" title="Відкрити папку із семплами" data-i18n-local-title="titleOpenFolder">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/></svg>
-      <span>Папка</span>
+      <span data-i18n-local="btnFolder">Папка</span>
     </button>
     <input type="file" id="input-file-fallback" multiple accept="audio/*" hidden/>
-    <button class="st-icon-btn" id="btn-record" title="Записати з мікрофона">
+    <button class="st-icon-btn" id="btn-record" title="Записати з мікрофона" data-i18n-local-title="titleRecord">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="7"/></svg>
-      <span>Запис</span>
+      <span data-i18n-local="btnRecord">Запис</span>
     </button>
-    <button class="st-icon-btn" id="btn-record-settings" title="Налаштування запису">⚙</button>
+    <button class="st-icon-btn" id="btn-record-settings" title="Налаштування запису" data-i18n-local-title="titleRecSettings">⚙</button>
     <div class="st-record-settings" id="record-settings-pop">
-      <label><input type="checkbox" id="rec-countdown" checked/> Відлік 3-2-1</label>
-      <label><input type="checkbox" id="rec-highpass" checked/> High-pass фільтр</label>
-      <label><input type="checkbox" id="rec-noisegate"/> Noise gate</label>
-      <label><input type="checkbox" id="rec-trimsilence" checked/> Обрізати тишу</label>
+      <label><input type="checkbox" id="rec-countdown" checked/> <span data-i18n-local="recCountdown">Відлік 3-2-1</span></label>
+      <label><input type="checkbox" id="rec-highpass" checked/> <span data-i18n-local="recHighpass">High-pass фільтр</span></label>
+      <label><input type="checkbox" id="rec-noisegate"/> <span data-i18n-local="recNoisegate">Noise gate</span></label>
+      <label><input type="checkbox" id="rec-trimsilence" checked/> <span data-i18n-local="recTrimsilence">Обрізати тишу</span></label>
     </div>
-    <button class="st-icon-btn" id="btn-save-project" title="Зберегти проєкт локально">
+    <button class="st-icon-btn" id="btn-save-project" title="Зберегти проєкт локально" data-i18n-local-title="titleSaveProject">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
-      <span>Зберегти</span>
+      <span data-i18n-local="btnSave">Зберегти</span>
     </button>
-    <button class="st-icon-btn" id="btn-export-wav" title="Експортувати мікс у WAV">
+    <button class="st-icon-btn" id="btn-export-wav" title="Експортувати мікс у WAV" data-i18n-local-title="titleExportWav">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5M12 15V3"/></svg>
-      <span>Експорт</span>
+      <span data-i18n-local="btnExport">Експорт</span>
     </button>
-    <button class="st-icon-btn" id="btn-export-stems" title="Експортувати кожну доріжку окремо">
-      <span>Стеми</span>
+    <button class="st-icon-btn" id="btn-export-stems" title="Експортувати кожну доріжку окремо" data-i18n-local-title="titleExportStems">
+      <span data-i18n-local="btnStems">Стеми</span>
     </button>
   </div>
 </header>
@@ -82,17 +87,17 @@
 <!-- ===== TRANSPORT ===== -->
 <div class="st-transport">
   <div class="st-transport-group">
-    <button class="st-play-btn" id="btn-play" title="Play / Pause">
+    <button class="st-play-btn" id="btn-play" title="Play / Pause" data-i18n-local-title="titlePlayPause">
       <svg class="icon-play" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
       <svg class="icon-pause" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="display:none"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>
     </button>
-    <button class="st-stop-btn" id="btn-stop" title="Стоп">
+    <button class="st-stop-btn" id="btn-stop" title="Стоп" data-i18n-local-title="titleStop">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="5" width="14" height="14" rx="1"/></svg>
     </button>
-    <button class="st-loop-btn" id="btn-loop" title="Зациклити відтворення">
+    <button class="st-loop-btn" id="btn-loop" title="Зациклити відтворення" data-i18n-local-title="titleLoop">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
     </button>
-    <button class="st-loop-btn" id="btn-metronome" title="Метроном">
+    <button class="st-loop-btn" id="btn-metronome" title="Метроном" data-i18n-local-title="titleMetronome">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l6 20H6L12 2z"/><path d="M9 14h6"/></svg>
     </button>
   </div>
@@ -103,17 +108,17 @@
       <input type="number" id="bpm-input" value="120" min="40" max="240"/>
     </div>
     <div class="st-field">
-      <label>Такт</label>
+      <label data-i18n-local="labelBar">Такт</label>
       <select id="time-sig">
         <option value="4">4/4</option>
         <option value="3">3/4</option>
       </select>
     </div>
     <div class="st-field st-position">
-      <label>Позиція</label>
+      <label data-i18n-local="labelPosition">Позиція</label>
       <div class="st-pos-display" id="pos-display">1.1.1</div>
     </div>
-    <button class="st-icon-btn" id="btn-tap-tempo" title="Клацайте в такт, щоб виставити BPM">Tap</button>
+    <button class="st-icon-btn" id="btn-tap-tempo" title="Клацайте в такт, щоб виставити BPM" data-i18n-local-title="titleTapTempo">Tap</button>
   </div>
 
   <div class="st-transport-group st-transport-master">
@@ -128,23 +133,23 @@
 <nav class="st-tabs">
   <button class="st-tab active" data-view="timeline">
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h10"/></svg>
-    Тайм-лінія
+    <span data-i18n-local="tabTimeline">Тайм-лінія</span>
   </button>
   <button class="st-tab" data-view="sequencer">
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
-    Секвенсор
+    <span data-i18n-local="tabSequencer">Секвенсор</span>
   </button>
   <button class="st-tab" data-view="piano">
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="1"/><path d="M8 4v16M13 4v10M18 4v10"/></svg>
-    Піано-рол
+    <span data-i18n-local="tabPiano">Піано-рол</span>
   </button>
   <button class="st-tab" data-view="mixer">
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 21V14M4 10V3M12 21v-7M12 10V3M20 21v-4M20 13V3"/><circle cx="4" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="20" cy="15" r="2"/></svg>
-    Мікшер
+    <span data-i18n-local="tabMixer">Мікшер</span>
   </button>
   <button class="st-tab" data-view="fx">
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"/></svg>
-    Ефекти
+    <span data-i18n-local="tabFx">Ефекти</span>
   </button>
   <div class="st-tabs-status" id="tabs-status"></div>
 </nav>
@@ -169,21 +174,21 @@
     <div class="st-timeline-footer">
       <button class="st-add-track-btn" id="btn-add-track">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
-        Додати доріжку
+        <span data-i18n-local="btnAddTrack">Додати доріжку</span>
       </button>
-      <button class="st-icon-btn" id="btn-split-mode" title="Клікніть на кліп, щоб розрізати його в цьому місці">
+      <button class="st-icon-btn" id="btn-split-mode" title="Клікніть на кліп, щоб розрізати його в цьому місці" data-i18n-local-title="titleSplitMode">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4L8.12 15.88M14.47 14.48L20 20M8.12 8.12L12 12"/></svg>
-        Розрізати
+        <span data-i18n-local="btnSplit">Розрізати</span>
       </button>
-      <button class="st-icon-btn active" id="btn-snap" title="Прилипання до сусідніх кліпів">🧲 Snap</button>
-      <button class="st-icon-btn" id="btn-punch-mode" title="Виділіть діапазон на кліпі, щоб перезаписати лише його">🎯 Punch-in</button>
-      <button class="st-icon-btn" id="btn-crossfade-all" title="Авто-кросфейд між сусідніми сегментами">🔀 Кросфейд</button>
-      <button class="st-icon-btn" id="btn-add-marker" title="Додати мітку секції на плейхеді">🚩 Мітка</button>
+      <button class="st-icon-btn active" id="btn-snap" title="Прилипання до сусідніх кліпів" data-i18n-local-title="titleSnap">🧲 Snap</button>
+      <button class="st-icon-btn" id="btn-punch-mode" title="Виділіть діапазон на кліпі, щоб перезаписати лише його" data-i18n-local-title="titlePunchMode">🎯 Punch-in</button>
+      <button class="st-icon-btn" id="btn-crossfade-all" title="Авто-кросфейд між сусідніми сегментами" data-i18n-local-title="titleCrossfade">🔀 <span data-i18n-local="btnCrossfade">Кросфейд</span></button>
+      <button class="st-icon-btn" id="btn-add-marker" title="Додати мітку секції на плейхеді" data-i18n-local-title="titleAddMarker">🚩 <span data-i18n-local="btnMarker">Мітка</span></button>
       <div class="st-zoom-controls">
-        <button class="st-icon-btn" id="btn-zoom-out" title="Зменшити">−</button>
-        <button class="st-icon-btn" id="btn-zoom-in" title="Збільшити">+</button>
+        <button class="st-icon-btn" id="btn-zoom-out" title="Зменшити" data-i18n-local-title="titleZoomOut">−</button>
+        <button class="st-icon-btn" id="btn-zoom-in" title="Збільшити" data-i18n-local-title="titleZoomIn">+</button>
       </div>
-      <p class="st-hint">Перетягніть аудіофайли сюди, або на конкретну доріжку — можна додавати кілька сегментів на одну доріжку та редагувати кожен окремо.</p>
+      <p class="st-hint" data-i18n-local="hintDrop">Перетягніть аудіофайли сюди, або на конкретну доріжку — можна додавати кілька сегментів на одну доріжку та редагувати кожен окремо.</p>
     </div>
   </section>
 
@@ -191,17 +196,17 @@
   <section class="st-view st-view-sequencer" id="view-sequencer">
     <div class="st-seq-toolbar">
       <div class="st-field">
-        <label>Такти</label>
+        <label data-i18n-local="labelBars">Такти</label>
         <select id="seq-bars"><option value="1">1</option><option value="2" selected>2</option><option value="4">4</option></select>
       </div>
       <div class="st-field">
-        <label>Свінг</label>
+        <label data-i18n-local="labelSwing">Свінг</label>
         <input type="range" id="seq-swing" min="0" max="60" value="0" class="st-slider-h st-slider-sm"/>
       </div>
       <div class="st-field">
-        <label>Пресет</label>
+        <label data-i18n-local="labelPreset">Пресет</label>
         <select id="seq-preset">
-          <option value="">— Обрати —</option>
+          <option value="" data-i18n-local="optChoose">— Обрати —</option>
           <option value="hiphop">Hip-Hop</option>
           <option value="trap">Trap</option>
           <option value="lofi">Lo-Fi</option>
@@ -210,7 +215,7 @@
         </select>
       </div>
       <div class="st-field">
-        <label>Кіт</label>
+        <label data-i18n-local="labelKit">Кіт</label>
         <select id="seq-kit">
           <option value="modern">Modern</option>
           <option value="808">808</option>
@@ -218,8 +223,8 @@
           <option value="lofi">Lo-Fi Tape</option>
         </select>
       </div>
-      <button class="st-icon-btn" id="btn-seq-clear">Очистити</button>
-      <button class="st-icon-btn" id="btn-seq-random">Рандом</button>
+      <button class="st-icon-btn" id="btn-seq-clear" data-i18n-local="btnClear">Очистити</button>
+      <button class="st-icon-btn" id="btn-seq-random" data-i18n-local="btnRandom">Рандом</button>
     </div>
     <div class="st-seq-grid-wrap">
       <div id="seq-rows"><!-- injected --></div>
@@ -230,7 +235,7 @@
   <section class="st-view st-view-piano" id="view-piano">
     <div class="st-seq-toolbar">
       <div class="st-field">
-        <label>Інструмент</label>
+        <label data-i18n-local="labelInstrument">Інструмент</label>
         <select id="piano-instrument">
           <option value="bass">Bass</option>
           <option value="lead">Lead</option>
@@ -239,10 +244,10 @@
         </select>
       </div>
       <div class="st-field">
-        <label>Такти</label>
+        <label data-i18n-local="labelBars">Такти</label>
         <select id="piano-bars"><option value="1">1</option><option value="2" selected>2</option><option value="4">4</option></select>
       </div>
-      <button class="st-icon-btn" id="btn-piano-clear">Очистити</button>
+      <button class="st-icon-btn" id="btn-piano-clear" data-i18n-local="btnClear">Очистити</button>
     </div>
     <div class="st-piano-wrap">
       <div class="st-piano-keys" id="piano-keys"></div>
@@ -279,7 +284,7 @@
 
       <div class="st-fx-card">
         <div class="st-fx-head">
-          <div class="st-fx-name"><span class="st-fx-dot" style="background:var(--indigo)"></span>Компресор</div>
+          <div class="st-fx-name"><span class="st-fx-dot" style="background:var(--indigo)"></span><span data-i18n-local="fxCompressor">Компресор</span></div>
           <label class="st-toggle"><input type="checkbox" id="fx-comp-on" checked/><span></span></label>
         </div>
         <div class="st-fx-body">
@@ -321,7 +326,7 @@
 
       <div class="st-fx-card">
         <div class="st-fx-head">
-          <div class="st-fx-name"><span class="st-fx-dot" style="background:var(--indigo)"></span>Дисторшн</div>
+          <div class="st-fx-name"><span class="st-fx-dot" style="background:var(--indigo)"></span><span data-i18n-local="fxDistortion">Дисторшн</span></div>
           <label class="st-toggle"><input type="checkbox" id="fx-dist-on"/><span></span></label>
         </div>
         <div class="st-fx-body">
@@ -334,7 +339,7 @@
 
       <div class="st-fx-card">
         <div class="st-fx-head">
-          <div class="st-fx-name"><span class="st-fx-dot" style="background:var(--brick)"></span>Sidechain (за кіком)</div>
+          <div class="st-fx-name"><span class="st-fx-dot" style="background:var(--brick)"></span><span data-i18n-local="fxSidechain">Sidechain (за кіком)</span></div>
           <label class="st-toggle"><input type="checkbox" id="fx-sidechain-on"/><span></span></label>
         </div>
         <div class="st-fx-body">
@@ -347,7 +352,7 @@
 
       <div class="st-fx-card">
         <div class="st-fx-head">
-          <div class="st-fx-name"><span class="st-fx-dot" style="background:var(--violet)"></span>Лімітер (майстер)</div>
+          <div class="st-fx-name"><span class="st-fx-dot" style="background:var(--violet)"></span><span data-i18n-local="fxLimiter">Лімітер (майстер)</span></div>
           <label class="st-toggle"><input type="checkbox" id="fx-limiter-on" checked/><span></span></label>
         </div>
         <div class="st-fx-body">
@@ -359,7 +364,7 @@
 
       <div class="st-fx-card st-fx-card-wide">
         <div class="st-fx-head">
-          <div class="st-fx-name"><span class="st-fx-dot" style="background:var(--violet)"></span>Аналізатор спектра</div>
+          <div class="st-fx-name"><span class="st-fx-dot" style="background:var(--violet)"></span><span data-i18n-local="fxAnalyser">Аналізатор спектра</span></div>
         </div>
         <div class="st-fx-body">
           <canvas id="fx-analyser" height="120"></canvas>
@@ -374,7 +379,7 @@
 <!-- ---- SAMPLE BROWSER DRAWER ---- -->
 <aside class="st-browser" id="sample-browser">
   <div class="st-browser-head">
-    <span>Бібліотека семплів</span>
+    <span data-i18n-local="browserTitle">Бібліотека семплів</span>
     <button class="st-browser-close" id="browser-close">✕</button>
   </div>
   <div class="st-browser-list" id="browser-list"></div>
@@ -384,7 +389,7 @@
 <div class="st-drop-overlay" id="drop-overlay">
   <div class="st-drop-overlay-inner">
     <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
-    <p>Відпустіть файли, щоб додати в проєкт</p>
+    <p data-i18n-local="dropHint">Відпустіть файли, щоб додати в проєкт</p>
   </div>
 </div>
 
@@ -394,22 +399,22 @@
 <div class="st-countdown-overlay" id="countdown-overlay"><span id="countdown-num">3</span></div>
 
 <div class="st-punch-bar" id="punch-bar">
-  <span id="punch-info">Виділіть діапазон на кліпі для punch-in запису</span>
-  <button class="btn-primary" id="btn-punch-record" style="display:none">🎤 Записати punch-in</button>
-  <button class="st-icon-btn" id="btn-punch-cancel">Скасувати</button>
+  <span id="punch-info" data-i18n-local="punchInfoDefault">Виділіть діапазон на кліпі для punch-in запису</span>
+  <button class="btn-primary" id="btn-punch-record" style="display:none" data-i18n-local="btnPunchRecord">🎤 Записати punch-in</button>
+  <button class="st-icon-btn" id="btn-punch-cancel" data-i18n-local="btnCancel">Скасувати</button>
 </div>
 
 <!-- ---- PROJECTS MODAL ---- -->
 <div class="st-modal-overlay" id="projects-modal">
   <div class="st-modal">
     <div class="st-modal-head">
-      <span>Мої проєкти</span>
+      <span data-i18n-local="modalMyProjects">Мої проєкти</span>
       <button class="st-browser-close" id="projects-close">✕</button>
     </div>
     <div class="st-modal-body">
       <div class="st-save-as-row">
-        <input type="text" id="save-as-name" class="st-save-as-input" placeholder="Назва нового проєкту…"/>
-        <button class="st-icon-btn" id="btn-save-as">Зберегти як новий</button>
+        <input type="text" id="save-as-name" class="st-save-as-input" placeholder="Назва нового проєкту…" data-i18n-local-ph="phNewProjectName"/>
+        <button class="st-icon-btn" id="btn-save-as" data-i18n-local="btnSaveAsNew">Зберегти як новий</button>
       </div>
       <div id="projects-list" class="st-projects-list"></div>
     </div>

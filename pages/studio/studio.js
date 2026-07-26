@@ -1,6 +1,160 @@
 (function () {
   'use strict';
 
+  const ST_I18N = {
+    uk: {
+      topTitle: 'InkBeat Студія', badgeLocal: 'Локально на пристрої',
+      titleUndo: 'Скасувати (Ctrl+Z)', titleRedo: 'Повторити (Ctrl+Y)',
+      titleNewProject: 'Новий проєкт', titleMyProjects: 'Мої проєкти', btnProjects: 'Проєкти',
+      titleOpenFolder: 'Відкрити папку із семплами', btnFolder: 'Папка',
+      titleRecord: 'Записати з мікрофона', btnRecord: 'Запис',
+      titleRecSettings: 'Налаштування запису',
+      recCountdown: 'Відлік 3-2-1', recHighpass: 'High-pass фільтр', recNoisegate: 'Noise gate', recTrimsilence: 'Обрізати тишу',
+      titleSaveProject: 'Зберегти проєкт локально', btnSave: 'Зберегти',
+      titleExportWav: 'Експортувати мікс у WAV', btnExport: 'Експорт',
+      titleExportStems: 'Експортувати кожну доріжку окремо', btnStems: 'Стеми',
+      titlePlayPause: 'Play / Pause', titleStop: 'Стоп', titleLoop: 'Зациклити відтворення', titleMetronome: 'Метроном',
+      labelBar: 'Такт', labelPosition: 'Позиція', titleTapTempo: 'Клацайте в такт, щоб виставити BPM',
+      tabTimeline: 'Тайм-лінія', tabSequencer: 'Секвенсор', tabPiano: 'Піано-рол', tabMixer: 'Мікшер', tabFx: 'Ефекти',
+      btnAddTrack: 'Додати доріжку', titleSplitMode: 'Клікніть на кліп, щоб розрізати його в цьому місці', btnSplit: 'Розрізати',
+      titleSnap: 'Прилипання до сусідніх кліпів', titlePunchMode: 'Виділіть діапазон на кліпі, щоб перезаписати лише його',
+      titleCrossfade: 'Авто-кросфейд між сусідніми сегментами', btnCrossfade: 'Кросфейд',
+      titleAddMarker: 'Додати мітку секції на плейхеді', btnMarker: 'Мітка',
+      titleZoomOut: 'Зменшити', titleZoomIn: 'Збільшити',
+      hintDrop: 'Перетягніть аудіофайли сюди, або на конкретну доріжку — можна додавати кілька сегментів на одну доріжку та редагувати кожен окремо.',
+      labelBars: 'Такти', labelSwing: 'Свінг', labelPreset: 'Пресет', optChoose: '— Обрати —', labelKit: 'Кіт',
+      btnClear: 'Очистити', btnRandom: 'Рандом', labelInstrument: 'Інструмент',
+      fxCompressor: 'Компресор', fxDistortion: 'Дисторшн', fxSidechain: 'Sidechain (за кіком)', fxLimiter: 'Лімітер (майстер)', fxAnalyser: 'Аналізатор спектра',
+      browserTitle: 'Бібліотека семплів', dropHint: 'Відпустіть файли, щоб додати в проєкт',
+      punchInfoDefault: 'Виділіть діапазон на кліпі для punch-in запису', btnPunchRecord: '🎤 Записати punch-in', btnCancel: 'Скасувати',
+      modalMyProjects: 'Мої проєкти', phNewProjectName: 'Назва нового проєкту…', btnSaveAsNew: 'Зберегти як новий',
+      pageTitle: 'InkBeat Студія — Створення музики онлайн | INKBEAT',
+      pageDesc: 'Безкоштовна музична студія у браузері: багатодоріжковий редактор, степ-секвенсор, мікшер та вбудовані ефекти. Все зберігається локально на вашому пристрої.',
+
+      untitledProject: 'Проєкт без назви', track: 'Доріжка', copySuffix: ' (копія)',
+      trackDuplicated: 'Доріжку продубльовано', segmentSplit: 'Сегмент розділено',
+      selectSegmentFirst: 'Спочатку виберіть сегмент', segmentCopied: 'Сегмент скопійовано',
+      clipboardEmpty: 'Буфер обміну порожній', noTrackToPaste: 'Немає доріжки для вставки',
+      segmentPasted: 'Сегмент вставлено', noAdjacentForCrossfade: 'Не знайдено сусідніх сегментів для кросфейду',
+      crossfadeApplied: (n) => `Кросфейд застосовано (${n})`,
+      importFailed: 'Не вдалося імпортувати файл: ',
+      ctxDuplicate: 'Дублювати', ctxDelete: 'Видалити',
+      titleDeleteSegment: 'Видалити сегмент (Shift+клік — ripple delete)', titleSegmentVolume: 'Гучність сегмента',
+      titlePitchCorrect: 'Корекція висоти вокалу', titleSplitAtPlayhead: 'Розділити на плейхеді',
+      deleteMarkerConfirm1: 'Видалити мітку «', deleteMarkerFlag: '🚩 ', deleteMarkerConfirm2: '»?',
+      promptSectionName: 'Назва секції (напр. Verse, Chorus, Bridge):', markerAdded: 'Мітку додано',
+      noAudioInFolder: 'У цій папці не знайдено аудіофайлів.',
+      recordingHint: 'Запис… натисніть ще раз, щоб зупинити', vocalTrackName: 'Вокал', takeLabel: 'Дубль ',
+      recordingAddedAsSegment: 'Запис додано як новий сегмент на доріжці «Вокал»',
+      micAccessFailed: 'Не вдалося отримати доступ до мікрофона або обробити запис',
+      dragToSelectRange: 'Перетягніть по кліпу, щоб виділити діапазон для punch-in',
+      selectRangeFirst: 'Спочатку виділіть діапазон на кліпі', segmentNotFound: 'Сегмент не знайдено',
+      punchRecordingHint: 'Punch-in запис… натисніть «Запис» ще раз, щоб зупинити',
+      punchRecordedAndInserted: 'Punch-in записано і вставлено', punchRecordFailed: 'Не вдалося записати punch-in',
+      analyzingPitch: 'Аналізую та коригую висоту вокалу…', segmentLabel: 'Сегмент',
+      pitchCorrected: 'Корекцію висоти застосовано ✓', pitchCorrectFailed: 'Не вдалося застосувати корекцію',
+      nothingToUndo: 'Нічого скасовувати', undone: 'Скасовано', nothingToRedo: 'Нічого повторювати', redone: 'Повторено',
+      projectSavedPrefix: 'Проєкт «', projectSavedSuffix: '» збережено локально ✓', projectWord: 'Проєкт ',
+      projectRestored: 'Проєкт відновлено з локального сховища', noSavedProjectsHtml: '>Ще немає збережених проєктів.</p>',
+      projectLoadedPrefix: 'Проєкт «', projectLoadedSuffix: '» завантажено',
+      deleteProjectConfirm: 'Видалити цей проєкт назавжди?',
+      newProjectConfirm: 'Створити новий проєкт? Незбережені зміни буде втрачено.', newProjectCreated: 'Новий проєкт створено',
+      renderingMix: 'Рендеринг міксу…', mixExported: 'Мікс експортовано у WAV ✓', nothingToExport: 'Немає що експортувати',
+      renderingStems: 'Рендеринг стемів… це може зайняти хвилину', stemsExported: 'Стеми експортовано ✓',
+      enterProjectName: 'Введіть назву проєкту', savedAsPrefix: 'Збережено як «', savedAsSuffix: '»'
+    },
+    en: {
+      topTitle: 'InkBeat Studio', badgeLocal: 'Local on this device',
+      titleUndo: 'Undo (Ctrl+Z)', titleRedo: 'Redo (Ctrl+Y)',
+      titleNewProject: 'New project', titleMyProjects: 'My projects', btnProjects: 'Projects',
+      titleOpenFolder: 'Open a folder of samples', btnFolder: 'Folder',
+      titleRecord: 'Record from microphone', btnRecord: 'Record',
+      titleRecSettings: 'Recording settings',
+      recCountdown: '3-2-1 countdown', recHighpass: 'High-pass filter', recNoisegate: 'Noise gate', recTrimsilence: 'Trim silence',
+      titleSaveProject: 'Save project locally', btnSave: 'Save',
+      titleExportWav: 'Export the mix to WAV', btnExport: 'Export',
+      titleExportStems: 'Export every track separately', btnStems: 'Stems',
+      titlePlayPause: 'Play / Pause', titleStop: 'Stop', titleLoop: 'Loop playback', titleMetronome: 'Metronome',
+      labelBar: 'Time sig.', labelPosition: 'Position', titleTapTempo: 'Tap along to set the BPM',
+      tabTimeline: 'Timeline', tabSequencer: 'Sequencer', tabPiano: 'Piano Roll', tabMixer: 'Mixer', tabFx: 'Effects',
+      btnAddTrack: 'Add track', titleSplitMode: 'Click a clip to split it at that point', btnSplit: 'Split',
+      titleSnap: 'Snap to neighboring clips', titlePunchMode: 'Select a range on a clip to re-record only that part',
+      titleCrossfade: 'Auto crossfade between neighboring segments', btnCrossfade: 'Crossfade',
+      titleAddMarker: 'Add a section marker at the playhead', btnMarker: 'Marker',
+      titleZoomOut: 'Zoom out', titleZoomIn: 'Zoom in',
+      hintDrop: 'Drag audio files here, or onto a specific track — you can add multiple segments to one track and edit each one separately.',
+      labelBars: 'Bars', labelSwing: 'Swing', labelPreset: 'Preset', optChoose: '— Choose —', labelKit: 'Kit',
+      btnClear: 'Clear', btnRandom: 'Random', labelInstrument: 'Instrument',
+      fxCompressor: 'Compressor', fxDistortion: 'Distortion', fxSidechain: 'Sidechain (from kick)', fxLimiter: 'Limiter (master)', fxAnalyser: 'Spectrum Analyzer',
+      browserTitle: 'Sample Library', dropHint: 'Drop files to add them to the project',
+      punchInfoDefault: 'Select a range on a clip for punch-in recording', btnPunchRecord: '🎤 Record punch-in', btnCancel: 'Cancel',
+      modalMyProjects: 'My Projects', phNewProjectName: 'New project name…', btnSaveAsNew: 'Save as new',
+      pageTitle: 'InkBeat Studio — Make Music Online | INKBEAT',
+      pageDesc: 'A free browser-based music studio: multitrack editor, step sequencer, mixer, and built-in effects. Everything is saved locally on your device.',
+
+      untitledProject: 'Untitled Project', track: 'Track', copySuffix: ' (copy)',
+      trackDuplicated: 'Track duplicated', segmentSplit: 'Segment split',
+      selectSegmentFirst: 'Select a segment first', segmentCopied: 'Segment copied',
+      clipboardEmpty: 'Clipboard is empty', noTrackToPaste: 'No track to paste into',
+      segmentPasted: 'Segment pasted', noAdjacentForCrossfade: 'No adjacent segments found to crossfade',
+      crossfadeApplied: (n) => `Crossfade applied (${n})`,
+      importFailed: 'Failed to import file: ',
+      ctxDuplicate: 'Duplicate', ctxDelete: 'Delete',
+      titleDeleteSegment: 'Delete segment (Shift+click — ripple delete)', titleSegmentVolume: 'Segment volume',
+      titlePitchCorrect: 'Vocal pitch correction', titleSplitAtPlayhead: 'Split at playhead',
+      deleteMarkerConfirm1: 'Delete the marker «', deleteMarkerFlag: '🚩 ', deleteMarkerConfirm2: '»?',
+      promptSectionName: 'Section name (e.g. Verse, Chorus, Bridge):', markerAdded: 'Marker added',
+      noAudioInFolder: 'No audio files were found in this folder.',
+      recordingHint: 'Recording… press again to stop', vocalTrackName: 'Vocal', takeLabel: 'Take ',
+      recordingAddedAsSegment: 'Recording added as a new segment on the "Vocal" track',
+      micAccessFailed: 'Failed to access the microphone or process the recording',
+      dragToSelectRange: 'Drag across a clip to select a range for punch-in',
+      selectRangeFirst: 'Select a range on a clip first', segmentNotFound: 'Segment not found',
+      punchRecordingHint: 'Punch-in recording… press "Record" again to stop',
+      punchRecordedAndInserted: 'Punch-in recorded and inserted', punchRecordFailed: 'Failed to record punch-in',
+      analyzingPitch: 'Analyzing and correcting vocal pitch…', segmentLabel: 'Segment',
+      pitchCorrected: 'Pitch correction applied ✓', pitchCorrectFailed: 'Failed to apply correction',
+      nothingToUndo: 'Nothing to undo', undone: 'Undone', nothingToRedo: 'Nothing to redo', redone: 'Redone',
+      projectSavedPrefix: 'Project «', projectSavedSuffix: '» saved locally ✓', projectWord: 'Project ',
+      projectRestored: 'Project restored from local storage', noSavedProjectsHtml: '>No saved projects yet.</p>',
+      projectLoadedPrefix: 'Project «', projectLoadedSuffix: '» loaded',
+      deleteProjectConfirm: 'Delete this project permanently?',
+      newProjectConfirm: 'Create a new project? Unsaved changes will be lost.', newProjectCreated: 'New project created',
+      renderingMix: 'Rendering mix…', mixExported: 'Mix exported to WAV ✓', nothingToExport: 'Nothing to export',
+      renderingStems: 'Rendering stems… this may take a minute', stemsExported: 'Stems exported ✓',
+      enterProjectName: 'Enter a project name', savedAsPrefix: 'Saved as «', savedAsSuffix: '»'
+    }
+  };
+
+  function stLang() { return localStorage.getItem('lang') || 'uk'; }
+  function st(key, ...args) {
+    const dict = ST_I18N[stLang()] || ST_I18N.uk;
+    const val = (key in dict) ? dict[key] : ST_I18N.uk[key];
+    return (typeof val === 'function') ? val(...args) : val;
+  }
+
+  function applyStudioI18n() {
+    document.documentElement.lang = stLang();
+    document.querySelectorAll('[data-i18n-local]').forEach(el => {
+      el.textContent = st(el.getAttribute('data-i18n-local'));
+    });
+    document.querySelectorAll('[data-i18n-local-title]').forEach(el => {
+      el.title = st(el.getAttribute('data-i18n-local-title'));
+    });
+    document.querySelectorAll('[data-i18n-local-ph]').forEach(el => {
+      el.placeholder = st(el.getAttribute('data-i18n-local-ph'));
+    });
+    const titleEl = document.getElementById('page-title');
+    if (titleEl) titleEl.textContent = st('pageTitle');
+    const descEl = document.getElementById('page-desc');
+    if (descEl) descEl.setAttribute('content', st('pageDesc'));
+    const punchInfo = document.getElementById('punch-info');
+    if (punchInfo && !punchInfo.dataset.dynamic) punchInfo.textContent = st('punchInfoDefault');
+  }
+
+  window.onLangChange = applyStudioI18n;
+  document.addEventListener('DOMContentLoaded', applyStudioI18n);
+
   const AudioCtxClass = window.AudioContext || window.webkitAudioContext;
   let actx = null;
 
@@ -72,7 +226,7 @@
     masterVolume: 0.85,
     browserItems: [],
     currentProjectId: null,
-    currentProjectName: 'Проєкт без назви',
+    currentProjectName: st('untitledProject'),
     snapEnabled: true,
     punchMode: false,
     punchTarget: null,
@@ -677,7 +831,7 @@
     if (!skipHistory) commit();
     const tr = Object.assign({
       id: state.nextTrackId++,
-      name: 'Доріжка',
+      name: st('track'),
       color: TRACK_COLORS[state.tracks.length % TRACK_COLORS.length],
       volume: 0.9,
       pan: 0,
@@ -755,7 +909,7 @@
     if (!tr) return;
     commit();
     const copy = addTrack({
-      name: tr.name + ' (копія)', color: tr.color,
+      name: tr.name + st('copySuffix'), color: tr.color,
       volume: tr.volume, pan: tr.pan, mute: tr.mute, solo: false,
       reverbSend: tr.reverbSend, eqTilt: tr.eqTilt
     }, true);
@@ -767,7 +921,7 @@
       }, true);
     });
     renderTracks(); renderMixer();
-    showToast('Доріжку продубльовано');
+    showToast(st('trackDuplicated'));
   }
 
   function splitClipAt(trackId, clipId, localSeconds) {
@@ -789,7 +943,7 @@
     clip.trimDuration = localSeconds;
     clip.fadeOut = 0;
     renderTracks();
-    showToast('Сегмент розділено');
+    showToast(st('segmentSplit'));
   }
 
   function splitClipAtPlayhead(trackId, clipId) {
@@ -823,19 +977,19 @@
 
   function copySelectedClip() {
     const sel = getSelectedClip();
-    if (!sel) { showToast('Спочатку виберіть сегмент'); return; }
+    if (!sel) { showToast(st('selectSegmentFirst')); return; }
     state.clipboard = {
       trackId: sel.tr.id, buffer: sel.clip.buffer, fileName: sel.clip.fileName,
       trimStart: sel.clip.trimStart, trimDuration: sel.clip.trimDuration,
       fadeIn: sel.clip.fadeIn, fadeOut: sel.clip.fadeOut, gain: sel.clip.gain, playbackRate: sel.clip.playbackRate
     };
-    showToast('Сегмент скопійовано');
+    showToast(st('segmentCopied'));
   }
 
   function pasteClip() {
-    if (!state.clipboard) { showToast('Буфер обміну порожній'); return; }
+    if (!state.clipboard) { showToast(st('clipboardEmpty')); return; }
     const tr = state.tracks.find(t => t.id === state.clipboard.trackId) || state.tracks[0];
-    if (!tr) { showToast('Немає доріжки для вставки'); return; }
+    if (!tr) { showToast(st('noTrackToPaste')); return; }
     commit();
     const clip = addClipToTrack(tr, {
       buffer: state.clipboard.buffer, fileName: state.clipboard.fileName,
@@ -846,7 +1000,7 @@
     }, true);
     renderTracks();
     selectClip(tr.id, clip.id);
-    showToast('Сегмент вставлено');
+    showToast(st('segmentPasted'));
   }
 
   const SNAP_THRESHOLD_SEC = 10 / PX_PER_SEC;
@@ -886,7 +1040,7 @@
       }
     });
     renderTracks();
-    showToast(count ? `Кросфейд застосовано (${count})` : 'Не знайдено сусідніх сегментів для кросфейду');
+    showToast(count ? st('crossfadeApplied', count) : st('noAdjacentForCrossfade'));
   }
 
   function updateTrackGains() {
@@ -919,7 +1073,7 @@
           clipStart: Math.max(0, dropXSeconds || 0)
         }, true);
       } catch (err) {
-        showToast('Не вдалося імпортувати файл: ' + (item.name || item.file?.name || ''));
+        showToast(st('importFailed') + (item.name || item.file?.name || ''));
       }
     }
     renderTracks();
@@ -947,8 +1101,8 @@
         <div class="st-track-header-top">
           <span class="st-track-color" data-id="${tr.id}" style="background:${tr.color}"></span>
           <input class="st-track-name" value="${escapeHtml(tr.name)}" data-id="${tr.id}"/>
-          <button class="st-track-dup" data-id="${tr.id}" title="Дублювати">⧉</button>
-          <button class="st-track-remove" data-id="${tr.id}" title="Видалити">✕</button>
+          <button class="st-track-dup" data-id="${tr.id}" title="${st('ctxDuplicate')}">⧉</button>
+          <button class="st-track-remove" data-id="${tr.id}" title="${st('ctxDelete')}">✕</button>
         </div>
         <div class="st-track-controls">
           <button class="st-mini-btn mute ${tr.mute ? 'active' : ''}" data-id="${tr.id}" data-act="mute">M</button>
@@ -983,19 +1137,19 @@
           <div class="st-fade-handle out" data-clip-id="${clip.id}" title="Fade out"></div>
           <div class="st-trim-handle left" data-clip-id="${clip.id}"></div>
           <div class="st-trim-handle right" data-clip-id="${clip.id}"></div>
-          <button class="st-clip-remove-btn" data-clip-id="${clip.id}" title="Видалити сегмент (Shift+клік — ripple delete)">✕</button>
-          <button class="st-clip-vol-btn" data-clip-id="${clip.id}" title="Гучність сегмента">🔉</button>
+          <button class="st-clip-remove-btn" data-clip-id="${clip.id}" title="${st('titleDeleteSegment')}">✕</button>
+          <button class="st-clip-vol-btn" data-clip-id="${clip.id}" title="${st('titleSegmentVolume')}">🔉</button>
           <div class="st-clip-vol-popover" id="vol-pop-${clip.id}">
             <input type="range" min="0" max="200" value="${Math.round((clip.gain != null ? clip.gain : 1) * 100)}"/>
             <span>${Math.round((clip.gain != null ? clip.gain : 1) * 100)}%</span>
           </div>
-          <button class="st-clip-tune-btn" data-clip-id="${clip.id}" title="Корекція висоти вокалу">🎤</button>
+          <button class="st-clip-tune-btn" data-clip-id="${clip.id}" title="${st('titlePitchCorrect')}">🎤</button>
           <div class="st-clip-tune-popover" id="tune-pop-${clip.id}">
             <label>Сила корекції <span>60%</span></label>
             <input type="range" min="0" max="100" value="60"/>
             <button type="button">Застосувати</button>
           </div>
-          <button class="st-clip-split-btn" data-clip-id="${clip.id}" title="Розділити на плейхеді">✂</button>`;
+          <button class="st-clip-split-btn" data-clip-id="${clip.id}" title="${st('titleSplitAtPlayhead')}">✂</button>`;
         lane.appendChild(clipEl);
         requestAnimationFrame(() => drawWaveform(clipEl.querySelector('canvas'), clip.buffer, tr.color, clip));
         wireClipInteractions(clipEl, tr, clip);
@@ -1012,7 +1166,7 @@
       inp.addEventListener('change', e => {
         commit();
         const tr = state.tracks.find(t => t.id == e.target.dataset.id);
-        if (tr) tr.name = e.target.value || 'Доріжка';
+        if (tr) tr.name = e.target.value || st('track');
       });
     });
     headersEl.querySelectorAll('.st-track-remove').forEach(btn => {
@@ -1087,7 +1241,7 @@
     `).join('');
     lane.querySelectorAll('.st-marker-flag').forEach(el => {
       el.addEventListener('click', () => {
-        if (confirm('Видалити мітку «' + el.textContent.replace('🚩 ', '') + '»?')) {
+        if (confirm(st('deleteMarkerConfirm1') + el.textContent.replace(st('deleteMarkerFlag'), '') + st('deleteMarkerConfirm2'))) {
           removeMarker(+el.dataset.id);
         }
       });
@@ -1095,12 +1249,12 @@
   }
 
   function addMarkerAtPlayhead() {
-    const label = prompt('Назва секції (напр. Verse, Chorus, Bridge):', 'Verse');
+    const label = prompt(st('promptSectionName'), 'Verse');
     if (!label) return;
     commit();
     state.markers.push({ id: state.nextMarkerId++, time: state.playbackPosition, label });
     renderMarkers();
-    showToast('Мітку додано');
+    showToast(st('markerAdded'));
   }
 
   function removeMarker(id) {
@@ -1516,7 +1670,7 @@
             items.push(file);
           }
         }
-        if (!items.length) { showToast('У цій папці не знайдено аудіофайлів.'); return; }
+        if (!items.length) { showToast(st('noAudioInFolder')); return; }
         state.browserItems = items;
         renderBrowserItems();
         openBrowserDrawer();
@@ -1660,28 +1814,28 @@
     ensureAudioContext();
     await runCountdown();
     btn.classList.add('recording');
-    showToast('Запис… натисніть ще раз, щоб зупинити');
+    showToast(st('recordingHint'));
     try {
       const raw = await recordMicToBuffer();
       btn.classList.remove('recording');
       const processed = await processRecordedBuffer(raw);
       commit();
-      const vocalTrack = findOrCreateTrackByName('Вокал');
+      const vocalTrack = findOrCreateTrackByName(st('vocalTrackName'));
       const takeNum = vocalTrack.clips.length + 1;
       const clip = addClipToTrack(vocalTrack, {
-        buffer: processed, fileName: 'Дубль ' + takeNum,
+        buffer: processed, fileName: st('takeLabel') + takeNum,
         clipStart: state.playbackPosition
       }, true);
       renderTracks(); renderMixer();
       selectClip(vocalTrack.id, clip.id);
-      showToast('Запис додано як новий сегмент на доріжці «Вокал»');
+      showToast(st('recordingAddedAsSegment'));
     } catch (err) {
       btn.classList.remove('recording');
-      showToast('Не вдалося отримати доступ до мікрофона або обробити запис');
+      showToast(st('micAccessFailed'));
     }
   }
 
-  function showPunchBar() { document.getElementById('punch-bar').classList.add('show'); document.getElementById('punch-info').textContent = 'Перетягніть по кліпу, щоб виділити діапазон для punch-in'; document.getElementById('btn-punch-record').style.display = 'none'; }
+  function showPunchBar() { document.getElementById('punch-bar').classList.add('show'); const pi = document.getElementById('punch-info'); pi.dataset.dynamic = '1'; pi.textContent = st('dragToSelectRange'); document.getElementById('btn-punch-record').style.display = 'none'; }
   function hidePunchBar() { document.getElementById('punch-bar').classList.remove('show'); }
 
   function punchDragStart(e, tr, clip, clipEl) {
@@ -1715,17 +1869,17 @@
   }
 
   async function startPunchRecording() {
-    if (!state.punchTarget) { showToast('Спочатку виділіть діапазон на кліпі'); return; }
+    if (!state.punchTarget) { showToast(st('selectRangeFirst')); return; }
     const { trackId, clipId, start, end } = state.punchTarget;
     const tr = state.tracks.find(t => t.id === trackId);
     const clip = tr && tr.clips.find(c => c.id === clipId);
-    if (!tr || !clip) { showToast('Сегмент не знайдено'); return; }
+    if (!tr || !clip) { showToast(st('segmentNotFound')); return; }
 
     const btn = document.getElementById('btn-punch-record');
     ensureAudioContext();
     await runCountdown();
     document.getElementById('btn-record').classList.add('recording');
-    showToast('Punch-in запис… натисніть «Запис» ще раз, щоб зупинити');
+    showToast(st('punchRecordingHint'));
     try {
       const raw = await recordMicToBuffer();
       document.getElementById('btn-record').classList.remove('recording');
@@ -1743,10 +1897,10 @@
       }, true);
       renderTracks(); renderMixer();
       selectClip(tr.id, inserted.id);
-      showToast('Punch-in записано і вставлено');
+      showToast(st('punchRecordedAndInserted'));
     } catch (err) {
       document.getElementById('btn-record').classList.remove('recording');
-      showToast('Не вдалося записати punch-in');
+      showToast(st('punchRecordFailed'));
     } finally {
       state.punchMode = false; state.punchTarget = null;
       document.getElementById('btn-punch-mode').classList.remove('active');
@@ -1832,7 +1986,7 @@
     if (!tr) return;
     const clip = tr.clips.find(c => c.id === clipId);
     if (!clip || !clip.buffer) return;
-    showToast('Аналізую та коригую висоту вокалу…');
+    showToast(st('analyzingPitch'));
     ensureAudioContext();
     await new Promise(r => setTimeout(r, 30));
     try {
@@ -1840,17 +1994,17 @@
       commit();
       const idx = tr.clips.findIndex(c => c.id === clipId);
       const newClip = addClipToTrack(tr, {
-        buffer: tuned, fileName: (clip.fileName || 'Сегмент') + ' (tuned)',
+        buffer: tuned, fileName: (clip.fileName || st('segmentLabel')) + ' (tuned)',
         clipStart: clip.clipStart, trimStart: clip.trimStart, trimDuration: clip.trimDuration,
         fadeIn: clip.fadeIn, fadeOut: clip.fadeOut, gain: clip.gain, playbackRate: clip.playbackRate
       }, true);
       tr.clips.splice(tr.clips.indexOf(newClip), 1);
       tr.clips[idx] = newClip;
       renderTracks();
-      showToast('Корекцію висоти застосовано ✓');
+      showToast(st('pitchCorrected'));
     } catch (err) {
       console.error(err);
-      showToast('Не вдалося застосувати корекцію');
+      showToast(st('pitchCorrectFailed'));
     }
   }
 
@@ -1927,19 +2081,19 @@
   }
 
   function undo() {
-    if (!historyStack.length) { showToast('Нічого скасовувати'); return; }
+    if (!historyStack.length) { showToast(st('nothingToUndo')); return; }
     redoStack.push(serializeState());
     const prev = historyStack.pop();
     restoreState(prev);
-    showToast('Скасовано');
+    showToast(st('undone'));
   }
 
   function redo() {
-    if (!redoStack.length) { showToast('Нічого повторювати'); return; }
+    if (!redoStack.length) { showToast(st('nothingToRedo')); return; }
     historyStack.push(serializeState());
     const next = redoStack.pop();
     restoreState(next);
-    showToast('Повторено');
+    showToast(st('redone'));
   }
 
   const DB_NAME = 'inkbeat-studio';
@@ -2022,12 +2176,12 @@
     await idbSet('proj:' + id, payload);
     await idbSet('current', payload);
     await idbSet('current-id', id);
-    showToast('Проєкт «' + state.currentProjectName + '» збережено локально ✓');
+    showToast(st('projectSavedPrefix') + state.currentProjectName + st('projectSavedSuffix'));
   }
 
   async function saveProjectAs(name) {
     state.currentProjectId = 'proj_' + Date.now();
-    state.currentProjectName = name || ('Проєкт ' + new Date().toLocaleDateString());
+    state.currentProjectName = name || (st('projectWord') + new Date().toLocaleDateString());
     await saveProject();
     await refreshProjectsList();
   }
@@ -2037,7 +2191,7 @@
     stop();
     state.tracks.forEach(tr => { if (tr.nodes) try { tr.nodes.gain.disconnect(); } catch (e) {} });
     state.tracks = [];
-    state.currentProjectName = payload.name || 'Проєкт без назви';
+    state.currentProjectName = payload.name || st('untitledProject');
     state.bpm = payload.bpm || 120;
     state.seqBars = payload.seqBars || 2;
     state.seqSwing = payload.seqSwing || 0;
@@ -2093,14 +2247,14 @@
       if (!payload) return;
       state.currentProjectId = id || null;
       await loadProjectPayload(payload);
-      showToast('Проєкт відновлено з локального сховища');
+      showToast(st('projectRestored'));
     } catch (e) { console.error(e); }
   }
 
   async function refreshProjectsList() {
     const listEl = document.getElementById('projects-list');
     const keys = await idbListKeys('proj:');
-    if (!keys.length) { listEl.innerHTML = '<p class="st-hint">Ще немає збережених проєктів.</p>'; return; }
+    if (!keys.length) { listEl.innerHTML = '<p class="st-hint"' + st('noSavedProjectsHtml'); return; }
     const items = await Promise.all(keys.map(k => idbGet(k).then(p => ({ key: k, payload: p }))));
     items.sort((a, b) => new Date(b.payload.savedAt) - new Date(a.payload.savedAt));
     listEl.innerHTML = items.map(it => `
@@ -2120,12 +2274,12 @@
         state.currentProjectId = btn.dataset.key.replace('proj:', '');
         await loadProjectPayload(payload);
         closeProjectsModal();
-        showToast('Проєкт «' + payload.name + '» завантажено');
+        showToast(st('projectLoadedPrefix') + payload.name + st('projectLoadedSuffix'));
       });
     });
     listEl.querySelectorAll('[data-act="delete"]').forEach(btn => {
       btn.addEventListener('click', async () => {
-        if (!confirm('Видалити цей проєкт назавжди?')) return;
+        if (!confirm(st('deleteProjectConfirm'))) return;
         await idbDelete(btn.dataset.key);
         refreshProjectsList();
       });
@@ -2136,18 +2290,18 @@
   function closeProjectsModal() { document.getElementById('projects-modal').classList.remove('open'); }
 
   function newProject() {
-    if (!confirm('Створити новий проєкт? Незбережені зміни буде втрачено.')) return;
+    if (!confirm(st('newProjectConfirm'))) return;
     stop();
     state.tracks.forEach(tr => { if (tr.nodes) try { tr.nodes.gain.disconnect(); } catch (e) {} });
     state.tracks = [];
     state.currentProjectId = null;
-    state.currentProjectName = 'Проєкт без назви';
+    state.currentProjectName = st('untitledProject');
     DRUM_ROWS.forEach(r => { state.pattern[r.key] = new Array(64).fill(false); });
     PIANO_NOTES.forEach(n => { state.melody[n.midi] = new Array(64).fill(false); });
     state.markers = [];
     historyStack.length = 0; redoStack.length = 0;
     renderTracks(); renderSequencer(); renderPianoRoll(); renderMixer();
-    showToast('Новий проєкт створено');
+    showToast(st('newProjectCreated'));
   }
 
   function audioBufferToWavBlob(buffer) {
@@ -2276,19 +2430,19 @@
 
   async function exportMix() {
     ensureAudioContext();
-    showToast('Рендеринг міксу…');
+    showToast(st('renderingMix'));
     const rendered = await renderOfflineMix({});
     downloadBlob(audioBufferToWavBlob(rendered), 'inkbeat-mix.wav');
-    showToast('Мікс експортовано у WAV ✓');
+    showToast(st('mixExported'));
   }
 
   async function exportStems() {
     ensureAudioContext();
     const hasAnyClip = state.tracks.some(t => t.clips.some(c => c.buffer));
     if (!hasAnyClip && !Object.values(state.pattern).some(a => a.some(Boolean)) && !Object.values(state.melody).some(a => a.some(Boolean))) {
-      showToast('Немає що експортувати'); return;
+      showToast(st('nothingToExport')); return;
     }
-    showToast('Рендеринг стемів… це може зайняти хвилину');
+    showToast(st('renderingStems'));
     for (const tr of state.tracks) {
       if (!tr.clips.some(c => c.buffer)) continue;
       const rendered = await renderOfflineMix({ onlyTrackId: tr.id, includeBeat: false, includeMelody: false });
@@ -2304,7 +2458,7 @@
       const rendered = await renderOfflineMix({ onlyTrackId: -1, includeBeat: false, includeMelody: true });
       downloadBlob(audioBufferToWavBlob(rendered), 'inkbeat-melody.wav');
     }
-    showToast('Стеми експортовано ✓');
+    showToast(st('stemsExported'));
   }
 
   const GENRE_PRESETS = {
@@ -2472,10 +2626,10 @@
     document.getElementById('projects-close').addEventListener('click', closeProjectsModal);
     document.getElementById('btn-save-as').addEventListener('click', async () => {
       const name = document.getElementById('save-as-name').value.trim();
-      if (!name) { showToast('Введіть назву проєкту'); return; }
+      if (!name) { showToast(st('enterProjectName')); return; }
       await saveProjectAs(name);
       document.getElementById('save-as-name').value = '';
-      showToast('Збережено як «' + name + '»');
+      showToast(st('savedAsPrefix') + name + st('savedAsSuffix'));
     });
     document.getElementById('input-file-fallback').addEventListener('change', e => {
       const files = Array.from(e.target.files);
