@@ -2606,6 +2606,19 @@
   }
 
   function wireTopbar() {
+    document.querySelectorAll('.lang-btn').forEach(wrap => {
+      wrap.addEventListener('click', (e) => {
+        const btn = e.target.closest('.lang-toggle');
+        const lang = btn ? btn.dataset.lang : (stLang() === 'uk' ? 'en' : 'uk');
+        localStorage.setItem('lang', lang);
+        document.querySelectorAll('.lang-ua').forEach(el => el.classList.toggle('active', lang === 'uk'));
+        document.querySelectorAll('.lang-en').forEach(el => el.classList.toggle('active', lang === 'en'));
+        applyStudioI18n();
+        if (typeof window.setLang === 'function') {
+          try { window.setLang(lang); } catch (e) {}
+        }
+      });
+    });
     document.getElementById('btn-new-project').addEventListener('click', newProject);
     document.getElementById('btn-save-project').addEventListener('click', saveProject);
     document.getElementById('btn-export-wav').addEventListener('click', exportMix);
