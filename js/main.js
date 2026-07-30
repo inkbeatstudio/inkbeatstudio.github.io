@@ -44,7 +44,7 @@ const translations = {
     aboutPage: {
       label:'Про мене', title1:'Музика — це', title2:'мова душі',
       greeting:'Привіт, я — InkBeat',
-      bio1:"Я незалежний музичний артист з України, який пише музику, яка торкається серця. Моє ім'я — InkBeat — відображає суть того, що я роблю: чорнило слів + пульс ритму.",
+      bio1:"Я незалежний музичний артист з України, який пише музику, яка торкається серця.",
       bio2:'Починаючи з 2024 року я активно випускаю авторську музику на всіх стримінгових платформах — Spotify, Apple Music, YouTube Music, SoundCloud. Кожен трек — це особиста історія, емоція або послання.',
       bio3:'Паралельно я допомагаю іншим артистам та брендам знаходити своє звучання через слова. Написання пісень, текстів, поезії на замовлення — це частина моєї творчої місії.',
       skillMusic:'Музика', skillVocal:'Вокал', skillLyrics:'Тексти', skillOriginal:'Оригінальність',
@@ -133,7 +133,7 @@ const translations = {
     aboutPage: {
       label:'About', title1:'Music is the', title2:'language of the soul',
       greeting:"Hi, I'm InkBeat",
-      bio1:"I'm an independent music artist from Ukraine who writes music that touches the heart. My name — InkBeat — reflects the essence of what I do: the ink of words + the pulse of rhythm.",
+      bio1:"I'm an independent music artist from Ukraine who writes music that touches the heart.",
       bio2:'Since 2024 I\u2019ve been actively releasing original music on every streaming platform — Spotify, Apple Music, YouTube Music, SoundCloud. Every track is a personal story, emotion, or message.',
       bio3:'Alongside that, I help other artists and brands find their sound through words. Writing songs, lyrics, and poetry on commission is part of my creative mission.',
       skillMusic:'Music', skillVocal:'Vocals', skillLyrics:'Lyrics', skillOriginal:'Originality',
