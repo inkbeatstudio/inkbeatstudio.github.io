@@ -1203,7 +1203,7 @@
     const headersEl = document.getElementById('track-headers');
     const lanesEl = document.getElementById('tracks-lanes');
     const rulerEl = document.getElementById('timeline-ruler');
-    headersEl.innerHTML = '';
+    headersEl.querySelectorAll('.st-track-header').forEach(el => el.remove());
     lanesEl.querySelectorAll('.st-track-lane').forEach(el => el.remove());
 
     const dur = projectDuration();

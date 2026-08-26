@@ -124,6 +124,7 @@
 
 .st-timeline-wrap { flex: 1; display: flex; overflow: hidden; }
 .st-track-headers { width: 220px; flex-shrink: 0; overflow-y: auto; background: #0a0a0a; border-right: 1px solid rgba(255,255,255,.07); }
+.st-track-headers-spacer { height: 48px; flex-shrink: 0; border-bottom: 1px solid rgba(255,255,255,.07); background: #0a0a0a; }
 .st-timeline-scroll { flex: 1; overflow: auto; position: relative; background: #060606; }
 .st-timeline-ruler { height: 28px; background: #0a0a0a; border-bottom: 1px solid rgba(255,255,255,.07); position: sticky; top: 0; z-index: 5; min-width: 100%; }
 .st-tracks-lanes { position: relative; }
@@ -160,7 +161,7 @@
 .st-clip {
   position: absolute; top: 8px; height: 72px; border-radius: 8px;
   background: linear-gradient(160deg, rgba(184,69,44,.18), rgba(36,31,61,.12));
-  border: 1px solid rgba(184,69,44,.4); overflow: hidden; cursor: grab;
+  border: 1px solid rgba(184,69,44,.4); overflow: visible; cursor: grab;
 }
 .st-clip:active { cursor: grabbing; }
 .st-clip canvas { width: 100%; height: 100%; display: block; }
@@ -279,15 +280,15 @@
 .st-track-dup { background: none; border: none; color: rgba(255,255,255,.3); cursor: pointer; font-size: .78rem; padding: 2px 4px; }
 .st-track-dup:hover { color: var(--violet); }
 
-.st-clip { position: absolute; top: 8px; height: 72px; border-radius: 8px; overflow: visible; }
 .st-clip-inner { position: absolute; inset: 0; overflow: hidden; border-radius: 8px; }
-.st-trim-handle { position: absolute; top: 0; bottom: 0; width: 8px; cursor: ew-resize; z-index: 5; background: rgba(255,255,255,.06); }
-.st-trim-handle:hover { background: rgba(255,255,255,.2); }
+.st-trim-handle { position: absolute; top: 0; bottom: 0; width: 10px; cursor: ew-resize; z-index: 5; background: rgba(255,255,255,.06); }
+.st-trim-handle::before { content: ''; position: absolute; top: 0; bottom: 0; left: -4px; right: -4px; }
+.st-trim-handle:hover { background: rgba(255,255,255,.25); }
 .st-trim-handle.left { left: 0; border-radius: 8px 0 0 8px; }
 .st-trim-handle.right { right: 0; border-radius: 0 8px 8px 0; }
 .st-fade-handle { position: absolute; top: 0; width: 12px; height: 12px; border-radius: 50%; background: var(--violet); cursor: ew-resize; z-index: 6; box-shadow: 0 0 6px rgba(0,0,0,.6); }
-.st-fade-handle.in { left: 4px; }
-.st-fade-handle.out { right: 4px; }
+.st-fade-handle.in { left: 15px; }
+.st-fade-handle.out { right: 15px; }
 .st-clip-split-btn { position: absolute; bottom: 3px; right: 4px; font-size: .6rem; background: rgba(0,0,0,.5); border: 1px solid rgba(255,255,255,.2); color: #fff; border-radius: 4px; padding: 1px 5px; cursor: pointer; z-index: 6; }
 .st-clip-vol-btn { position: absolute; bottom: 3px; left: 4px; font-size: .6rem; background: rgba(0,0,0,.5); border: 1px solid rgba(255,255,255,.2); color: #fff; border-radius: 4px; padding: 1px 5px; cursor: pointer; z-index: 6; }
 .st-clip-remove-btn { position: absolute; top: 3px; right: 4px; font-size: .62rem; background: rgba(0,0,0,.5); border: 1px solid rgba(255,255,255,.2); color: rgba(255,255,255,.7); border-radius: 4px; padding: 0 4px; cursor: pointer; z-index: 6; line-height: 1.4; }
