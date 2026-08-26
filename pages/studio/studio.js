@@ -25,6 +25,8 @@
       labelBars: 'Такти', labelSwing: 'Свінг', labelPreset: 'Пресет', optChoose: '— Обрати —', labelKit: 'Кіт',
       btnClear: 'Очистити', btnRandom: 'Рандом', labelInstrument: 'Інструмент',
       fxCompressor: 'Компресор', fxDistortion: 'Дисторшн', fxSidechain: 'Sidechain (за кіком)', fxLimiter: 'Лімітер (майстер)', fxAnalyser: 'Аналізатор спектра',
+      fxTargetLabel: 'Застосувати ефекти до', fxTargetMasterOpt: 'Майстер (весь мікс)',
+      fxTargetHintMaster: 'Ці ефекти лягають на весь мікс одразу', fxTargetHintTrack: 'Ці ефекти лягають лише на цю доріжку. Sidechain і лімітер завжди керують майстер-шиною.',
       browserTitle: 'Бібліотека семплів', dropHint: 'Відпустіть файли, щоб додати в проєкт',
       punchInfoDefault: 'Виділіть діапазон на кліпі для punch-in запису', btnPunchRecord: '🎤 Записати punch-in', btnCancel: 'Скасувати',
       modalMyProjects: 'Мої проєкти', phNewProjectName: 'Назва нового проєкту…', btnSaveAsNew: 'Зберегти як новий',
@@ -86,6 +88,8 @@
       labelBars: 'Bars', labelSwing: 'Swing', labelPreset: 'Preset', optChoose: '— Choose —', labelKit: 'Kit',
       btnClear: 'Clear', btnRandom: 'Random', labelInstrument: 'Instrument',
       fxCompressor: 'Compressor', fxDistortion: 'Distortion', fxSidechain: 'Sidechain (from kick)', fxLimiter: 'Limiter (master)', fxAnalyser: 'Spectrum Analyzer',
+      fxTargetLabel: 'Apply effects to', fxTargetMasterOpt: 'Master (whole mix)',
+      fxTargetHintMaster: 'These effects sit on the entire mix at once', fxTargetHintTrack: 'These effects apply to this track only. Sidechain and the limiter always control the master bus.',
       browserTitle: 'Sample Library', dropHint: 'Drop files to add them to the project',
       punchInfoDefault: 'Select a range on a clip for punch-in recording', btnPunchRecord: '🎤 Record punch-in', btnCancel: 'Cancel',
       modalMyProjects: 'My Projects', phNewProjectName: 'New project name…', btnSaveAsNew: 'Save as new',
@@ -346,49 +350,122 @@
     return curve;
   }
 
-  function regenerateImpulse() {
-    if (!actx) return;
-    const dur = state.fx.reverbSize;
-    const decay = state.fx.reverbDecay;
-    const rate = actx.sampleRate;
+  function makeImpulseBuffer(ctx, dur, decay) {
+    const rate = ctx.sampleRate;
     const len = Math.max(1, Math.floor(rate * dur));
-    const buf = actx.createBuffer(2, len, rate);
+    const buf = ctx.createBuffer(2, len, rate);
     for (let ch = 0; ch < 2; ch++) {
       const d = buf.getChannelData(ch);
       for (let i = 0; i < len; i++) {
         d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, decay);
       }
     }
-    graph.convolver.buffer = buf;
+    return buf;
+  }
+
+  function regenerateImpulse() {
+    if (!actx) return;
+    graph.convolver.buffer = makeImpulseBuffer(actx, state.fx.reverbSize, state.fx.reverbDecay);
+  }
+
+  // Shared by the master FX chain and every per-track FX chain: both expose the
+  // same node names (distShaper/eqLow/compressor/delayNode/reverbWet, etc).
+  function applyFxValuesToNodes(f, n) {
+    n.distShaper.curve = makeDistortionCurve(f.distOn ? f.distAmount : 0);
+    n.distDry.gain.value = f.distOn ? (1 - f.distMix) : 1;
+    n.distWet.gain.value = f.distOn ? f.distMix : 0;
+
+    n.eqLow.gain.value = f.eqOn ? f.eqLow : 0;
+    n.eqMid.gain.value = f.eqOn ? f.eqMid : 0;
+    n.eqHigh.gain.value = f.eqOn ? f.eqHigh : 0;
+
+    n.compressor.threshold.value = f.compOn ? f.compThresh : 0;
+    n.compressor.ratio.value = f.compOn ? f.compRatio : 1;
+    n.compressor.release.value = f.compOn ? f.compRelease : 0.05;
+
+    n.delayNode.delayTime.value = f.delayTime;
+    n.delayFeedback.gain.value = f.delayOn ? f.delayFb : 0;
+    n.delayDry.gain.value = f.delayOn ? (1 - f.delayMix) : 1;
+    n.delayWet.gain.value = f.delayOn ? f.delayMix : 0;
+
+    n.reverbDry.gain.value = f.reverbOn ? (1 - f.reverbMix) : 1;
+    n.reverbWet.gain.value = f.reverbOn ? f.reverbMix : 0;
   }
 
   function applyFxToGraph() {
     if (!graph.ctx) return;
-    const f = state.fx;
-    graph.distShaper.curve = makeDistortionCurve(f.distOn ? f.distAmount : 0);
-    graph.distDry.gain.value = f.distOn ? (1 - f.distMix) : 1;
-    graph.distWet.gain.value = f.distOn ? f.distMix : 0;
-
-    graph.eqLow.gain.value = f.eqOn ? f.eqLow : 0;
-    graph.eqMid.gain.value = f.eqOn ? f.eqMid : 0;
-    graph.eqHigh.gain.value = f.eqOn ? f.eqHigh : 0;
-
-    graph.compressor.threshold.value = f.compOn ? f.compThresh : 0;
-    graph.compressor.ratio.value = f.compOn ? f.compRatio : 1;
-    graph.compressor.release.value = f.compOn ? f.compRelease : 0.05;
-
-    graph.delayNode.delayTime.value = f.delayTime;
-    graph.delayFeedback.gain.value = f.delayOn ? f.delayFb : 0;
-    graph.delayDry.gain.value = f.delayOn ? (1 - f.delayMix) : 1;
-    graph.delayWet.gain.value = f.delayOn ? f.delayMix : 0;
-
-    graph.reverbDry.gain.value = f.reverbOn ? (1 - f.reverbMix) : 1;
-    graph.reverbWet.gain.value = f.reverbOn ? f.reverbMix : 0;
-
+    applyFxValuesToNodes(state.fx, graph);
     graph.masterGain.gain.value = state.masterVolume;
-
     graph.limiter.threshold.value = state.limiter.on ? state.limiter.threshold : 0;
     graph.limiter.ratio.value = state.limiter.on ? 20 : 1;
+  }
+
+  function defaultTrackFx() {
+    return {
+      eqOn: false, eqLow: 0, eqMid: 0, eqHigh: 0,
+      compOn: false, compThresh: -24, compRatio: 4, compRelease: 0.25,
+      delayOn: false, delayTime: 0.28, delayFb: 0.35, delayMix: 0.25,
+      reverbOn: false, reverbSize: 2.2, reverbDecay: 3.0, reverbMix: 0.20,
+      distOn: false, distAmount: 0.20, distMix: 0.5
+    };
+  }
+
+  // Builds a self-contained dist -> EQ -> comp -> delay -> reverb chain that can be
+  // dropped into any signal path (used per-track, and per-stem on offline export).
+  function createFxChainNodes(ctx) {
+    const distIn = ctx.createGain();
+    const distDry = ctx.createGain();
+    const distShaper = ctx.createWaveShaper(); distShaper.oversample = '2x';
+    const distWet = ctx.createGain();
+    const distOut = ctx.createGain();
+    distIn.connect(distDry); distDry.connect(distOut);
+    distIn.connect(distShaper); distShaper.connect(distWet); distWet.connect(distOut);
+
+    const eqLow = ctx.createBiquadFilter(); eqLow.type = 'lowshelf'; eqLow.frequency.value = 200;
+    const eqMid = ctx.createBiquadFilter(); eqMid.type = 'peaking'; eqMid.frequency.value = 1200; eqMid.Q.value = 0.9;
+    const eqHigh = ctx.createBiquadFilter(); eqHigh.type = 'highshelf'; eqHigh.frequency.value = 5000;
+    distOut.connect(eqLow); eqLow.connect(eqMid); eqMid.connect(eqHigh);
+
+    const compressor = ctx.createDynamicsCompressor();
+    eqHigh.connect(compressor);
+
+    const delayIn = ctx.createGain();
+    const delayDry = ctx.createGain();
+    const delayNode = ctx.createDelay(2.0);
+    const delayFeedback = ctx.createGain();
+    const delayWet = ctx.createGain();
+    const delayOut = ctx.createGain();
+    compressor.connect(delayIn);
+    delayIn.connect(delayDry); delayDry.connect(delayOut);
+    delayIn.connect(delayNode); delayNode.connect(delayFeedback); delayFeedback.connect(delayNode);
+    delayNode.connect(delayWet); delayWet.connect(delayOut);
+
+    const reverbIn = ctx.createGain();
+    const reverbDry = ctx.createGain();
+    const convolver = ctx.createConvolver();
+    const reverbWet = ctx.createGain();
+    const reverbOut = ctx.createGain();
+    delayOut.connect(reverbIn);
+    reverbIn.connect(reverbDry); reverbDry.connect(reverbOut);
+    reverbIn.connect(convolver); convolver.connect(reverbWet); reverbWet.connect(reverbOut);
+
+    return {
+      distIn, distDry, distShaper, distWet, distOut,
+      eqLow, eqMid, eqHigh, compressor,
+      delayIn, delayDry, delayNode, delayFeedback, delayWet, delayOut,
+      reverbIn, reverbDry, convolver, reverbWet, reverbOut,
+      input: distIn, output: reverbOut
+    };
+  }
+
+  function applyTrackFx(tr) {
+    if (!tr.fxNodes) return;
+    applyFxValuesToNodes(tr.fx, tr.fxNodes);
+  }
+
+  function regenerateTrackImpulse(tr) {
+    if (!tr.fxNodes || !actx) return;
+    tr.fxNodes.convolver.buffer = makeImpulseBuffer(actx, tr.fx.reverbSize, tr.fx.reverbDecay);
   }
 
   function triggerSidechain(ctx, duckNode, t) {
@@ -566,11 +643,7 @@
     return Math.max(end, seqLen);
   }
 
-  function play() {
-    ensureAudioContext();
-    if (actx.state === 'suspended') actx.resume();
-    if (state.isPlaying) return;
-    state.isPlaying = true;
+  function beginPlaybackFromPosition() {
     state.originTime = actx.currentTime - state.playbackPosition;
     state.nextStepTime = state.originTime + Math.ceil(state.playbackPosition / stepDuration()) * stepDuration();
     state.currentStepIndex = Math.round((state.nextStepTime - state.originTime) / stepDuration());
@@ -578,6 +651,14 @@
     scheduleTrackSources();
     state.schedulerTimer = setInterval(schedulerTick, LOOKAHEAD_MS);
     tickPlayhead();
+  }
+
+  function play() {
+    ensureAudioContext();
+    if (actx.state === 'suspended') actx.resume();
+    if (state.isPlaying) return;
+    state.isPlaying = true;
+    beginPlaybackFromPosition();
     updateTransportUI();
   }
 
@@ -589,6 +670,33 @@
     cancelAnimationFrame(state.rafId);
     state.isPlaying = false;
     updateTransportUI();
+  }
+
+  // Moves the playhead to an arbitrary position, keeping playback running (from the
+  // new spot) if it was already running. Used by the draggable playhead/ruler.
+  function seekTo(seconds) {
+    const dur = Math.max(projectDuration(), 0.001);
+    seconds = Math.max(0, Math.min(dur, seconds));
+    const wasPlaying = state.isPlaying;
+    if (wasPlaying) {
+      stopAllSources();
+      clearInterval(state.schedulerTimer);
+      cancelAnimationFrame(state.rafId);
+    }
+    state.playbackPosition = seconds;
+    updatePlayheadPosition(seconds);
+    updatePosDisplay(seconds);
+    if (wasPlaying) beginPlaybackFromPosition();
+  }
+
+  // Lightweight visual-only move used while the mouse is down; the audio graph is
+  // only touched once, at mousedown (pause) and at mouseup (seekTo/resume).
+  function previewSeek(seconds) {
+    const dur = Math.max(projectDuration(), 0.001);
+    seconds = Math.max(0, Math.min(dur, seconds));
+    state.playbackPosition = seconds;
+    updatePlayheadPosition(seconds);
+    updatePosDisplay(seconds);
   }
 
   function stop() {
@@ -814,16 +922,23 @@
 
   function createTrackNodes(tr) {
     const ctx = actx;
+    if (!tr.fx) tr.fx = defaultTrackFx();
     const gain = ctx.createGain(); gain.gain.value = tr.volume;
+    const fxNodes = createFxChainNodes(ctx);
     const tiltLow = ctx.createBiquadFilter(); tiltLow.type = 'lowshelf'; tiltLow.frequency.value = 300; tiltLow.gain.value = -(tr.eqTilt || 0);
     const tiltHigh = ctx.createBiquadFilter(); tiltHigh.type = 'highshelf'; tiltHigh.frequency.value = 3000; tiltHigh.gain.value = (tr.eqTilt || 0);
     const pan = ctx.createStereoPanner(); pan.pan.value = tr.pan;
     const analyser = ctx.createAnalyser(); analyser.fftSize = 512;
     const sendGain = ctx.createGain(); sendGain.gain.value = tr.reverbSend || 0;
-    gain.connect(tiltLow); tiltLow.connect(tiltHigh); tiltHigh.connect(pan);
+    gain.connect(fxNodes.input);
+    fxNodes.output.connect(tiltLow);
+    tiltLow.connect(tiltHigh); tiltHigh.connect(pan);
     pan.connect(analyser); analyser.connect(graph.mixBus);
     pan.connect(sendGain); sendGain.connect(graph.reverbIn);
     tr.nodes = { gain, tiltLow, tiltHigh, pan, analyser, sendGain };
+    tr.fxNodes = fxNodes;
+    applyTrackFx(tr);
+    regenerateTrackImpulse(tr);
   }
 
   function addTrack(opts, skipHistory) {
@@ -839,6 +954,7 @@
       solo: false,
       reverbSend: 0,
       eqTilt: 0,
+      fx: defaultTrackFx(),
       clips: []
     }, opts || {});
     createTrackNodes(tr);
@@ -899,7 +1015,9 @@
     const tr = state.tracks[idx];
     tr.clips.forEach(c => { if (c._source) { try { c._source.stop(); } catch (e) {} } });
     if (tr.nodes) { try { tr.nodes.gain.disconnect(); } catch (e) {} }
+    if (tr.fxNodes) { try { tr.fxNodes.output.disconnect(); } catch (e) {} }
     state.tracks.splice(idx, 1);
+    if (fxTarget === id) setFxTarget('master');
     renderTracks();
     renderMixer();
   }
@@ -911,7 +1029,8 @@
     const copy = addTrack({
       name: tr.name + st('copySuffix'), color: tr.color,
       volume: tr.volume, pan: tr.pan, mute: tr.mute, solo: false,
-      reverbSend: tr.reverbSend, eqTilt: tr.eqTilt
+      reverbSend: tr.reverbSend, eqTilt: tr.eqTilt,
+      fx: Object.assign(defaultTrackFx(), tr.fx)
     }, true);
     tr.clips.forEach(c => {
       const nc = addClipToTrack(copy, {
@@ -1209,6 +1328,8 @@
       });
       inp.addEventListener('change', () => commit());
     });
+
+    refreshFxTargetOptions();
   }
 
   function renderRuler(widthPx) {
@@ -1619,33 +1740,110 @@
     return { set: v => { val = v; render(); } };
   }
 
+  // 'master' targets the shared master-bus chain (state.fx); a track id targets
+  // that track's own independent chain (tr.fx), inserted right after its volume gain.
+  let fxTarget = 'master';
+  let fxKnobsReady = false;
+  const knobCtrl = {};
+
+  function getActiveFx() {
+    if (fxTarget === 'master') return state.fx;
+    const tr = state.tracks.find(t => t.id === fxTarget);
+    return tr ? tr.fx : state.fx;
+  }
+
+  function applyActiveFx() {
+    if (fxTarget === 'master') { applyFxToGraph(); return; }
+    const tr = state.tracks.find(t => t.id === fxTarget);
+    if (tr) applyTrackFx(tr); else applyFxToGraph();
+  }
+
+  function regenerateActiveImpulse() {
+    if (fxTarget === 'master') { regenerateImpulse(); return; }
+    const tr = state.tracks.find(t => t.id === fxTarget);
+    if (tr) regenerateTrackImpulse(tr); else regenerateImpulse();
+  }
+
+  function setFxTarget(target) {
+    fxTarget = target === 'master' ? 'master' : Number(target);
+    if (fxTarget !== 'master' && !state.tracks.some(t => t.id === fxTarget)) fxTarget = 'master';
+    const sel = document.getElementById('fx-target-select');
+    if (sel) sel.value = String(fxTarget);
+    if (!fxKnobsReady) return;
+    const f = getActiveFx();
+    knobCtrl.eqLow.set(f.eqLow);
+    knobCtrl.eqMid.set(f.eqMid);
+    knobCtrl.eqHigh.set(f.eqHigh);
+    knobCtrl.compThresh.set(f.compThresh);
+    knobCtrl.compRatio.set(f.compRatio);
+    knobCtrl.compRelease.set(f.compRelease * 1000);
+    knobCtrl.delayTime.set(f.delayTime * 1000);
+    knobCtrl.delayFb.set(f.delayFb * 100);
+    knobCtrl.delayMix.set(f.delayMix * 100);
+    knobCtrl.reverbSize.set(f.reverbSize);
+    knobCtrl.reverbDecay.set(f.reverbDecay);
+    knobCtrl.reverbMix.set(f.reverbMix * 100);
+    knobCtrl.distAmount.set(f.distAmount * 100);
+    knobCtrl.distMix.set(f.distMix * 100);
+    document.getElementById('fx-eq-on').checked = f.eqOn;
+    document.getElementById('fx-comp-on').checked = f.compOn;
+    document.getElementById('fx-delay-on').checked = f.delayOn;
+    document.getElementById('fx-reverb-on').checked = f.reverbOn;
+    document.getElementById('fx-dist-on').checked = f.distOn;
+
+    const isTrack = fxTarget !== 'master';
+    document.querySelectorAll('.st-fx-master-only').forEach(el => el.classList.toggle('st-fx-card-disabled', isTrack));
+    const hint = document.getElementById('fx-target-hint');
+    if (hint) hint.textContent = isTrack ? st('fxTargetHintTrack') : st('fxTargetHintMaster');
+  }
+
+  function refreshFxTargetOptions() {
+    const sel = document.getElementById('fx-target-select');
+    if (!sel) return;
+    const prevTarget = fxTarget;
+    sel.innerHTML = `<option value="master">${st('fxTargetMasterOpt')}</option>` +
+      state.tracks.map(tr => `<option value="${tr.id}">${escapeHtml(tr.name)}</option>`).join('');
+    if (prevTarget === 'master' || state.tracks.some(t => t.id === prevTarget)) {
+      sel.value = String(prevTarget);
+    } else if (fxKnobsReady) {
+      setFxTarget('master');
+    } else {
+      sel.value = 'master';
+    }
+  }
+
   function initAllKnobs() {
-    initKnob('knob-eq-low', 'val-eq-low', v => v.toFixed(0) + ' dB', v => { state.fx.eqLow = v; applyFxToGraph(); });
-    initKnob('knob-eq-mid', 'val-eq-mid', v => v.toFixed(0) + ' dB', v => { state.fx.eqMid = v; applyFxToGraph(); });
-    initKnob('knob-eq-high', 'val-eq-high', v => v.toFixed(0) + ' dB', v => { state.fx.eqHigh = v; applyFxToGraph(); });
-    initKnob('knob-comp-thresh', 'val-comp-thresh', v => v.toFixed(0) + ' dB', v => { state.fx.compThresh = v; applyFxToGraph(); });
-    initKnob('knob-comp-ratio', 'val-comp-ratio', v => v.toFixed(0) + ':1', v => { state.fx.compRatio = v; applyFxToGraph(); });
-    initKnob('knob-comp-release', 'val-comp-release', v => v.toFixed(0) + ' ms', v => { state.fx.compRelease = v / 1000; applyFxToGraph(); });
-    initKnob('knob-delay-time', 'val-delay-time', v => v.toFixed(0) + ' ms', v => { state.fx.delayTime = v / 1000; applyFxToGraph(); });
-    initKnob('knob-delay-fb', 'val-delay-fb', v => v.toFixed(0) + '%', v => { state.fx.delayFb = v / 100; applyFxToGraph(); });
-    initKnob('knob-delay-mix', 'val-delay-mix', v => v.toFixed(0) + '%', v => { state.fx.delayMix = v / 100; applyFxToGraph(); });
-    initKnob('knob-reverb-size', 'val-reverb-size', v => v.toFixed(1) + ' s', v => { state.fx.reverbSize = v; regenerateImpulse(); });
-    initKnob('knob-reverb-decay', 'val-reverb-decay', v => v.toFixed(1), v => { state.fx.reverbDecay = v; regenerateImpulse(); });
-    initKnob('knob-reverb-mix', 'val-reverb-mix', v => v.toFixed(0) + '%', v => { state.fx.reverbMix = v / 100; applyFxToGraph(); });
-    initKnob('knob-dist-amount', 'val-dist-amount', v => v.toFixed(0) + '%', v => { state.fx.distAmount = v / 100; applyFxToGraph(); });
-    initKnob('knob-dist-mix', 'val-dist-mix', v => v.toFixed(0) + '%', v => { state.fx.distMix = v / 100; applyFxToGraph(); });
+    knobCtrl.eqLow = initKnob('knob-eq-low', 'val-eq-low', v => v.toFixed(0) + ' dB', v => { getActiveFx().eqLow = v; applyActiveFx(); });
+    knobCtrl.eqMid = initKnob('knob-eq-mid', 'val-eq-mid', v => v.toFixed(0) + ' dB', v => { getActiveFx().eqMid = v; applyActiveFx(); });
+    knobCtrl.eqHigh = initKnob('knob-eq-high', 'val-eq-high', v => v.toFixed(0) + ' dB', v => { getActiveFx().eqHigh = v; applyActiveFx(); });
+    knobCtrl.compThresh = initKnob('knob-comp-thresh', 'val-comp-thresh', v => v.toFixed(0) + ' dB', v => { getActiveFx().compThresh = v; applyActiveFx(); });
+    knobCtrl.compRatio = initKnob('knob-comp-ratio', 'val-comp-ratio', v => v.toFixed(0) + ':1', v => { getActiveFx().compRatio = v; applyActiveFx(); });
+    knobCtrl.compRelease = initKnob('knob-comp-release', 'val-comp-release', v => v.toFixed(0) + ' ms', v => { getActiveFx().compRelease = v / 1000; applyActiveFx(); });
+    knobCtrl.delayTime = initKnob('knob-delay-time', 'val-delay-time', v => v.toFixed(0) + ' ms', v => { getActiveFx().delayTime = v / 1000; applyActiveFx(); });
+    knobCtrl.delayFb = initKnob('knob-delay-fb', 'val-delay-fb', v => v.toFixed(0) + '%', v => { getActiveFx().delayFb = v / 100; applyActiveFx(); });
+    knobCtrl.delayMix = initKnob('knob-delay-mix', 'val-delay-mix', v => v.toFixed(0) + '%', v => { getActiveFx().delayMix = v / 100; applyActiveFx(); });
+    knobCtrl.reverbSize = initKnob('knob-reverb-size', 'val-reverb-size', v => v.toFixed(1) + ' s', v => { getActiveFx().reverbSize = v; regenerateActiveImpulse(); });
+    knobCtrl.reverbDecay = initKnob('knob-reverb-decay', 'val-reverb-decay', v => v.toFixed(1), v => { getActiveFx().reverbDecay = v; regenerateActiveImpulse(); });
+    knobCtrl.reverbMix = initKnob('knob-reverb-mix', 'val-reverb-mix', v => v.toFixed(0) + '%', v => { getActiveFx().reverbMix = v / 100; applyActiveFx(); });
+    knobCtrl.distAmount = initKnob('knob-dist-amount', 'val-dist-amount', v => v.toFixed(0) + '%', v => { getActiveFx().distAmount = v / 100; applyActiveFx(); });
+    knobCtrl.distMix = initKnob('knob-dist-mix', 'val-dist-mix', v => v.toFixed(0) + '%', v => { getActiveFx().distMix = v / 100; applyActiveFx(); });
     initKnob('knob-sc-amount', 'val-sc-amount', v => v.toFixed(0) + '%', v => { state.sidechain.amount = v / 100; });
     initKnob('knob-sc-release', 'val-sc-release', v => v.toFixed(0) + ' ms', v => { state.sidechain.release = v / 1000; });
 
-    document.getElementById('fx-eq-on').addEventListener('change', e => { state.fx.eqOn = e.target.checked; applyFxToGraph(); });
-    document.getElementById('fx-comp-on').addEventListener('change', e => { state.fx.compOn = e.target.checked; applyFxToGraph(); });
-    document.getElementById('fx-delay-on').addEventListener('change', e => { state.fx.delayOn = e.target.checked; applyFxToGraph(); });
-    document.getElementById('fx-reverb-on').addEventListener('change', e => { state.fx.reverbOn = e.target.checked; applyFxToGraph(); });
-    document.getElementById('fx-dist-on').addEventListener('change', e => { state.fx.distOn = e.target.checked; applyFxToGraph(); });
+    document.getElementById('fx-eq-on').addEventListener('change', e => { getActiveFx().eqOn = e.target.checked; applyActiveFx(); });
+    document.getElementById('fx-comp-on').addEventListener('change', e => { getActiveFx().compOn = e.target.checked; applyActiveFx(); });
+    document.getElementById('fx-delay-on').addEventListener('change', e => { getActiveFx().delayOn = e.target.checked; applyActiveFx(); });
+    document.getElementById('fx-reverb-on').addEventListener('change', e => { getActiveFx().reverbOn = e.target.checked; applyActiveFx(); });
+    document.getElementById('fx-dist-on').addEventListener('change', e => { getActiveFx().distOn = e.target.checked; applyActiveFx(); });
     document.getElementById('fx-sidechain-on').addEventListener('change', e => { state.sidechain.on = e.target.checked; });
 
     initKnob('knob-limiter-thresh', 'val-limiter-thresh', v => v.toFixed(0) + ' dB', v => { state.limiter.threshold = v; applyFxToGraph(); });
     document.getElementById('fx-limiter-on').addEventListener('change', e => { state.limiter.on = e.target.checked; applyFxToGraph(); });
+
+    document.getElementById('fx-target-select').addEventListener('change', e => setFxTarget(e.target.value));
+    fxKnobsReady = true;
+    refreshFxTargetOptions();
+    setFxTarget(fxTarget);
   }
 
   let toastTimer = null;
@@ -2164,7 +2362,7 @@
       tracks: await Promise.all(state.tracks.map(async tr => ({
         id: tr.id, name: tr.name, color: tr.color,
         volume: tr.volume, pan: tr.pan, mute: tr.mute, solo: tr.solo,
-        reverbSend: tr.reverbSend, eqTilt: tr.eqTilt,
+        reverbSend: tr.reverbSend, eqTilt: tr.eqTilt, fx: tr.fx,
         clips: await Promise.all(tr.clips.map(async c => ({
           id: c.id, fileName: c.fileName, clipStart: c.clipStart,
           trimStart: c.trimStart, trimDuration: c.trimDuration, fadeIn: c.fadeIn, fadeOut: c.fadeOut,
@@ -2221,7 +2419,8 @@
       const tr = addTrack({
         name: trData.name, color: trData.color,
         volume: trData.volume, pan: trData.pan, mute: trData.mute, solo: trData.solo,
-        reverbSend: trData.reverbSend || 0, eqTilt: trData.eqTilt || 0
+        reverbSend: trData.reverbSend || 0, eqTilt: trData.eqTilt || 0,
+        fx: Object.assign(defaultTrackFx(), trData.fx || {})
       }, true);
       tr.nodes.pan.pan.value = trData.pan;
       for (const cd of (trData.clips || [])) {
@@ -2351,10 +2550,14 @@
       if (options.onlyTrackId != null && options.onlyTrackId !== -1 && tr.id !== options.onlyTrackId) return;
       const audible = options.onlyTrackId != null ? true : (anySolo ? tr.solo : !tr.mute);
       const tGain = offlineCtx.createGain(); tGain.gain.value = audible ? tr.volume : 0;
+      const tFx = createFxChainNodes(offlineCtx);
+      applyFxValuesToNodes(tr.fx || defaultTrackFx(), tFx);
+      tFx.convolver.buffer = makeImpulseBuffer(offlineCtx, (tr.fx || defaultTrackFx()).reverbSize, (tr.fx || defaultTrackFx()).reverbDecay);
       const tiltLow = offlineCtx.createBiquadFilter(); tiltLow.type = 'lowshelf'; tiltLow.frequency.value = 300; tiltLow.gain.value = -(tr.eqTilt || 0);
       const tiltHigh = offlineCtx.createBiquadFilter(); tiltHigh.type = 'highshelf'; tiltHigh.frequency.value = 3000; tiltHigh.gain.value = (tr.eqTilt || 0);
       const p = offlineCtx.createStereoPanner(); p.pan.value = tr.pan;
-      tGain.connect(tiltLow); tiltLow.connect(tiltHigh); tiltHigh.connect(p); p.connect(graph.mixBus);
+      tGain.connect(tFx.input); tFx.output.connect(tiltLow);
+      tiltLow.connect(tiltHigh); tiltHigh.connect(p); p.connect(graph.mixBus);
       const sendGain = offlineCtx.createGain(); sendGain.gain.value = tr.reverbSend || 0;
       p.connect(sendGain); sendGain.connect(graph.reverbIn);
 
@@ -2762,6 +2965,63 @@
     document.getElementById('btn-tap-tempo').addEventListener('click', tapTempo);
   }
 
+  // Keeps the track-header column and the scrollable lane area moving together
+  // vertically, so headers always line up with the lanes they describe.
+  function wireTimelineScrollSync() {
+    const headers = document.getElementById('track-headers');
+    const scroll = document.getElementById('timeline-scroll');
+    if (!headers || !scroll) return;
+    let syncing = false;
+    headers.addEventListener('scroll', () => {
+      if (syncing) return;
+      syncing = true;
+      scroll.scrollTop = headers.scrollTop;
+      syncing = false;
+    });
+    scroll.addEventListener('scroll', () => {
+      if (syncing) return;
+      syncing = true;
+      headers.scrollTop = scroll.scrollTop;
+      syncing = false;
+    });
+  }
+
+  // Lets the person drag the playhead itself, or click/drag anywhere on the ruler
+  // or the markers lane, to scrub to a new playback position.
+  function wireTransportScrubbing() {
+    const ruler = document.getElementById('timeline-ruler');
+    const markersLane = document.getElementById('markers-lane');
+    const playheadEl = document.getElementById('playhead');
+    const lanesEl = document.getElementById('tracks-lanes');
+    if (!lanesEl) return;
+
+    function clientXToSeconds(clientX) {
+      const rect = lanesEl.getBoundingClientRect();
+      return (clientX - rect.left) / PX_PER_SEC;
+    }
+
+    function startScrub(e) {
+      if (e.button !== 0) return;
+      e.preventDefault();
+      ensureAudioContext();
+      const wasPlaying = state.isPlaying;
+      if (wasPlaying) pause();
+      previewSeek(clientXToSeconds(e.clientX));
+      const onMove = ev => previewSeek(clientXToSeconds(ev.clientX));
+      const onUp = () => {
+        window.removeEventListener('mousemove', onMove);
+        window.removeEventListener('mouseup', onUp);
+        if (wasPlaying) play();
+      };
+      window.addEventListener('mousemove', onMove);
+      window.addEventListener('mouseup', onUp);
+    }
+
+    [ruler, markersLane, playheadEl].forEach(el => {
+      if (el) el.addEventListener('mousedown', startScrub);
+    });
+  }
+
   function init() {
     wireTabs();
     wireTransport();
@@ -2770,6 +3030,8 @@
     wireSequencerToolbar();
     wirePianoToolbar();
     wireZoomAndTap();
+    wireTimelineScrollSync();
+    wireTransportScrubbing();
     renderTracks();
     renderSequencer();
     renderPianoRoll();

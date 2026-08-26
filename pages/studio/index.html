@@ -267,6 +267,11 @@
 
   <!-- ---- FX VIEW ---- -->
   <section class="st-view st-view-fx" id="view-fx">
+    <div class="st-fx-target-bar">
+      <label for="fx-target-select" data-i18n-local="fxTargetLabel">Застосувати ефекти до</label>
+      <select id="fx-target-select"></select>
+      <span class="st-fx-target-hint" id="fx-target-hint" data-i18n-local="fxTargetHintMaster">Ці ефекти лягають на весь мікс одразу</span>
+    </div>
     <div class="st-fx-grid">
 
       <div class="st-fx-card">
@@ -338,7 +343,7 @@
         </div>
       </div>
 
-      <div class="st-fx-card">
+      <div class="st-fx-card st-fx-master-only">
         <div class="st-fx-head">
           <div class="st-fx-name"><span class="st-fx-dot" style="background:var(--brick)"></span><span data-i18n-local="fxSidechain">Sidechain (за кіком)</span></div>
           <label class="st-toggle"><input type="checkbox" id="fx-sidechain-on"/><span></span></label>
@@ -351,7 +356,7 @@
         </div>
       </div>
 
-      <div class="st-fx-card">
+      <div class="st-fx-card st-fx-master-only">
         <div class="st-fx-head">
           <div class="st-fx-name"><span class="st-fx-dot" style="background:var(--violet)"></span><span data-i18n-local="fxLimiter">Лімітер (майстер)</span></div>
           <label class="st-toggle"><input type="checkbox" id="fx-limiter-on" checked/><span></span></label>
