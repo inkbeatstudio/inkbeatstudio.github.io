@@ -596,6 +596,7 @@ footer {
   background: var(--s100);
   padding: 80px 0 40px;
   position: relative;
+  margin-top: 20px;
 }
 footer::before {
   content: '';
