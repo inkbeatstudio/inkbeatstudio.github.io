@@ -1,0 +1,14 @@
+{
+  "id": "hall-reverb",
+  "name": "Hall Reverb",
+  "type": "effect",
+  "category": "Effects",
+  "version": "1.0.0",
+  "author": "InkBeat",
+  "description": "Просторова алгоритмічна реверберація (концертний зал) на основі згенерованого імпульсу.",
+  "params": [
+    { "id": "size", "name": "Size", "min": 0.5, "max": 6, "default": 3.2, "step": 0.1, "unit": "s" },
+    { "id": "damping", "name": "Damping", "min": 0.5, "max": 5, "default": 2.2, "step": 0.1, "unit": "" },
+    { "id": "mix", "name": "Mix", "min": 0, "max": 1, "default": 0.32, "step": 0.01, "unit": "" }
+  ]
+}

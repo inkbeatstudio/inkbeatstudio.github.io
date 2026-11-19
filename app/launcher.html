@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>INKBEAT Studio — Desktop</title>
+<link rel="icon" href="public/favicon-optimized.jpg"/>
+<link rel="stylesheet" href="css/style.css"/>
+<style>
+  body { min-height: 100vh; padding: 48px 24px; }
+  .lw-wrap { max-width: 1080px; margin: 0 auto; }
+  .lw-head { text-align: center; margin-bottom: 48px; }
+  .lw-head h1 { font-family:'Syne',sans-serif; font-size: clamp(32px,5vw,54px); font-weight:800; }
+  .lw-head p { color: rgba(255,255,255,.55); margin-top: 10px; font-size: 15px; }
+  .lw-badge { display:inline-block; margin-top:14px; font-size:11px; letter-spacing:.08em; text-transform:uppercase;
+    padding:5px 12px; border-radius:20px; border:1px solid rgba(255,255,255,.15); color:rgba(255,255,255,.6); }
+  .lw-grid { display:grid; grid-template-columns: repeat(auto-fit,minmax(240px,1fr)); gap:18px; }
+  .lw-card { display:block; padding:26px 22px; border-radius:16px; text-decoration:none; color:#fff;
+    transition: transform .2s ease, border-color .2s ease; }
+  .lw-card:hover { transform: translateY(-4px); border-color: rgba(255,255,255,.18); }
+  .lw-card h2 { font-family:'Syne',sans-serif; font-size:20px; font-weight:700; margin-bottom:8px; }
+  .lw-card p { font-size:13.5px; color: rgba(255,255,255,.55); line-height:1.5; }
+  .lw-foot { text-align:center; margin-top:52px; font-size:12px; color: rgba(255,255,255,.35); }
+</style>
+</head>
+<body>
+<div class="lw-wrap">
+  <div class="lw-head">
+    <h1 class="gradient-text">INKBEAT STUDIO</h1>
+    <p>Десктоп-версія. Все працює локально на вашому пристрої — без інтернету.</p>
+    <span class="lw-badge">offline • local</span>
+  </div>
+
+  <div class="lw-grid">
+    <a class="lw-card glass" href="pages/studio/index.html">
+      <h2>🎛 Студія</h2>
+      <p>Багатодоріжковий редактор, степ-секвенсор, мікшер та ефекти. Проєкти зберігаються локально.</p>
+    </a>
+    <a class="lw-card glass" href="pages/analyzer/index.html">
+      <h2>🧬 Аналіз треку</h2>
+      <p>Завантаж готовий мінус (наприклад, зі Suno) — отримай темп, тональність, акорди й ударний патерн, розкладені по тактах у студії.</p>
+    </a>
+    <a class="lw-card glass" href="pages/master/mastering.html">
+      <h2>🎚 Мастеринг</h2>
+      <p>Автоматичний мастеринг треку: гучність, компресія, тон-баланс.</p>
+    </a>
+    <a class="lw-card glass" href="pages/master/equalizer-studio.html">
+      <h2>📈 Еквалайзер</h2>
+      <p>Багатосмуговий еквалайзер із пресетами та експортом обробленого файлу.</p>
+    </a>
+    <a class="lw-card glass" href="pages/master/multitrack.html">
+      <h2>🎼 Мультитрек</h2>
+      <p>Зведення кількох доріжок в один мікс.</p>
+    </a>
+    <a class="lw-card glass" href="pages/master/vocal-split.html">
+      <h2>🎤 Розділення вокалу</h2>
+      <p>Відокремлення вокалу від інструменталу.</p>
+    </a>
+    <a class="lw-card glass" href="pages/master/video-to-audio.html">
+      <h2>🎬 Video → Audio</h2>
+      <p>Витягнути звукову доріжку з відео.</p>
+    </a>
+  </div>
+
+  <div class="lw-foot">InkBeat Studio Desktop &middot; локальна збірка</div>
+</div>
+</body>
+</html>

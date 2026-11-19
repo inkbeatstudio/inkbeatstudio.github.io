@@ -1,0 +1,12 @@
+{
+  "id": "stereo-widener",
+  "name": "Stereo Widener",
+  "type": "effect",
+  "category": "Effects",
+  "version": "1.0.0",
+  "author": "InkBeat",
+  "description": "Розширює стереобазу через mid/side-обробку.",
+  "params": [
+    { "id": "width", "name": "Width", "min": 0, "max": 2, "default": 1.4, "step": 0.01, "unit": "x" }
+  ]
+}

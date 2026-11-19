@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Контакти | InkBeat</title>
+  <meta name="description" content="Зв'яжіться з InkBeat для замовлення пісень, текстів або колаборацій."/>
+  <link rel="canonical" href="https://inkbeatstudio.github.io/pages/contact.html"/>
+  <link rel="icon" href="../public/favicon-optimized.jpg"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="../css/style.css"/>
+</head>
+<body>
+
+<div class="cursor-dot"></div>
+<div class="cursor-ring"></div>
+
+<div id="loading-screen" data-stage="0">
+  <div class="loading-glow"></div>
+  <div class="loading-eq">
+    <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+  </div>
+  <div class="loading-wordmark">
+    <span class="loading-letter gradient-text" style="animation-delay:.3s">I</span>
+    <span class="loading-letter gradient-text" style="animation-delay:.35s">N</span>
+    <span class="loading-letter gradient-text" style="animation-delay:.4s">K</span>
+    <span class="loading-letter gradient-text" style="animation-delay:.45s">B</span>
+    <span class="loading-letter gradient-text" style="animation-delay:.5s">E</span>
+    <span class="loading-letter gradient-text" style="animation-delay:.55s">A</span>
+    <span class="loading-letter gradient-text" style="animation-delay:.6s">T</span>
+  </div>
+  <div class="loading-meta">
+    <div class="loading-bar-wrap"><div class="loading-bar" style="width:0%"></div></div>
+    <div class="loading-pct">0%</div>
+  </div>
+</div>
+
+<nav id="navbar">
+  <div class="nav-inner">
+    <a href="../index.html" class="nav-logo gradient-text">INKBEAT</a>
+    <div class="nav-links">
+      <a href="../index.html" data-i18n="nav.home">Головна</a>
+      <a href="about.html" data-i18n="nav.about">Про мене</a>
+      <a href="discography.html" data-i18n="nav.discography">Дискографія</a>
+      <a href="services.html" data-i18n="nav.services">Послуги</a>
+      <a href="portfolio.html" data-i18n="nav.portfolio">Портфоліо</a>
+      <a href="contact.html" class="active" data-i18n="nav.contact">Контакти</a>
+    </div>
+    <div class="nav-right">
+      <div class="lang-btn">
+        <span class="lang-ua lang-toggle active" data-lang="uk">UA</span>
+        <span class="lang-sep">|</span>
+        <span class="lang-en lang-toggle" data-lang="en">EN</span>
+      </div>
+      <a href="contact.html" class="nav-order" data-i18n="nav.order">Замовити</a>
+      <a href="master/index.html" class="nav-order nav-master"><span class="nav-master-dot"></span><span data-i18n="nav.master">Мастеринг</span></a><a href="studio/index.html" class="nav-order nav-studio"><span class="nav-master-dot"></span><span data-i18n="nav.studio">Studio</span></a>
+    </div>
+    <button class="burger">
+      <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <line x1="3" y1="6" x2="21" y2="6"/>
+        <line x1="3" y1="12" x2="21" y2="12"/>
+        <line x1="3" y1="18" x2="21" y2="18"/>
+      </svg>
+    </button>
+  </div>
+</nav>
+
+<div class="mobile-menu">
+  <button class="mobile-close">
+    <svg width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+      <line x1="18" y1="6" x2="6" y2="18"/>
+      <line x1="6" y1="6" x2="18" y2="18"/>
+    </svg>
+  </button>
+  <a href="../index.html" data-i18n="nav.home">Головна</a>
+  <a href="about.html" data-i18n="nav.about">Про мене</a>
+  <a href="discography.html" data-i18n="nav.discography">Дискографія</a>
+  <a href="services.html" data-i18n="nav.services">Послуги</a>
+  <a href="portfolio.html" data-i18n="nav.portfolio">Портфоліо</a>
+  <a href="contact.html" data-i18n="nav.contact">Контакти</a>
+  <a href="master/index.html" class="nav-master" data-i18n="nav.master">Мастеринг</a>
+  <a href="studio/index.html" class="nav-studio" data-i18n="nav.studio">Studio</a>
+  <div class="mobile-lang-switch">
+    <span class="lang-ua lang-toggle active" data-lang="uk">UA</span>
+    <span class="lang-sep">|</span>
+    <span class="lang-en lang-toggle" data-lang="en">EN</span>
+  </div>
+</div>
+
+<section class="page-header">
+  <div class="page-header-orb" style="top:40%;right:30%;width:500px;height:500px;background:radial-gradient(circle,#B8452C,transparent 70%)"></div>
+  <div class="container">
+    <div class="reveal">
+      <div class="page-label" style="color:var(--brick)">— <span data-i18n="nav.contact">Контакти</span></div>
+      <h1 class="page-title"><span data-i18n="contactPage.title1">Напиши</span> <span class="gradient-text" data-i18n="contactPage.title2">мені</span></h1>
+    </div>
+  </div>
+</section>
+
+<section class="section" style="background:var(--s100)">
+  <div class="container">
+    <div class="contact-grid">
+
+      
+      <div class="reveal-left">
+        <div style="margin-bottom:48px">
+          <div class="footer-col-title" style="margin-bottom:16px" data-i18n="contactPage.email">Email</div>
+          <a href="mailto:inkbeat.mail@gmail.com" class="contact-email-link">
+            <span style="color:var(--brick);font-size:1.3rem">✉</span>
+            inkbeat.mail@gmail.com
+          </a>
+        </div>
+
+        <div class="status-card">
+          <div class="status-dot-wrap">
+            <div class="status-dot"></div>
+            <span class="status-active" data-i18n="contactPage.active">Активний</span>
+          </div>
+          <p class="status-text" data-i18n-html="contactPage.statusText">
+            Відповідаю протягом <strong style="color:#fff">24 годин</strong>.
+            Для термінових замовлень напишіть "ТЕРМІНОВО" у темі.
+          </p>
+        </div>
+
+        <div style="margin-top:48px">
+          <div class="footer-col-title" style="margin-bottom:24px" data-i18n="contactPage.socials">Соцмережі</div>
+          <div class="socials-grid">
+            <a href="https://open.spotify.com/artist/6hkNwIjIfDcMDp5AObEbO9" target="_blank" rel="noopener" class="social-card">
+              <span class="social-dot" style="background:#1DB954"></span>
+              <span class="social-name">Spotify</span>
+            </a>
+            <a href="https://www.instagram.com/_.inkbeat._/" target="_blank" rel="noopener" class="social-card">
+              <span class="social-dot" style="background:#E1306C"></span>
+              <span class="social-name">Instagram</span>
+            </a>
+            <a href="https://www.youtube.com/@1nkBeat12/shorts" target="_blank" rel="noopener" class="social-card">
+              <span class="social-dot" style="background:#FF0000"></span>
+              <span class="social-name">YouTube</span>
+            </a>
+            <a href="https://www.tiktok.com/@inkbeat_" target="_blank" rel="noopener" class="social-card">
+              <span class="social-dot" style="background:#B8452C"></span>
+              <span class="social-name">TikTok</span>
+            </a>
+            <a href="https://music.apple.com/ua/artist/inkbeat/1850263830?l=uk" target="_blank" rel="noopener" class="social-card">
+              <span class="social-dot" style="background:#FC3C44"></span>
+              <span class="social-name">Apple Music</span>
+            </a>
+            <a href="https://soundcloud.com/akabbvwcbvle" target="_blank" rel="noopener" class="social-card">
+              <span class="social-dot" style="background:#FF5500"></span>
+              <span class="social-name">SoundCloud</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <div class="reveal-right">
+        <form class="contact-form" id="contact-form" onsubmit="handleSubmit(event)">
+
+          <div id="form-status" style="display:none"></div>
+
+          <div class="form-group">
+            <label class="form-label" data-i18n="contactPage.formName">Ім'я *</label>
+            <input type="text" id="f-name" class="form-input" placeholder="Ваше ім'я" data-i18n-ph="contactPage.formNamePh"/>
+            <div class="form-error" id="err-name" style="display:none"></div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" data-i18n="contactPage.formEmail">Email *</label>
+            <input type="email" id="f-email" class="form-input" placeholder="your@email.com" data-i18n-ph="contactPage.formEmailPh"/>
+            <div class="form-error" id="err-email" style="display:none"></div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" data-i18n="contactPage.formSubject">Тема</label>
+            <input type="text" id="f-subject" class="form-input" placeholder="Замовлення пісні, Колаборація..." data-i18n-ph="contactPage.formSubjectPh"/>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" data-i18n="contactPage.formMessage">Повідомлення *</label>
+            <textarea id="f-message" class="form-textarea" rows="5" placeholder="Розкажіть про ваш проєкт..." data-i18n-ph="contactPage.formMessagePh"></textarea>
+            <div class="form-error" id="err-message" style="display:none"></div>
+          </div>
+
+          <button type="submit" class="form-submit" id="submit-btn">
+            <span>✈</span>
+            <span id="submit-text" data-i18n="contactPage.submit">Надіслати повідомлення</span>
+          </button>
+
+          <p style="text-align:center;margin-top:16px;font-size:.75rem;color:rgba(255,255,255,.3)" data-i18n="contactPage.telegramNote">
+            Повідомлення надійде напряму в Telegram
+          </p>
+        </form>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <div class="footer-brand-name gradient-text">INKBEAT</div>
+        <p class="footer-desc" data-i18n="footer.desc">Музичний артист • Автор пісень • Автор текстів. Музика, яка залишає слід.</p>
+        <a href="mailto:inkbeat.mail@gmail.com" class="footer-email">inkbeat.mail@gmail.com</a>
+      </div>
+      <div>
+        <div class="footer-col-title" data-i18n="footer.nav">Навігація</div>
+        <ul class="footer-links">
+          <li><a href="../index.html" data-i18n="nav.home">Головна</a></li>
+          <li><a href="about.html" data-i18n="nav.about">Про мене</a></li>
+          <li><a href="discography.html" data-i18n="nav.discography">Дискографія</a></li>
+          <li><a href="services.html" data-i18n="nav.services">Послуги</a></li>
+          <li><a href="portfolio.html" data-i18n="nav.portfolio">Портфоліо</a></li>
+          <li><a href="contact.html" data-i18n="nav.contact">Контакти</a></li>
+          <li><a href="master/index.html" data-i18n="nav.master">Мастеринг</a></li><li><a href="studio/index.html" data-i18n="nav.studio">Studio</a></li><li><a href="master/video-to-audio.html" data-i18n="nav.videoAudio">Video → Audio</a></li>
+        </ul>
+      </div>
+      <div>
+        <div class="footer-col-title" data-i18n="footer.socials">Соцмережі</div>
+        <ul class="footer-links footer-social-links">
+          <li><a href="https://open.spotify.com/artist/6hkNwIjIfDcMDp5AObEbO9" target="_blank" rel="noopener">Spotify</a></li>
+          <li><a href="https://www.instagram.com/_.inkbeat._/" target="_blank" rel="noopener">Instagram</a></li>
+          <li><a href="https://www.youtube.com/@1nkBeat12/shorts" target="_blank" rel="noopener">YouTube</a></li>
+          <li><a href="https://www.tiktok.com/@inkbeat_" target="_blank" rel="noopener">TikTok</a></li>
+          <li><a href="https://music.apple.com/ua/artist/inkbeat/1850263830?l=uk" target="_blank" rel="noopener">Apple Music</a></li>
+          <li><a href="https://soundcloud.com/akabbvwcbvle" target="_blank" rel="noopener">SoundCloud</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p class="footer-copy">© <span id="year"></span> InkBeat. <span data-i18n="footer.rights">Всі права захищені.</span></p>
+      <p class="footer-copy" data-i18n="footer.made">Зроблено з ♥ в Україні</p>
+    </div>
+  </div>
+</footer>
+
+<script src="../js/main.js"></script>
+<script>
+document.getElementById('year').textContent = new Date().getFullYear()
+
+function showError(fieldId, msg) {
+  const errEl = document.getElementById('err-' + fieldId)
+  const inputEl = document.getElementById('f-' + fieldId)
+  errEl.textContent = msg
+  errEl.style.display = 'block'
+  inputEl.classList.add('error')
+}
+
+function clearErrors() {
+  ['name','email','message'].forEach(f => {
+    document.getElementById('err-' + f).style.display = 'none'
+    document.getElementById('f-' + f).classList.remove('error')
+  })
+}
+
+async function handleSubmit(e) {
+  e.preventDefault()
+  clearErrors()
+
+  const name    = document.getElementById('f-name').value.trim()
+  const email   = document.getElementById('f-email').value.trim()
+  const subject = document.getElementById('f-subject').value.trim()
+  const message = document.getElementById('f-message').value.trim()
+
+  let valid = true
+  if (!name)    { showError('name', t('contactPage.errName')); valid = false }
+  if (!email)   { showError('email', t('contactPage.errEmail')); valid = false }
+  else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    showError('email', t('contactPage.errEmailFormat')); valid = false
+  }
+  if (!message) { showError('message', t('contactPage.errMessage')); valid = false }
+  else if (message.length < 10) {
+    showError('message', t('contactPage.errMessageShort')); valid = false
+  }
+  if (!valid) return
+
+  const btn      = document.getElementById('submit-btn')
+  const btnText  = document.getElementById('submit-text')
+  const statusEl = document.getElementById('form-status')
+
+  btn.disabled = true
+  btnText.textContent = t('contactPage.sending')
+  statusEl.style.display = 'none'
+
+  try {
+    await sendToTelegram(name, email, subject, message)
+
+    statusEl.className = 'form-status success'
+    statusEl.innerHTML = t('contactPage.successMsg')
+    statusEl.style.display = 'flex'
+    document.getElementById('contact-form').reset()
+
+  } catch (err) {
+    console.error('Telegram error:', err)
+
+    statusEl.className = 'form-status error'
+    statusEl.innerHTML = t('contactPage.errorMsg')
+    statusEl.style.display = 'flex'
+  } finally {
+    btn.disabled = false
+    btnText.textContent = t('contactPage.submit')
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,974 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Мастеринг треків | INKBEAT</title>
+<meta name="description" content="Безкоштовний онлайн-мастеринг треків від InkBeat. Обробка звуку прямо в браузері, файли нікуди не завантажуються."/>
+  <link rel="canonical" href="https://inkbeatstudio.github.io/pages/master/mastering.html"/>
+<link rel="icon" href="../../public/favicon-optimized.jpg"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="../../css/style.css"/>
+<style>
+  :root{
+    --bg:#000000;
+    --panel:#0F0F0F;
+    --panel-2:#161616;
+    --line:rgba(255,255,255,.08);
+    --text:#ffffff;
+    --muted:rgba(255,255,255,.45);
+    --gold:#B8452C;
+    --teal:#B8452C;
+    --danger:#FF4D4D;
+    --font-display: 'Syne', sans-serif;
+    --font-body: 'Space Grotesk', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; background:var(--bg); color:var(--text); font-family:var(--font-body); }
+  body{ min-height:100vh; padding:0 18px 80px; cursor:auto; }
+  .tool-wrap{ max-width:860px; margin:0 auto; }
+  .wrap{ max-width:860px; margin:0 auto; }
+
+  .rack{ background:linear-gradient(180deg,var(--panel),var(--panel-2)); border:1px solid var(--line); border-radius:14px; padding:22px; box-shadow:0 20px 50px -20px rgba(0,0,0,.6); }
+
+  .drop{ border:1.5px dashed var(--line); border-radius:10px; padding:34px 18px; text-align:center; cursor:pointer; transition:border-color .15s, background .15s; }
+  .drop.busy{ opacity:.55; pointer-events:none; }
+  .drop:hover, .drop.drag{ border-color:var(--gold); background:rgba(36,31,61,0.08); }
+  .drop .slot{ font-family:var(--font-mono); font-size:12px; color:var(--muted); letter-spacing:.08em; text-transform:uppercase; margin-bottom:8px; }
+  .drop .cta{ font-family:var(--font-display); font-weight:700; font-size:17px; }
+  .drop .sub{ color:var(--muted); font-size:12.5px; margin-top:6px; }
+  input[type=file]{ display:none; }
+
+  .track-info{ display:none; align-items:center; justify-content:space-between; gap:10px; margin-top:16px; padding:10px 14px; background:var(--bg); border:1px solid var(--line); border-radius:8px; font-family:var(--font-mono); font-size:12.5px; color:var(--muted); }
+  .track-info b{ color:var(--text); font-weight:600; }
+  .track-info button{ background:none; border:1px solid var(--line); color:var(--muted); font-family:var(--font-mono); font-size:11px; padding:5px 10px; border-radius:6px; cursor:pointer; }
+  .track-info button:hover{ color:var(--text); border-color:var(--muted); }
+
+  canvas#wave{ width:100%; height:80px; display:block; margin-top:16px; border-radius:8px; background:var(--bg); border:1px solid var(--line); }
+
+  .panel{ display:none; margin-top:22px; }
+  .panel.show{ display:block; }
+
+  .strip{ display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:16px; margin-top:18px; }
+  .fader{ background:var(--bg); border:1px solid var(--line); border-radius:10px; padding:14px 14px 16px; }
+  .fader .flabel{ display:flex; justify-content:space-between; align-items:baseline; font-family:var(--font-display); font-size:13px; font-weight:700; margin-bottom:10px; }
+  .fader .fval{ font-family:var(--font-mono); font-size:12px; color:var(--gold); }
+  input[type=range]{ -webkit-appearance:none; width:100%; height:4px; background:var(--line); border-radius:2px; outline:none; }
+  input[type=range]::-webkit-slider-thumb{ -webkit-appearance:none; width:16px; height:16px; border-radius:50%; background:var(--teal); cursor:pointer; border:2px solid var(--bg); box-shadow:0 0 0 1px var(--teal); }
+  input[type=range]::-moz-range-thumb{ width:16px; height:16px; border-radius:50%; background:var(--teal); cursor:pointer; border:2px solid var(--bg); }
+
+  .row{ display:flex; gap:10px; align-items:center; margin-top:20px; flex-wrap:wrap; }
+  .btn{ font-family:var(--font-display); font-weight:700; font-size:13.5px; padding:11px 16px; border-radius:8px; border:1px solid var(--line); background:var(--panel-2); color:var(--text); cursor:pointer; transition:transform .1s, border-color .15s; }
+  .btn:hover{ border-color:var(--muted); }
+  .btn:active{ transform:scale(0.98); }
+  .btn.ghost{ background:transparent; color:var(--muted); }
+  .btn.auto{ border-color:var(--gold); color:var(--gold); }
+  .btn.primary{ background:var(--teal); border-color:var(--teal); color:#EFEAE2; margin-left:auto; }
+  .btn.primary:hover{ filter:brightness(1.08); }
+  .btn:disabled{ opacity:.5; cursor:not-allowed; }
+
+  .player{ margin-top:20px; background:linear-gradient(180deg,rgba(255,255,255,.02),transparent); border:1px solid var(--line); border-radius:14px; padding:16px 18px 18px; }
+  .player-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px; }
+  .mode-switch{ display:inline-flex; background:var(--panel-2); border:1px solid var(--line); border-radius:999px; padding:3px; gap:2px; }
+  .mode-btn{ font-family:var(--font-mono); font-size:11px; letter-spacing:.05em; text-transform:uppercase; padding:7px 15px; border-radius:999px; border:none; background:transparent; color:var(--muted); cursor:pointer; transition:background .2s, color .2s; }
+  .mode-btn:hover{ color:var(--text); }
+  .mode-btn.active{ background:linear-gradient(90deg,var(--teal),var(--gold)); color:#EFEAE2; font-weight:600; }
+  .player-times{ font-family:var(--font-mono); font-size:12px; color:var(--muted); white-space:nowrap; letter-spacing:.02em; }
+  .player-times #curTime{ color:var(--text); }
+  .player-times .t-sep{ margin:0 4px; opacity:.5; }
+  .player-body{ display:flex; align-items:center; gap:16px; }
+  .play-toggle{ flex:none; width:48px; height:48px; border-radius:50%; border:none; background:linear-gradient(135deg,var(--teal),var(--gold)); color:#EFEAE2; display:flex; align-items:center; justify-content:center; cursor:pointer; box-shadow:0 8px 22px -8px rgba(184,69,44,.55); transition:transform .12s, box-shadow .2s; }
+  .play-toggle svg{ margin-left:2px; }
+  .play-toggle.is-playing svg{ margin-left:0; }
+  .play-toggle:hover{ transform:scale(1.06); box-shadow:0 10px 26px -8px rgba(36,31,61,.55); }
+  .play-toggle:active{ transform:scale(0.94); }
+  .play-toggle:disabled{ opacity:.4; cursor:not-allowed; box-shadow:none; }
+  .seek-track{ position:relative; flex:1; height:6px; border-radius:3px; background:var(--line); cursor:pointer; touch-action:none; -webkit-user-select:none; user-select:none; }
+  .seek-track.disabled{ opacity:.45; pointer-events:none; }
+  .seek-track:focus-visible{ outline:2px solid var(--teal); outline-offset:4px; }
+  .seek-fill{ position:absolute; top:0; left:0; height:100%; width:0%; border-radius:3px; background:linear-gradient(90deg,var(--teal),var(--gold)); pointer-events:none; }
+  .seek-thumb{ position:absolute; top:50%; left:0%; width:14px; height:14px; margin-left:-7px; border-radius:50%; background:#fff; border:2px solid var(--teal); box-shadow:0 0 8px rgba(184,69,44,.6); transform:translateY(-50%); pointer-events:none; }
+
+  .meter-block{ display:flex; align-items:center; gap:16px; margin-top:20px; padding:14px 16px; background:var(--bg); border:1px solid var(--line); border-radius:10px; }
+  .vu{ position:relative; flex:1; height:10px; background:var(--panel); border-radius:5px; overflow:hidden; }
+  .vu .fill{ position:absolute; left:0; top:0; bottom:0; width:0%; background:linear-gradient(90deg,var(--teal),var(--gold) 75%, var(--danger) 95%); transition:width .05s linear; }
+  .meter-num{ font-family:var(--font-mono); font-size:12px; color:var(--muted); min-width:76px; text-align:right; }
+
+  .status{ font-family:var(--font-mono); font-size:12px; color:var(--muted); margin-top:10px; min-height:16px; }
+  .status.ok{ color:var(--teal); }
+  .status.err{ color:var(--danger); }
+  .status.busy{ color:var(--gold); }
+
+  .progress{ display:none; margin-top:16px; padding:16px; background:var(--bg); border:1px solid var(--line); border-radius:10px; align-items:center; gap:14px; }
+  .progress.show{ display:flex; }
+  .spinner{ width:22px; height:22px; border-radius:50%; border:3px solid var(--line); border-top-color:var(--gold); flex:none; animation:spin .8s linear infinite; }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+  .progress .ptext{ flex:none; font-family:var(--font-mono); font-size:12px; color:var(--muted); min-width:150px; }
+  .progbar{ flex:1; height:8px; background:var(--panel-2); border-radius:4px; overflow:hidden; }
+  .progbar i{ display:block; height:100%; width:0%; background:linear-gradient(90deg,var(--teal),var(--gold)); transition:width .15s linear; }
+
+  .toolnav{ margin-top:16px; text-align:center; }
+  .toolnav a{ color:var(--muted); font-size:12px; text-decoration:none; border-bottom:1px dotted var(--muted); }
+  .toolnav a:hover{ color:var(--text); }
+</style>
+</head>
+<body>
+
+<div class="cursor-dot"></div>
+<div class="cursor-ring"></div>
+
+<div id="loading-screen">
+  <div class="loading-letters">
+    <span class="loading-letter gradient-text" style="animation-delay:.3s">I</span>
+    <span class="loading-letter gradient-text" style="animation-delay:.35s">N</span>
+    <span class="loading-letter gradient-text" style="animation-delay:.4s">K</span>
+    <span class="loading-letter gradient-text" style="animation-delay:.45s">B</span>
+    <span class="loading-letter gradient-text" style="animation-delay:.5s">E</span>
+    <span class="loading-letter gradient-text" style="animation-delay:.55s">A</span>
+    <span class="loading-letter gradient-text" style="animation-delay:.6s">T</span>
+  </div>
+  <div class="loading-bar-wrap"><div class="loading-bar" style="width:0%"></div></div>
+  <div class="loading-pct">0%</div>
+</div>
+
+<nav id="navbar">
+  <div class="nav-inner">
+    <a href="../../index.html" class="nav-logo gradient-text">INKBEAT</a>
+    <div class="nav-links">
+      <a href="../../index.html" data-i18n="nav.home">Головна</a>
+      <a href="../about.html" data-i18n="nav.about">Про мене</a>
+      <a href="../discography.html" data-i18n="nav.discography">Дискографія</a>
+      <a href="../services.html" data-i18n="nav.services">Послуги</a>
+      <a href="../portfolio.html" data-i18n="nav.portfolio">Портфоліо</a>
+      <a href="../contact.html" data-i18n="nav.contact">Контакти</a>
+    </div>
+    <div class="nav-right">
+      <div class="lang-btn">
+        <span class="lang-ua lang-toggle active" data-lang="uk">UA</span>
+        <span class="lang-sep">|</span>
+        <span class="lang-en lang-toggle" data-lang="en">EN</span>
+      </div>
+      <a href="index.html" class="nav-order nav-master active"><span class="nav-master-dot"></span><span data-i18n="nav.master">Мастеринг</span></a><a href="../studio/index.html" class="nav-order nav-studio"><span class="nav-master-dot"></span><span data-i18n="nav.studio">Studio</span></a>
+    </div>
+    <button class="burger"><svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+  </div>
+</nav>
+
+<div class="mobile-menu">
+  <button class="mobile-close"><svg width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+  <a href="../../index.html" data-i18n="nav.home">Головна</a>
+  <a href="../about.html" data-i18n="nav.about">Про мене</a>
+  <a href="../discography.html" data-i18n="nav.discography">Дискографія</a>
+  <a href="../services.html" data-i18n="nav.services">Послуги</a>
+  <a href="../portfolio.html" data-i18n="nav.portfolio">Портфоліо</a>
+  <a href="../contact.html" data-i18n="nav.contact">Контакти</a>
+  <a href="index.html" data-i18n="nav.master">Мастеринг</a>
+  <a href="../studio/index.html" data-i18n="nav.studio">Studio</a>
+  <div class="mobile-lang-switch">
+    <span class="lang-ua lang-toggle active" data-lang="uk">UA</span>
+    <span class="lang-sep">|</span>
+    <span class="lang-en lang-toggle" data-lang="en">EN</span>
+  </div>
+</div>
+
+<section class="page-header" style="padding-bottom:40px">
+  <div class="page-header-orb" style="top:20%;right:20%;width:500px;height:500px;background:radial-gradient(circle,#B8452C,transparent 70%)"></div>
+  <div class="container">
+    <div class="reveal">
+      <div class="page-label" style="color:var(--brick)">— <a href="index.html" style="color:inherit;text-decoration:none" data-i18n-local="audioStudioLink">Аудіо-студія</a> <span data-i18n-local="masteringLabel">/ Мастеринг</span></div>
+      <h1 class="page-title" style="font-size:clamp(2.2rem,6vw,4rem)">MASTER<span class="gradient-text">.WAV</span></h1>
+      <p class="page-sub" data-i18n-local="pageSub">Мастеринг треків прямо в браузері — гучність, компресія, баланс частот. Нічого не завантажується на сервер, усе відбувається на вашому пристрої.</p>
+    </div>
+  </div>
+</section>
+
+<div class="tool-wrap">
+
+  <div class="rack">
+
+    <div class="drop" id="drop">
+      <div class="slot">// audio in</div>
+      <div class="cta" data-i18n-local="dropCta">Перетягніть трек сюди або натисніть, щоб обрати файл</div>
+      <div class="sub" data-i18n-local="dropSub">MP3, WAV, M4A, OGG — обробка повністю локальна, файл нікуди не надсилається</div>
+      <input type="file" id="file" accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg,.flac,.webm" />
+    </div>
+
+    <div class="track-info" id="trackInfo">
+      <span id="trackName">—</span>
+      <button id="clearBtn" data-i18n-local="clearBtn">Обрати інший файл</button>
+    </div>
+
+    <canvas id="wave" width="800" height="80" style="display:none"></canvas>
+
+    <div class="status" id="status"></div>
+
+    <div class="progress" id="progressBlock">
+      <div class="spinner"></div>
+      <div class="ptext" id="progText">Завантаження… 0%</div>
+      <div class="progbar"><i id="progFill"></i></div>
+    </div>
+
+    <div class="panel" id="panel">
+      <div class="strip">
+        <div class="fader">
+          <div class="flabel"><span data-i18n-local="loudLabel">Гучність</span> <span class="fval" id="vLoud">+6 дБ</span></div>
+          <input type="range" id="loud" min="-3" max="12" step="0.5" value="6" />
+        </div>
+        <div class="fader">
+          <div class="flabel"><span data-i18n-local="compLabel">Компресія</span> <span class="fval" id="vComp">40%</span></div>
+          <input type="range" id="comp" min="0" max="100" step="5" value="40" />
+        </div>
+        <div class="fader">
+          <div class="flabel"><span data-i18n-local="bassLabel">Бас</span> <span class="fval" id="vBass">+2 дБ</span></div>
+          <input type="range" id="bass" min="-6" max="6" step="0.5" value="2" />
+        </div>
+        <div class="fader">
+          <div class="flabel"><span data-i18n-local="trebLabel">Верхи</span> <span class="fval" id="vTreb">+2 дБ</span></div>
+          <input type="range" id="treb" min="-6" max="6" step="0.5" value="2" />
+        </div>
+      </div>
+
+      <div class="meter-block">
+        <div class="meter-num" id="meterLabel" data-i18n-local="meterLabel">РІВЕНЬ</div>
+        <div class="vu"><div class="fill" id="vuFill"></div></div>
+        <div class="meter-num" id="peakVal">-∞ дБ</div>
+      </div>
+
+      <div class="player" id="player">
+        <div class="player-head">
+          <div class="mode-switch" id="modeSwitch">
+            <button type="button" class="mode-btn active" id="modeOrigBtn" data-mode="orig" data-i18n-local="modeOrig">Оригінал</button>
+            <button type="button" class="mode-btn" id="modeMastBtn" data-mode="mast" data-i18n-local="modeMast">Опрацьовано</button>
+          </div>
+          <div class="player-times"><span id="curTime">0:00</span><span class="t-sep">/</span><span id="durTime">0:00</span></div>
+        </div>
+        <div class="player-body">
+          <button type="button" class="play-toggle" id="playToggle" aria-label="Play/Pause">
+            <svg class="icon-play" viewBox="0 0 24 24" width="18" height="18"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>
+            <svg class="icon-pause" viewBox="0 0 24 24" width="18" height="18" style="display:none"><path d="M6 5h4v14H6zM14 5h4v14h-4z" fill="currentColor"/></svg>
+          </button>
+          <div class="seek-track disabled" id="seekTrack" role="slider" tabindex="0" aria-label="Перемотка" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+            <div class="seek-fill" id="seekFill"></div>
+            <div class="seek-thumb" id="seekThumb"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <button class="btn auto" id="autoBtn" data-i18n-local="autoBtn">Авто-мастеринг</button>
+        <button class="btn primary" id="exportBtn" data-i18n-local="exportBtn">Завантажити готовий трек</button>
+      </div>
+    </div>
+
+    <div class="toolnav">← <a href="index.html" data-i18n-local="toolnavAllLink">Усі аудіо-інструменти</a></div>
+
+  </div>
+
+  <p style="text-align:center;color:rgba(255,255,255,.3);font-size:12px;margin-top:26px" data-i18n-local="footNote">Обробка звуку виконується Web Audio API безпосередньо у вашому браузері. Файли не зберігаються і не передаються нікуди.</p>
+</div>
+
+<footer>
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <div class="footer-brand-name gradient-text">INKBEAT</div>
+        <p class="footer-desc" data-i18n="footer.desc">Музичний артист • Автор пісень • Автор текстів. Музика, яка залишає слід.</p>
+        <a href="mailto:inkbeat.mail@gmail.com" class="footer-email">inkbeat.mail@gmail.com</a>
+      </div>
+      <div>
+        <div class="footer-col-title" data-i18n="footer.nav">Навігація</div>
+        <ul class="footer-links">
+          <li><a href="../../index.html" data-i18n="nav.home">Головна</a></li>
+          <li><a href="../about.html" data-i18n="nav.about">Про мене</a></li>
+          <li><a href="../discography.html" data-i18n="nav.discography">Дискографія</a></li>
+          <li><a href="../services.html" data-i18n="nav.services">Послуги</a></li>
+          <li><a href="../portfolio.html" data-i18n="nav.portfolio">Портфоліо</a></li>
+          <li><a href="../contact.html" data-i18n="nav.contact">Контакти</a></li>
+          <li><a href="index.html" data-i18n="nav.master">Мастеринг</a></li><li><a href="../studio/index.html" data-i18n="nav.studio">Studio</a></li><li><a href="video-to-audio.html" data-i18n="nav.videoAudio">Video → Audio</a></li>
+        </ul>
+      </div>
+      <div>
+        <div class="footer-col-title" data-i18n="footer.socials">Соцмережі</div>
+        <ul class="footer-links footer-social-links">
+          <li><a href="https://open.spotify.com/artist/6hkNwIjIfDcMDp5AObEbO9" target="_blank" rel="noopener">Spotify</a></li>
+          <li><a href="https://www.instagram.com/_.inkbeat._/" target="_blank" rel="noopener">Instagram</a></li>
+          <li><a href="https://www.youtube.com/@1nkBeat12/shorts" target="_blank" rel="noopener">YouTube</a></li>
+          <li><a href="https://www.tiktok.com/@inkbeat_" target="_blank" rel="noopener">TikTok</a></li>
+          <li><a href="https://music.apple.com/ua/artist/inkbeat/1850263830?l=uk" target="_blank" rel="noopener">Apple Music</a></li>
+          <li><a href="https://soundcloud.com/akabbvwcbvle" target="_blank" rel="noopener">SoundCloud</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p class="footer-copy">© <span id="year"></span> InkBeat. <span data-i18n="footer.rights">Всі права захищені.</span></p>
+      <p class="footer-copy" data-i18n="footer.made">Зроблено з ♥ в Україні</p>
+    </div>
+  </div>
+</footer>
+
+<script src="../../js/main.js"></script>
+<script>document.getElementById('year').textContent = new Date().getFullYear()</script>
+
+<script>
+(() => {
+  const ML = {
+    uk: {
+      audioStudioLink: 'Аудіо-студія', masteringLabel: '/ Мастеринг',
+      pageSub: 'Мастеринг треків прямо в браузері — гучність, компресія, баланс частот. Нічого не завантажується на сервер, усе відбувається на вашому пристрої.',
+      dropCta: 'Перетягніть трек сюди або натисніть, щоб обрати файл',
+      dropSub: 'MP3, WAV, M4A, OGG — обробка повністю локальна, файл нікуди не надсилається',
+      clearBtn: 'Обрати інший файл',
+      loudLabel: 'Гучність', compLabel: 'Компресія', bassLabel: 'Бас', trebLabel: 'Верхи',
+      meterLabel: 'РІВЕНЬ',
+      autoBtn: 'Авто-мастеринг', modeOrig: 'Оригінал', modeMast: 'Опрацьовано',
+      exportBtn: 'Завантажити готовий трек',
+      toolnavVocal: 'Потрібно прибрати або виділити вокал? →', toolnavVocalLink: 'Окремий інструмент VOCAL SPLIT',
+      toolnavEq: 'Потрібно зробити візуалізацію пісні для відео? →', toolnavEqLink: 'Окремий інструмент EQUALIZER',
+      toolnavAllLink: 'Усі аудіо-інструменти',
+      footNote: 'Обробка звуку виконується Web Audio API безпосередньо у вашому браузері. Файли не зберігаються і не передаються нікуди.',
+      dbUnit: ' дБ',
+      readingFile: 'Читання файлу…', decodingAudio: 'Декодування аудіо…', done: 'Готово',
+      decodingAudioSlow: 'Декодування аудіо… (у Safari це може тривати до хвилини, будь ласка, зачекай)',
+      decodingRetry: 'Декодування зависло — пробую ще раз…',
+      renderingLabel: 'Обробка треку…', renderingSlow: 'Обробка треку… (для довгих треків це може тривати довше, зачекай)',
+      renderTimeout: 'Обробка зайняла надто багато часу. Спробуй коротший трек або інший браузер.',
+      statusReady: 'Готово. Налаштуйте параметри й натисніть «Авто-мастеринг» або одразу завантажте.',
+      statusReadError: (reason) => `Не вдалося прочитати цей файл (${reason}). Спробуйте інший MP3/WAV-файл або інший браузер.`,
+      decodeTimeout: 'Декодування зайняло надто багато часу. Спробуйте інший файл або браузер.',
+      decodeStuckIOS: 'Safari/Chrome на iOS не змогли декодувати цей файл (відоме обмеження WebKit). Спробуйте: 1) переекспортувати файл у MP3 без обкладинки/тегів, 2) інший файл, або 3) відкрити сторінку на комп’ютері.',
+      statusAutoApplied: 'Застосовано пресет «Авто-мастеринг». Можете підлаштувати повзунки або одразу завантажити.',
+      statusProcessing: 'Обробка треку… (рендеринг відбувається локально, це може зайняти кілька секунд)',
+      statusExportDone: 'Готово! Файл завантажено на ваш пристрій — нічого не збережено ніде більше.',
+      statusExportError: 'Помилка обробки. Спробуйте ще раз або інший файл.'
+    },
+    en: {
+      audioStudioLink: 'Audio Studio', masteringLabel: '/ Mastering',
+      pageSub: 'Master your tracks right in the browser — loudness, compression, frequency balance. Nothing is uploaded to a server, everything happens on your device.',
+      dropCta: 'Drag a track here or tap to choose a file',
+      dropSub: 'MP3, WAV, M4A, OGG — fully local processing, the file is never sent anywhere',
+      clearBtn: 'Choose another file',
+      loudLabel: 'Loudness', compLabel: 'Compression', bassLabel: 'Bass', trebLabel: 'Treble',
+      meterLabel: 'LEVEL',
+      autoBtn: 'Auto-master', modeOrig: 'Original', modeMast: 'Processed',
+      exportBtn: 'Download finished track',
+      toolnavVocal: 'Need to remove or isolate vocals? →', toolnavVocalLink: 'Separate tool: VOCAL SPLIT',
+      toolnavEq: 'Need a visualizer for a video? →', toolnavEqLink: 'Separate tool: EQUALIZER',
+      toolnavAllLink: 'All audio tools',
+      footNote: 'Audio processing runs via the Web Audio API directly in your browser. Files are never stored or sent anywhere.',
+      dbUnit: ' dB',
+      readingFile: 'Reading file…', decodingAudio: 'Decoding audio…', done: 'Done',
+      decodingAudioSlow: 'Decoding audio… (in Safari this can take up to a minute, please wait)',
+      decodingRetry: 'Decoding got stuck — retrying…',
+      renderingLabel: 'Processing the track…', renderingSlow: 'Processing the track… (long tracks can take longer, please wait)',
+      renderTimeout: 'Processing took too long. Try a shorter track or a different browser.',
+      statusReady: 'Ready. Adjust the sliders and hit "Auto-master", or download right away.',
+      statusReadError: (reason) => `Couldn't read this file (${reason}). Try another MP3/WAV file or a different browser.`,
+      decodeTimeout: 'Decoding took too long. Try another file or browser.',
+      decodeStuckIOS: "Safari/Chrome on iOS couldn't decode this file (a known WebKit limitation). Try: 1) re-exporting the file as MP3 without cover art/tags, 2) a different file, or 3) opening this page on a computer.",
+      statusAutoApplied: 'Applied the "Auto-master" preset. You can fine-tune the sliders or download right away.',
+      statusProcessing: 'Processing the track… (rendering happens locally, this can take a few seconds)',
+      statusExportDone: "Done! The file was downloaded to your device — nothing was saved anywhere else.",
+      statusExportError: 'Processing error. Try again or use a different file.'
+    }
+  };
+  let mLang = localStorage.getItem('lang') || 'uk';
+  function mt(key){ return ML[mLang][key]; }
+  function applyLocalI18n(){
+    mLang = localStorage.getItem('lang') || 'uk';
+    document.querySelectorAll('[data-i18n-local]').forEach(el => {
+      const k = el.getAttribute('data-i18n-local');
+      if(ML[mLang][k] !== undefined) el.textContent = ML[mLang][k];
+    });
+    refreshLabels();
+    peakVal.textContent = (peakVal.textContent.replace(/[^\-∞0-9.]/g,'') || '-∞') + mt('dbUnit');
+  }
+  window.onLangChange = function(){ applyLocalI18n(); };
+
+  const dropEl = document.getElementById('drop');
+  const fileInput = document.getElementById('file');
+  const trackInfo = document.getElementById('trackInfo');
+  const trackName = document.getElementById('trackName');
+  const clearBtn = document.getElementById('clearBtn');
+  const waveCanvas = document.getElementById('wave');
+  const panel = document.getElementById('panel');
+  const statusEl = document.getElementById('status');
+  const progressBlock = document.getElementById('progressBlock');
+  const progFill = document.getElementById('progFill');
+  const progText = document.getElementById('progText');
+
+  const loud = document.getElementById('loud'), vLoud = document.getElementById('vLoud');
+  const comp = document.getElementById('comp'), vComp = document.getElementById('vComp');
+  const bass = document.getElementById('bass'), vBass = document.getElementById('vBass');
+  const treb = document.getElementById('treb'), vTreb = document.getElementById('vTreb');
+
+  const exportBtn = document.getElementById('exportBtn');
+  const autoBtn = document.getElementById('autoBtn');
+  const vuFill = document.getElementById('vuFill');
+  const peakVal = document.getElementById('peakVal');
+
+  const playToggle = document.getElementById('playToggle');
+  const iconPlay = playToggle.querySelector('.icon-play');
+  const iconPause = playToggle.querySelector('.icon-pause');
+  const seekTrack = document.getElementById('seekTrack');
+  const seekFill = document.getElementById('seekFill');
+  const seekThumb = document.getElementById('seekThumb');
+  const curTimeEl = document.getElementById('curTime');
+  const durTimeEl = document.getElementById('durTime');
+  const modeOrigBtn = document.getElementById('modeOrigBtn');
+  const modeMastBtn = document.getElementById('modeMastBtn');
+  const modeButtons = [modeOrigBtn, modeMastBtn];
+
+  let audioCtx = null;
+  let originalBuffer = null;
+  let fileNameBase = 'track';
+  let currentSource = null;
+  let currentAnalyser = null;
+  let rafId = null;
+
+  let playMode = 'orig';
+  let isPlaying = false;
+  let pauseOffset = 0;
+  let startCtxTime = 0;
+  let duration = 0;
+  let stoppingManually = false;
+  let isSeeking = false;
+
+  function setStatus(msg, cls){
+    statusEl.textContent = msg || '';
+    statusEl.className = 'status' + (cls ? ' ' + cls : '');
+  }
+
+  window.addEventListener('error', (e) => {
+    hideProgress();
+    dropEl.classList.remove('busy');
+    fileInput.disabled = false;
+    setStatus('Сталася неочікувана помилка: ' + (e.message || 'невідома') + '. Спробуй перезавантажити сторінку або інший браузер.', 'err');
+  });
+  window.addEventListener('unhandledrejection', (e) => {
+    hideProgress();
+    dropEl.classList.remove('busy');
+    fileInput.disabled = false;
+    const reason = (e.reason && (e.reason.message || e.reason)) || 'невідома помилка';
+    setStatus('Сталася неочікувана помилка: ' + reason + '. Спробуй перезавантажити сторінку або інший браузер.', 'err');
+  });
+
+  function showProgress(pct, label){
+    progressBlock.classList.add('show');
+    progFill.style.width = Math.round(pct*100) + '%';
+    progText.textContent = `${label} ${Math.round(pct*100)}%`;
+  }
+  function hideProgress(){
+    progressBlock.classList.remove('show');
+    progFill.style.width = '0%';
+  }
+
+  function withTimeout(promise, ms, message){
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error(message || 'Час очікування вичерпано')), ms);
+      promise.then(
+        (v) => { clearTimeout(timer); resolve(v); },
+        (e) => { clearTimeout(timer); reject(e); }
+      );
+    });
+  }
+
+  function dbToGain(db){ return Math.pow(10, db/20); }
+
+  dropEl.addEventListener('click', () => fileInput.click());
+  ['dragover','dragenter'].forEach(ev => dropEl.addEventListener(ev, e => { e.preventDefault(); dropEl.classList.add('drag'); }));
+  ['dragleave','drop'].forEach(ev => dropEl.addEventListener(ev, e => { e.preventDefault(); dropEl.classList.remove('drag'); }));
+  dropEl.addEventListener('drop', e => { const f = e.dataTransfer.files[0]; if (f) loadFile(f); });
+  fileInput.addEventListener('change', e => { const f = e.target.files[0]; if (f) loadFile(f); });
+  clearBtn.addEventListener('click', resetAll);
+
+  function resetAll(){
+    originalBuffer = null;
+    trackInfo.style.display = 'none';
+    waveCanvas.style.display = 'none';
+    panel.classList.remove('show');
+    fileInput.value = '';
+    setStatus('');
+    stopPlayback();
+    duration = 0;
+    pauseOffset = 0;
+    playMode = 'orig';
+    modeButtons.forEach(b => b.classList.toggle('active', b === modeOrigBtn));
+    seekTrack.classList.add('disabled');
+    seekTrack.setAttribute('aria-valuenow', '0');
+    playToggle.disabled = true;
+    updateSeekUI(0);
+  }
+
+  function decode(ctx, arrayBuf){
+    return new Promise((resolve, reject) => {
+      const maybePromise = ctx.decodeAudioData(arrayBuf, resolve, reject);
+      if (maybePromise && typeof maybePromise.then === 'function'){
+        maybePromise.then(resolve).catch(reject);
+      }
+    });
+  }
+
+  // iOS Safari/Chrome (both run on WebKit) has a known decodeAudioData bug where decoding
+  // can hang forever for certain files without ever calling the success or error callback.
+  // A fresh AudioContext often "unsticks" it, so we retry once with a brand new context
+  // before giving up, and we don't make the user wait too long to find out.
+  async function decodeWithRetry(arrayBuf, fileSize, onRetry){
+    const timeoutMs = Math.max(12000, Math.min(45000, fileSize / 2500));
+    try{
+      return await withTimeout(decode(audioCtx, arrayBuf.slice(0)), timeoutMs, mt('decodeTimeout'));
+    }catch(err){
+      const isTimeout = err && err.message === mt('decodeTimeout');
+      if (!isTimeout) throw err;
+      if (typeof onRetry === 'function') onRetry();
+      try{ await audioCtx.close(); }catch(e){}
+      audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') await audioCtx.resume();
+      try{
+        return await withTimeout(decode(audioCtx, arrayBuf.slice(0)), timeoutMs, mt('decodeTimeout'));
+      }catch(err2){
+        const stillTimeout = err2 && err2.message === mt('decodeTimeout');
+        throw new Error(stillTimeout ? mt('decodeStuckIOS') : (err2.message || err2.name || 'decode error'));
+      }
+    }
+  }
+
+  async function loadFile(file){
+    if(dropEl.classList.contains('busy')) return;
+    dropEl.classList.add('busy');
+    fileInput.disabled = true;
+    hideProgress();
+    setStatus('');
+    showProgress(0.02, mt('readingFile'));
+
+    const estimatedMs = Math.max(500, Math.min(6000, file.size / 4000));
+    const startedAt = Date.now();
+    let stageDone = false;
+    let isRetrying = false;
+    const progressTimer = setInterval(() => {
+      if(stageDone || isRetrying) return;
+      const elapsed = Date.now() - startedAt;
+      const pct = Math.min(0.92, elapsed/estimatedMs);
+      showProgress(pct, elapsed > 6000 ? mt('decodingAudioSlow') : mt('decodingAudio'));
+    }, 120);
+
+    try{
+      if (!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') await audioCtx.resume();
+      const arrayBuf = await file.arrayBuffer();
+      if (!arrayBuf || arrayBuf.byteLength === 0){
+        throw new Error('Файл порожній або не вдалося його прочитати.');
+      }
+      const buf = await decodeWithRetry(arrayBuf, file.size, () => {
+        isRetrying = true;
+        showProgress(0.92, mt('decodingRetry'));
+      });
+      stageDone = true;
+      clearInterval(progressTimer);
+      showProgress(1, mt('done'));
+
+      originalBuffer = buf;
+      fileNameBase = file.name.replace(/\.[^/.]+$/, '');
+      trackName.innerHTML = `<b>${file.name}</b> · ${buf.numberOfChannels}ch · ${buf.sampleRate}Hz · ${buf.duration.toFixed(1)}s`;
+      trackInfo.style.display = 'flex';
+      waveCanvas.style.display = 'block';
+      drawWaveform(buf);
+      panel.classList.add('show');
+      setStatus(mt('statusReady'), 'ok');
+
+      duration = buf.duration;
+      pauseOffset = 0;
+      playMode = 'orig';
+      modeButtons.forEach(b => b.classList.toggle('active', b === modeOrigBtn));
+      seekTrack.classList.remove('disabled');
+      playToggle.disabled = false;
+      durTimeEl.textContent = formatTime(duration);
+      updateSeekUI(0);
+    }catch(err){
+      stageDone = true;
+      clearInterval(progressTimer);
+      console.error(err);
+      const reason = (err && (err.message || err.name)) ? (err.message || err.name) : 'невідома помилка';
+      setStatus(mt('statusReadError')(reason), 'err');
+    } finally {
+      setTimeout(hideProgress, 400);
+      dropEl.classList.remove('busy');
+      fileInput.disabled = false;
+    }
+  }
+
+  function drawWaveform(buf){
+    const ctx = waveCanvas.getContext('2d');
+    const w = waveCanvas.width = waveCanvas.clientWidth * 2;
+    const h = waveCanvas.height = 160;
+    ctx.clearRect(0,0,w,h);
+    const data = buf.getChannelData(0);
+    const step = Math.ceil(data.length / w);
+    const mid = h/2;
+    ctx.fillStyle = '#B8452C';
+    for (let x=0; x<w; x++){
+      let min=1, max=-1;
+      const start = x*step;
+      for (let i=0;i<step;i++){
+        const v = data[start+i] || 0;
+        if (v<min) min=v; if (v>max) max=v;
+      }
+      ctx.fillRect(x, mid + min*mid*0.9, 1, Math.max(1,(max-min)*mid*0.9));
+    }
+  }
+
+  function refreshLabels(){
+    const db = mt('dbUnit');
+    vLoud.textContent = (loud.value>=0?'+':'') + loud.value + db;
+    vComp.textContent = comp.value + '%';
+    vBass.textContent = (bass.value>=0?'+':'') + bass.value + db;
+    vTreb.textContent = (treb.value>=0?'+':'') + treb.value + db;
+  }
+  [loud,comp,bass,treb].forEach(el => el.addEventListener('input', refreshLabels));
+  refreshLabels();
+
+  autoBtn.addEventListener('click', () => {
+    loud.value = 7; comp.value = 45; bass.value = 2.5; treb.value = 2.5;
+    refreshLabels();
+    setStatus(mt('statusAutoApplied'), 'ok');
+  });
+
+  function buildChain(ctx, source){
+    const p = {
+      loud: parseFloat(loud.value),
+      comp: parseFloat(comp.value)/100,
+      bass: parseFloat(bass.value),
+      treb: parseFloat(treb.value),
+    };
+    const low = ctx.createBiquadFilter();
+    low.type = 'lowshelf'; low.frequency.value = 150; low.gain.value = p.bass;
+
+    const high = ctx.createBiquadFilter();
+    high.type = 'highshelf'; high.frequency.value = 8000; high.gain.value = p.treb;
+
+    const compressor = ctx.createDynamicsCompressor();
+    compressor.threshold.value = -6 - p.comp*24;   
+    compressor.knee.value = 18;
+    compressor.ratio.value = 1 + p.comp*11;         
+    compressor.attack.value = 0.003;
+    compressor.release.value = 0.25;
+
+    const makeup = ctx.createGain();
+    makeup.gain.value = dbToGain(p.loud);
+
+    source.connect(low);
+    low.connect(high);
+    high.connect(compressor);
+    compressor.connect(makeup);
+    return makeup; 
+  }
+
+  function stopPlayback(){
+    if (currentSource){ stoppingManually = true; try{ currentSource.stop(); }catch(e){} currentSource=null; }
+    if (rafId) cancelAnimationFrame(rafId);
+    isPlaying = false;
+    updatePlayIcon();
+    vuFill.style.width = '0%';
+    peakVal.textContent = '-∞' + mt('dbUnit');
+  }
+
+  function formatTime(s){
+    if (!isFinite(s) || s < 0) s = 0;
+    const m = Math.floor(s / 60);
+    const sec = Math.floor(s % 60);
+    return m + ':' + String(sec).padStart(2, '0');
+  }
+
+  function updatePlayIcon(){
+    iconPlay.style.display = isPlaying ? 'none' : 'block';
+    iconPause.style.display = isPlaying ? 'block' : 'none';
+    playToggle.classList.toggle('is-playing', isPlaying);
+  }
+
+  function setSeekVisual(pct){
+    pct = Math.max(0, Math.min(1, pct));
+    const p = pct * 100;
+    seekFill.style.width = p + '%';
+    seekThumb.style.left = p + '%';
+    seekTrack.setAttribute('aria-valuenow', Math.round(p));
+  }
+
+  function updateSeekUI(current){
+    curTimeEl.textContent = formatTime(current);
+    if (isSeeking) return;
+    setSeekVisual(duration > 0 ? current / duration : 0);
+  }
+
+  function startSource(offset){
+    if (!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+
+    const clampedOffset = Math.max(0, Math.min(offset, duration));
+    const src = audioCtx.createBufferSource();
+    src.buffer = originalBuffer;
+
+    const analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 1024;
+    const data = new Uint8Array(analyser.fftSize);
+
+    const endNode = playMode === 'mast' ? buildChain(audioCtx, src) : src;
+    endNode.connect(analyser);
+    analyser.connect(audioCtx.destination);
+
+    src.start(0, clampedOffset);
+    currentSource = src;
+    currentAnalyser = analyser;
+    startCtxTime = audioCtx.currentTime - clampedOffset;
+
+    src.onended = () => {
+      if (stoppingManually){ stoppingManually = false; return; }
+      // reached the natural end of the track
+      isPlaying = false;
+      pauseOffset = 0;
+      updatePlayIcon();
+      updateSeekUI(0);
+      vuFill.style.width = '0%';
+      peakVal.textContent = '-∞' + mt('dbUnit');
+    };
+
+    function tick(){
+      analyser.getByteTimeDomainData(data);
+      let peak = 0;
+      for (let i=0;i<data.length;i++){
+        const v = Math.abs(data[i]-128)/128;
+        if (v>peak) peak = v;
+      }
+      const db = peak>0 ? 20*Math.log10(peak) : -60;
+      const pct = Math.max(0, Math.min(100, (db+60)/60*100));
+      vuFill.style.width = pct + '%';
+      peakVal.textContent = (db<=-59 ? '-∞' : db.toFixed(1)) + mt('dbUnit');
+
+      const current = Math.min(duration, audioCtx.currentTime - startCtxTime);
+      updateSeekUI(current);
+      if (isPlaying) rafId = requestAnimationFrame(tick);
+    }
+    tick();
+  }
+
+  function startPlayback(offset){
+    if (!originalBuffer) return;
+    if (currentSource){ stoppingManually = true; try{ currentSource.stop(); }catch(e){} currentSource = null; }
+    if (rafId) cancelAnimationFrame(rafId);
+    isPlaying = true;
+    updatePlayIcon();
+    startSource(offset);
+  }
+
+  function pausePlayback(){
+    if (!isPlaying) return;
+    pauseOffset = Math.min(duration, audioCtx.currentTime - startCtxTime);
+    if (currentSource){ stoppingManually = true; try{ currentSource.stop(); }catch(e){} currentSource = null; }
+    if (rafId) cancelAnimationFrame(rafId);
+    isPlaying = false;
+    updatePlayIcon();
+    vuFill.style.width = '0%';
+  }
+
+  playToggle.addEventListener('click', () => {
+    if (!originalBuffer) return;
+    if (isPlaying){
+      pausePlayback();
+    } else {
+      const offset = pauseOffset >= duration ? 0 : pauseOffset;
+      startPlayback(offset);
+    }
+  });
+
+  modeButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const mode = btn.dataset.mode;
+      if (mode === playMode || !originalBuffer) return;
+      modeButtons.forEach(b => b.classList.toggle('active', b === btn));
+      let resumeOffset = pauseOffset;
+      if (isPlaying) resumeOffset = Math.min(duration, audioCtx.currentTime - startCtxTime);
+      playMode = mode;
+      if (isPlaying){
+        startPlayback(resumeOffset);
+      } else {
+        pauseOffset = resumeOffset;
+      }
+    });
+  });
+
+  let dragPct = 0;
+
+  function pctFromClientX(clientX){
+    const rect = seekTrack.getBoundingClientRect();
+    if (rect.width === 0) return 0;
+    const x = Math.min(rect.right, Math.max(rect.left, clientX));
+    return (x - rect.left) / rect.width;
+  }
+
+  function commitSeek(pct){
+    if (!originalBuffer) return;
+    isSeeking = false;
+    const newOffset = Math.max(0, Math.min(pct * duration, duration));
+    if (isPlaying){
+      startPlayback(newOffset);
+    } else {
+      pauseOffset = newOffset;
+      updateSeekUI(newOffset);
+    }
+  }
+
+  seekTrack.addEventListener('pointerdown', (e) => {
+    if (!originalBuffer || seekTrack.classList.contains('disabled')) return;
+    seekTrack.focus();
+    isSeeking = true;
+    try{ seekTrack.setPointerCapture(e.pointerId); }catch(err){}
+    dragPct = pctFromClientX(e.clientX);
+    setSeekVisual(dragPct);
+    curTimeEl.textContent = formatTime(dragPct * duration);
+  });
+
+  seekTrack.addEventListener('pointermove', (e) => {
+    if (!isSeeking) return;
+    dragPct = pctFromClientX(e.clientX);
+    setSeekVisual(dragPct);
+    curTimeEl.textContent = formatTime(dragPct * duration);
+  });
+
+  function endSeekDrag(e){
+    if (!isSeeking) return;
+    try{ seekTrack.releasePointerCapture(e.pointerId); }catch(err){}
+    commitSeek(dragPct);
+  }
+  seekTrack.addEventListener('pointerup', endSeekDrag);
+  seekTrack.addEventListener('pointercancel', endSeekDrag);
+
+  seekTrack.addEventListener('keydown', (e) => {
+    if (!originalBuffer) return;
+    let cur = isPlaying ? Math.min(duration, audioCtx.currentTime - startCtxTime) : pauseOffset;
+    if (e.key === 'ArrowRight') cur = Math.min(duration, cur + 5);
+    else if (e.key === 'ArrowLeft') cur = Math.max(0, cur - 5);
+    else if (e.key === 'Home') cur = 0;
+    else if (e.key === 'End') cur = duration;
+    else return;
+    e.preventDefault();
+    commitSeek(duration > 0 ? cur / duration : 0);
+  });
+
+  async function renderMastered(){
+    const OfflineCtor = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+    const offline = new OfflineCtor(originalBuffer.numberOfChannels, originalBuffer.length, originalBuffer.sampleRate);
+    const src = offline.createBufferSource();
+    src.buffer = originalBuffer;
+    const endNode = buildChain(offline, src);
+    endNode.connect(offline.destination);
+    src.start();
+
+    const durationSec = originalBuffer.length / originalBuffer.sampleRate;
+    const estimatedMs = Math.max(600, Math.min(15000, durationSec * 700));
+    const startedAt = Date.now();
+    let renderDone = false;
+    showProgress(0.02, mt('renderingLabel'));
+    const progressTimer = setInterval(() => {
+      if(renderDone) return;
+      const elapsed = Date.now() - startedAt;
+      const pct = Math.min(0.95, elapsed/estimatedMs);
+      showProgress(pct, elapsed > 6000 ? mt('renderingSlow') : mt('renderingLabel'));
+    }, 120);
+
+    let rendered;
+    try{
+      rendered = await withTimeout(
+        offline.startRendering(),
+        Math.max(45000, Math.min(180000, durationSec * 3000)),
+        mt('renderTimeout')
+      );
+    } finally {
+      renderDone = true;
+      clearInterval(progressTimer);
+    }
+    showProgress(1, mt('done'));
+
+    let peak = 0;
+    for (let ch=0; ch<rendered.numberOfChannels; ch++){
+      const d = rendered.getChannelData(ch);
+      for (let i=0;i<d.length;i++){ const a = Math.abs(d[i]); if (a>peak) peak=a; }
+    }
+    const targetPeak = dbToGain(-0.5);
+    const scale = peak > 0 ? Math.min(targetPeak/peak, targetPeak/0.0001) : 1;
+
+    return { buffer: rendered, scale };
+  }
+
+  function encodeWav(buffer, scale){
+    const numChannels = buffer.numberOfChannels;
+    const sampleRate = buffer.sampleRate;
+    const numFrames = buffer.length;
+    const bytesPerSample = 2;
+    const blockAlign = numChannels * bytesPerSample;
+    const dataSize = numFrames * blockAlign;
+    const bufferArr = new ArrayBuffer(44 + dataSize);
+    const view = new DataView(bufferArr);
+
+    function writeString(offset, str){ for (let i=0;i<str.length;i++) view.setUint8(offset+i, str.charCodeAt(i)); }
+
+    writeString(0, 'RIFF');
+    view.setUint32(4, 36 + dataSize, true);
+    writeString(8, 'WAVE');
+    writeString(12, 'fmt ');
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true);
+    view.setUint16(22, numChannels, true);
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * blockAlign, true);
+    view.setUint16(32, blockAlign, true);
+    view.setUint16(34, 16, true);
+    writeString(36, 'data');
+    view.setUint32(40, dataSize, true);
+
+    const channels = [];
+    for (let ch=0; ch<numChannels; ch++) channels.push(buffer.getChannelData(ch));
+
+    let offset = 44;
+    for (let i=0; i<numFrames; i++){
+      for (let ch=0; ch<numChannels; ch++){
+        let sample = channels[ch][i] * scale;
+        sample = Math.max(-1, Math.min(1, sample));
+        view.setInt16(offset, sample < 0 ? sample*0x8000 : sample*0x7FFF, true);
+        offset += 2;
+      }
+    }
+    return new Blob([bufferArr], { type: 'audio/wav' });
+  }
+
+  exportBtn.addEventListener('click', async () => {
+    if (!originalBuffer) return;
+    exportBtn.disabled = true;
+    setStatus(mt('statusProcessing'));
+    try{
+      const { buffer, scale } = await renderMastered();
+      const blob = encodeWav(buffer, scale);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileNameBase + '-mastered.wav';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+      setStatus(mt('statusExportDone'), 'ok');
+    }catch(err){
+      console.error(err);
+      const reason = (err && err.message) ? err.message : mt('statusExportError');
+      setStatus(reason, 'err');
+    }finally{
+      exportBtn.disabled = false;
+      setTimeout(hideProgress, 400);
+    }
+  });
+
+  applyLocalI18n();
+})();
+</script>
+</body>
+</html>

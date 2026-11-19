@@ -1,0 +1,729 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Витягнути аудіо з відео | INKBEAT</title>
+<meta name="description" content="Безкоштовно витягни аудіодоріжку з відео прямо в браузері — без завантаження файлів на сервер. Обрізка, гучність, нормалізація, експорт у WAV чи Opus."/>
+  <link rel="canonical" href="https://inkbeatstudio.github.io/pages/master/video-to-audio.html"/>
+<link rel="icon" href="../../public/favicon-optimized.jpg"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="../../css/style.css"/>
+<style>
+  :root{
+    --bg:#000000; --panel:#0F0F0F; --panel-2:#161616; --line:rgba(255,255,255,.08);
+    --text:#ffffff; --muted:rgba(255,255,255,.45);
+    --gold:#241F3D; --teal:#B8452C; --danger:#FF4D4D;
+    --font-display:'Syne',sans-serif; --font-body:'Space Grotesk',sans-serif; --font-mono:'JetBrains Mono',monospace;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; background:var(--bg); color:var(--text); font-family:var(--font-body); }
+  body{ min-height:100vh; padding:0 18px 80px; cursor:auto; }
+  .tool-wrap{ max-width:900px; margin:0 auto; }
+  .rack{ background:linear-gradient(180deg,var(--panel),var(--panel-2)); border:1px solid var(--line); border-radius:14px; padding:22px; box-shadow:0 20px 50px -20px rgba(0,0,0,.6); }
+  .mode-switch{ display:flex; gap:8px; margin-bottom:18px; }
+  .mode-switch button{ flex:1; background:var(--bg); border:1px solid var(--line); color:var(--muted); font-family:var(--font-display); font-weight:700; font-size:13px; padding:10px; border-radius:8px; cursor:pointer; }
+  .mode-switch button.active{ color:#fff; border-color:var(--teal); background:rgba(184,69,44,.1); }
+  .drop{ border:1.5px dashed var(--line); border-radius:10px; padding:34px 18px; text-align:center; cursor:pointer; transition:border-color .15s, background .15s; }
+  .drop.busy{ opacity:.55; pointer-events:none; }
+  .drop:hover, .drop.drag{ border-color:var(--gold); background:rgba(36,31,61,0.08); }
+  .drop .slot{ font-family:var(--font-mono); font-size:12px; color:var(--muted); letter-spacing:.08em; text-transform:uppercase; margin-bottom:8px; }
+  .drop .cta{ font-family:var(--font-display); font-weight:700; font-size:17px; }
+  .drop .sub{ color:var(--muted); font-size:12.5px; margin-top:6px; }
+  input[type=file]{ display:none; }
+  .track-info{ display:none; align-items:center; justify-content:space-between; gap:10px; margin-top:16px; padding:10px 14px; background:var(--bg); border:1px solid var(--line); border-radius:8px; font-family:var(--font-mono); font-size:12.5px; color:var(--muted); flex-wrap:wrap; }
+  .track-info b{ color:var(--text); font-weight:600; }
+  .track-info button{ background:none; border:1px solid var(--line); color:var(--muted); font-family:var(--font-mono); font-size:11px; padding:5px 10px; border-radius:6px; cursor:pointer; }
+  .track-info button:hover{ color:var(--text); border-color:var(--muted); }
+  video#videoPreview{ display:none; width:100%; max-height:280px; border-radius:8px; margin-top:16px; background:#000; }
+  canvas#wave{ width:100%; height:80px; display:block; margin-top:16px; border-radius:8px; background:var(--bg); border:1px solid var(--line); position:relative; }
+  .wave-wrap{ position:relative; display:none; margin-top:16px; }
+  .trim-handle{ position:absolute; top:0; bottom:0; width:10px; background:rgba(184,69,44,.5); cursor:ew-resize; border-radius:4px; }
+  .trim-handle.left{ left:0; } .trim-handle.right{ right:0; }
+  .trim-shade{ position:absolute; top:0; bottom:0; background:rgba(0,0,0,.55); pointer-events:none; }
+  .panel{ display:none; margin-top:22px; }
+  .panel.show{ display:block; }
+  .strip{ display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:16px; margin-top:18px; }
+  .fader{ background:var(--bg); border:1px solid var(--line); border-radius:10px; padding:14px 14px 16px; }
+  .fader .flabel{ display:flex; justify-content:space-between; align-items:baseline; font-family:var(--font-display); font-size:13px; font-weight:700; margin-bottom:10px; }
+  .fader .fval{ font-family:var(--font-mono); font-size:12px; color:var(--gold); }
+  input[type=range]{ -webkit-appearance:none; width:100%; height:4px; background:var(--line); border-radius:2px; outline:none; }
+  input[type=range]::-webkit-slider-thumb{ -webkit-appearance:none; width:16px; height:16px; border-radius:50%; background:var(--teal); cursor:pointer; border:2px solid var(--bg); box-shadow:0 0 0 1px var(--teal); }
+  input[type=range]::-moz-range-thumb{ width:16px; height:16px; border-radius:50%; background:var(--teal); cursor:pointer; border:2px solid var(--bg); }
+  .toggle-row{ display:flex; align-items:center; justify-content:space-between; background:var(--bg); border:1px solid var(--line); border-radius:10px; padding:12px 14px; margin-top:12px; }
+  .toggle-row label{ font-family:var(--font-display); font-weight:700; font-size:13px; }
+  .switch{ position:relative; width:38px; height:22px; }
+  .switch input{ opacity:0; width:0; height:0; }
+  .switch span{ position:absolute; inset:0; background:rgba(255,255,255,.1); border-radius:999px; transition:.2s; }
+  .switch span::before{ content:''; position:absolute; width:16px; height:16px; left:3px; top:3px; background:#888; border-radius:50%; transition:.2s; }
+  .switch input:checked + span{ background:rgba(184,69,44,.3); }
+  .switch input:checked + span::before{ transform:translateX(16px); background:var(--teal); }
+  .format-row{ display:flex; gap:10px; margin-top:16px; }
+  .format-btn{ flex:1; background:var(--bg); border:1px solid var(--line); color:var(--muted); font-family:var(--font-mono); font-size:12.5px; padding:12px; border-radius:8px; cursor:pointer; text-align:left; }
+  .format-btn b{ display:block; font-family:var(--font-display); font-size:14px; color:var(--text); margin-bottom:3px; }
+  .format-btn.active{ border-color:var(--teal); background:rgba(184,69,44,.08); }
+  .btn{ font-family:var(--font-display); font-weight:700; font-size:14px; border-radius:999px; padding:13px 26px; cursor:pointer; border:none; }
+  .btn-primary{ background:linear-gradient(135deg,var(--teal),var(--gold)); color:var(--paper,#EFEAE2); }
+  .btn-primary:disabled{ opacity:.5; cursor:not-allowed; }
+  .btn-ghost{ background:var(--bg); border:1px solid var(--line); color:var(--text); }
+  .actions{ display:flex; gap:12px; margin-top:20px; flex-wrap:wrap; }
+  .status{ margin-top:14px; font-family:var(--font-mono); font-size:12.5px; color:var(--muted); min-height:18px; }
+  .status.ok{ color:#8CFF6B; } .status.err{ color:var(--danger); }
+  .progress-block{ display:none; margin-top:14px; }
+  .progress-block.show{ display:block; }
+  .progress-track{ height:6px; background:var(--line); border-radius:4px; overflow:hidden; }
+  .progress-fill{ height:100%; width:0%; background:linear-gradient(90deg,var(--teal),var(--gold)); transition:width .15s; }
+  .progress-text{ font-family:var(--font-mono); font-size:11.5px; color:var(--muted); margin-top:6px; }
+  .batch-list{ margin-top:16px; display:flex; flex-direction:column; gap:8px; }
+  .batch-item{ display:flex; align-items:center; justify-content:space-between; gap:10px; background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:10px 12px; font-family:var(--font-mono); font-size:12px; }
+  .batch-item .bi-name{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:46%; color:var(--text); }
+  .batch-item .bi-status{ color:var(--muted); }
+  .batch-item .bi-dl{ color:var(--teal); text-decoration:none; font-weight:600; }
+  .privacy-strip{ margin-top:24px; }
+</style>
+</head>
+<body>
+
+<div id="loading-screen" data-stage="0">
+  <div class="loading-glow"></div>
+  <div class="loading-eq"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+  <div class="loading-wordmark">
+    <span class="loading-letter gradient-text" style="animation-delay:.3s">V</span>
+    <span class="loading-letter gradient-text" style="animation-delay:.35s">I</span>
+    <span class="loading-letter gradient-text" style="animation-delay:.4s">D</span>
+    <span class="loading-letter gradient-text" style="animation-delay:.45s">E</span>
+    <span class="loading-letter gradient-text" style="animation-delay:.5s">O</span>
+  </div>
+  <div class="loading-bar-wrap"><div class="loading-bar" style="width:0%"></div></div>
+  <div class="loading-pct">0%</div>
+</div>
+
+<nav id="navbar">
+  <div class="nav-inner">
+    <a href="../../index.html" class="nav-logo gradient-text">INKBEAT</a>
+    <div class="nav-links">
+      <a href="../../index.html" data-i18n="nav.home">Головна</a>
+      <a href="../about.html" data-i18n="nav.about">Про мене</a>
+      <a href="../discography.html" data-i18n="nav.discography">Дискографія</a>
+      <a href="../services.html" data-i18n="nav.services">Послуги</a>
+      <a href="../portfolio.html" data-i18n="nav.portfolio">Портфоліо</a>
+      <a href="../contact.html" data-i18n="nav.contact">Контакти</a>
+    </div>
+    <div class="nav-right">
+      <div class="lang-btn">
+        <span class="lang-ua lang-toggle active" data-lang="uk">UA</span>
+        <span class="lang-sep">|</span>
+        <span class="lang-en lang-toggle" data-lang="en">EN</span>
+      </div>
+      <a href="index.html" class="nav-order nav-master active"><span class="nav-master-dot"></span><span data-i18n="nav.master">Мастеринг</span></a><a href="../studio/index.html" class="nav-order nav-studio"><span class="nav-master-dot"></span><span data-i18n="nav.studio">Studio</span></a>
+    </div>
+    <button class="burger"><svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+  </div>
+</nav>
+
+<div class="mobile-menu">
+  <button class="mobile-close"><svg width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+  <a href="../../index.html" data-i18n="nav.home">Головна</a>
+  <a href="../about.html" data-i18n="nav.about">Про мене</a>
+  <a href="../discography.html" data-i18n="nav.discography">Дискографія</a>
+  <a href="../services.html" data-i18n="nav.services">Послуги</a>
+  <a href="../portfolio.html" data-i18n="nav.portfolio">Портфоліо</a>
+  <a href="../contact.html" data-i18n="nav.contact">Контакти</a>
+  <a href="index.html" data-i18n="nav.master">Мастеринг</a>
+  <a href="../studio/index.html" data-i18n="nav.studio">Studio</a>
+  <div class="mobile-lang-switch">
+    <span class="lang-ua lang-toggle active" data-lang="uk">UA</span>
+    <span class="lang-sep">|</span>
+    <span class="lang-en lang-toggle" data-lang="en">EN</span>
+  </div>
+</div>
+
+<section class="page-header" style="padding-bottom:40px">
+  <div class="page-header-orb" style="top:20%;right:20%;width:500px;height:500px;background:radial-gradient(circle,#B8452C,transparent 70%)"></div>
+  <div class="container">
+    <div class="reveal">
+      <div class="page-label" style="color:var(--brick)">— <a href="index.html" style="color:inherit;text-decoration:none" data-i18n-local="audioStudioLink">Аудіо-студія</a> <span data-i18n-local="pageLabel">/ Відео → Аудіо</span></div>
+      <h1 class="page-title" style="font-size:clamp(2.2rem,6vw,4rem)">VIDEO<span class="gradient-text">.AUDIO</span></h1>
+      <p class="page-sub" data-i18n-local="pageSub">Витягни аудіодоріжку з будь-якого відео прямо в браузері — обріж, підніми гучність, нормалізуй і завантаж у WAV чи Opus. Нічого не надсилається на сервер.</p>
+    </div>
+  </div>
+</section>
+
+<div class="tool-wrap">
+  <div class="rack">
+
+    <div class="mode-switch">
+      <button id="modeSingleBtn" class="active" data-i18n-local="modeSingle">Один файл</button>
+      <button id="modeBatchBtn" data-i18n-local="modeBatch">Пакетна обробка</button>
+    </div>
+
+    <div id="singleMode">
+      <div class="drop" id="drop">
+        <div class="slot">// video in</div>
+        <div class="cta" data-i18n-local="dropCta">Перетягніть відео сюди або натисніть, щоб обрати файл</div>
+        <div class="sub" data-i18n-local="dropSub">MP4, MOV, WEBM, MKV — обробка повністю локальна, файл нікуди не надсилається</div>
+        <input type="file" id="file" accept="video/*,.mp4,.mov,.webm,.mkv,.avi" />
+      </div>
+
+      <div class="track-info" id="trackInfo">
+        <span id="trackName">—</span>
+        <span id="trackMeta"></span>
+        <button id="clearBtn" data-i18n-local="clearBtn">Обрати інший файл</button>
+      </div>
+
+      <video id="videoPreview" controls muted></video>
+
+      <div class="wave-wrap" id="waveWrap">
+        <canvas id="wave"></canvas>
+        <div class="trim-shade" id="shadeLeft" style="left:0;width:0"></div>
+        <div class="trim-shade" id="shadeRight" style="right:0;width:0"></div>
+        <div class="trim-handle left" id="handleLeft"></div>
+        <div class="trim-handle right" id="handleRight"></div>
+      </div>
+
+      <div class="panel" id="panel">
+
+        <div class="strip">
+          <div class="fader">
+            <div class="flabel"><span data-i18n-local="gainLabel">Гучність</span><span class="fval" id="vGain">100%</span></div>
+            <input type="range" id="gain" min="0" max="200" value="100"/>
+          </div>
+          <div class="fader">
+            <div class="flabel"><span data-i18n-local="fadeInLabel">Fade In</span><span class="fval" id="vFadeIn">0.0s</span></div>
+            <input type="range" id="fadeIn" min="0" max="50" value="0"/>
+          </div>
+          <div class="fader">
+            <div class="flabel"><span data-i18n-local="fadeOutLabel">Fade Out</span><span class="fval" id="vFadeOut">0.0s</span></div>
+            <input type="range" id="fadeOut" min="0" max="50" value="0"/>
+          </div>
+        </div>
+
+        <div class="toggle-row">
+          <label data-i18n-local="normalizeLabel">Нормалізувати гучність (авто-пік -1 dB)</label>
+          <label class="switch"><input type="checkbox" id="normalize"/><span></span></label>
+        </div>
+
+        <div class="format-row">
+          <button class="format-btn active" id="formatWav" data-i18n-local-html="formatWavHtml"><b>WAV</b>Без втрат, миттєвий експорт, більший файл</button>
+          <button class="format-btn" id="formatOpus" data-i18n-local-html="formatOpusHtml"><b>Opus (WebM)</b>Стиснутий, менший файл, рендер у реальному часі</button>
+        </div>
+
+        <div class="actions">
+          <button class="btn btn-primary" id="exportBtn" data-i18n-local="exportBtn">Завантажити аудіо</button>
+        </div>
+
+        <div class="progress-block" id="progressBlock">
+          <div class="progress-track"><div class="progress-fill" id="progFill"></div></div>
+          <div class="progress-text" id="progText"></div>
+        </div>
+
+        <div class="status" id="status"></div>
+      </div>
+    </div>
+
+    <div id="batchMode" style="display:none">
+      <div class="drop" id="batchDrop">
+        <div class="slot">// batch video in</div>
+        <div class="cta" data-i18n-local="batchDropCta">Перетягніть кілька відео або натисніть, щоб обрати файли</div>
+        <div class="sub" data-i18n-local="batchDropSub">Кожне відео буде оброблено окремо й збережено у WAV повної довжини</div>
+        <input type="file" id="batchFile" accept="video/*,.mp4,.mov,.webm,.mkv,.avi" multiple />
+      </div>
+      <div class="batch-list" id="batchList"></div>
+      <div class="actions">
+        <button class="btn btn-primary" id="batchExportBtn" style="display:none" data-i18n-local="batchExportBtn">Витягнути аудіо з усіх</button>
+      </div>
+      <div class="status" id="batchStatus"></div>
+    </div>
+
+    <div class="privacy-strip reveal" data-i18n-local="privacyStrip">
+      🔒 Уся обробка відео та звуку відбувається локально у вашому браузері через Web Audio API — жоден файл нікуди не завантажується.
+    </div>
+
+    <div class="toolnav">← <a href="index.html" data-i18n-local="toolnavAllLink">Усі аудіо-інструменти</a></div>
+
+  </div>
+</div>
+
+<footer style="margin-top:60px">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <a href="../../index.html" class="footer-logo gradient-text">INKBEAT</a>
+        <p class="footer-desc" data-i18n="footer.desc">Музичний артист • Автор пісень • Автор текстів. Музика, яка залишає слід.</p>
+      </div>
+      <div>
+        <div class="footer-col-title" data-i18n="footer.nav">Навігація</div>
+        <ul class="footer-links">
+          <li><a href="../../index.html" data-i18n="nav.home">Головна</a></li>
+          <li><a href="../about.html" data-i18n="nav.about">Про мене</a></li>
+          <li><a href="../discography.html" data-i18n="nav.discography">Дискографія</a></li>
+          <li><a href="../services.html" data-i18n="nav.services">Послуги</a></li>
+          <li><a href="../portfolio.html" data-i18n="nav.portfolio">Портфоліо</a></li>
+          <li><a href="../contact.html" data-i18n="nav.contact">Контакти</a></li>
+          <li><a href="index.html" data-i18n="nav.master">Мастеринг</a></li><li><a href="../studio/index.html" data-i18n="nav.studio">Studio</a></li><li><a href="video-to-audio.html" data-i18n="nav.videoAudio">Video → Audio</a></li>
+        </ul>
+      </div>
+      <div>
+        <div class="footer-col-title" data-i18n="footer.socials">Соцмережі</div>
+        <ul class="footer-links footer-social-links">
+          <li><a href="https://open.spotify.com/artist/6hkNwIjIfDcMDp5AObEbO9" target="_blank" rel="noopener">Spotify</a></li>
+          <li><a href="https://www.instagram.com/_.inkbeat._/" target="_blank" rel="noopener">Instagram</a></li>
+          <li><a href="https://www.youtube.com/@1nkBeat12/shorts" target="_blank" rel="noopener">YouTube</a></li>
+          <li><a href="https://www.tiktok.com/@inkbeat_" target="_blank" rel="noopener">TikTok</a></li>
+          <li><a href="https://music.apple.com/ua/artist/inkbeat/1850263830?l=uk" target="_blank" rel="noopener">Apple Music</a></li>
+          <li><a href="https://soundcloud.com/akabbvwcbvle" target="_blank" rel="noopener">SoundCloud</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p class="footer-copy">© <span id="year"></span> InkBeat. <span data-i18n="footer.rights">Всі права захищені.</span></p>
+      <p class="footer-copy" data-i18n="footer.made">Зроблено з ♥ в Україні</p>
+    </div>
+  </div>
+</footer>
+
+<script src="../../js/main.js"></script>
+<script>document.getElementById('year').textContent = new Date().getFullYear()</script>
+
+<script>
+(() => {
+  const ML = {
+    uk: {
+      audioStudioLink: 'Аудіо-студія', pageLabel: '/ Відео → Аудіо',
+      pageSub: 'Витягни аудіодоріжку з будь-якого відео прямо в браузері — обріж, підніми гучність, нормалізуй і завантаж у WAV чи Opus. Нічого не надсилається на сервер.',
+      modeSingle: 'Один файл', modeBatch: 'Пакетна обробка',
+      dropCta: 'Перетягніть відео сюди або натисніть, щоб обрати файл',
+      dropSub: 'MP4, MOV, WEBM, MKV — обробка повністю локальна, файл нікуди не надсилається',
+      clearBtn: 'Обрати інший файл',
+      gainLabel: 'Гучність', fadeInLabel: 'Fade In', fadeOutLabel: 'Fade Out',
+      normalizeLabel: 'Нормалізувати гучність (авто-пік -1 dB)',
+      formatWavHtml: '<b>WAV</b>Без втрат, миттєвий експорт, більший файл',
+      formatOpusHtml: '<b>Opus (WebM)</b>Стиснутий, менший файл, рендер у реальному часі',
+      exportBtn: 'Завантажити аудіо',
+      batchDropCta: 'Перетягніть кілька відео або натисніть, щоб обрати файли',
+      batchDropSub: 'Кожне відео буде оброблено окремо й збережено у WAV повної довжини',
+      batchExportBtn: 'Витягнути аудіо з усіх',
+      privacyStrip: '🔒 Уся обробка відео та звуку відбувається локально у вашому браузері через Web Audio API — жоден файл нікуди не завантажується.',
+      statusDecoding: 'Аналізую відео та витягую аудіодоріжку…',
+      statusNoAudio: 'У цьому відео не знайдено аудіодоріжки.',
+      statusUnsupported: 'Не вдалося прочитати аудіо з цього файлу. Спробуйте інший формат відео (MP4 з AAC або WEBM з Opus зазвичай працюють найкраще).',
+      statusReady: 'Готово до експорту.',
+      statusProcessing: 'Обробляю аудіо…',
+      statusRenderingRealtime: 'Рендеринг Opus у реальному часі… це займе стільки ж часу, скільки триває аудіо.',
+      statusExportDone: 'Готово! Файл завантажено на ваш пристрій — нікуди більше не надсилався.',
+      statusExportError: 'Помилка обробки. Спробуйте ще раз або інший файл.',
+      statusBatchDone: 'Пакетну обробку завершено.',
+      biWaiting: 'у черзі', biProcessing: 'обробка…', biDone: 'готово', biError: 'помилка', biDownload: 'Завантажити'
+    },
+    en: {
+      audioStudioLink: 'Audio Studio', pageLabel: '/ Video → Audio',
+      pageSub: 'Extract the audio track from any video right in your browser — trim, boost volume, normalize, and export to WAV or Opus. Nothing is ever uploaded.',
+      modeSingle: 'Single file', modeBatch: 'Batch processing',
+      dropCta: 'Drop a video here or click to choose a file',
+      dropSub: 'MP4, MOV, WEBM, MKV — fully local processing, nothing is uploaded',
+      clearBtn: 'Choose another file',
+      gainLabel: 'Gain', fadeInLabel: 'Fade In', fadeOutLabel: 'Fade Out',
+      normalizeLabel: 'Normalize loudness (auto peak -1 dB)',
+      formatWavHtml: '<b>WAV</b>Lossless, instant export, larger file',
+      formatOpusHtml: '<b>Opus (WebM)</b>Compressed, smaller file, real-time render',
+      exportBtn: 'Download audio',
+      batchDropCta: 'Drop multiple videos or click to choose files',
+      batchDropSub: 'Each video is processed separately and saved as a full-length WAV',
+      batchExportBtn: 'Extract audio from all',
+      privacyStrip: '🔒 All video and audio processing happens locally in your browser via the Web Audio API — no file is ever uploaded.',
+      statusDecoding: 'Analyzing video and extracting the audio track…',
+      statusNoAudio: 'No audio track was found in this video.',
+      statusUnsupported: 'Could not read audio from this file. Try a different video format (MP4 with AAC or WEBM with Opus usually work best).',
+      statusReady: 'Ready to export.',
+      statusProcessing: 'Processing audio…',
+      statusRenderingRealtime: 'Rendering Opus in real time… this takes as long as the audio itself.',
+      statusExportDone: 'Done! The file was downloaded to your device — nothing was sent anywhere else.',
+      statusExportError: 'Processing error. Try again or use a different file.',
+      statusBatchDone: 'Batch processing complete.',
+      biWaiting: 'queued', biProcessing: 'processing…', biDone: 'done', biError: 'error', biDownload: 'Download'
+    }
+  };
+  let mLang = localStorage.getItem('lang') || 'uk';
+  function mt(key){ return ML[mLang][key]; }
+  function applyLocalI18n(){
+    mLang = localStorage.getItem('lang') || 'uk';
+    document.querySelectorAll('[data-i18n-local]').forEach(el => {
+      const k = el.getAttribute('data-i18n-local');
+      if (ML[mLang][k] !== undefined) el.textContent = ML[mLang][k];
+    });
+    document.querySelectorAll('[data-i18n-local-html]').forEach(el => {
+      const k = el.getAttribute('data-i18n-local-html');
+      if (ML[mLang][k] !== undefined) el.innerHTML = ML[mLang][k];
+    });
+  }
+  window.onLangChange = function(){ applyLocalI18n(); };
+
+  const modeSingleBtn = document.getElementById('modeSingleBtn');
+  const modeBatchBtn = document.getElementById('modeBatchBtn');
+  const singleMode = document.getElementById('singleMode');
+  const batchMode = document.getElementById('batchMode');
+  modeSingleBtn.addEventListener('click', () => {
+    modeSingleBtn.classList.add('active'); modeBatchBtn.classList.remove('active');
+    singleMode.style.display = ''; batchMode.style.display = 'none';
+  });
+  modeBatchBtn.addEventListener('click', () => {
+    modeBatchBtn.classList.add('active'); modeSingleBtn.classList.remove('active');
+    batchMode.style.display = ''; singleMode.style.display = 'none';
+  });
+
+  const dropEl = document.getElementById('drop');
+  const fileInput = document.getElementById('file');
+  const trackInfo = document.getElementById('trackInfo');
+  const trackName = document.getElementById('trackName');
+  const trackMeta = document.getElementById('trackMeta');
+  const clearBtn = document.getElementById('clearBtn');
+  const videoPreview = document.getElementById('videoPreview');
+  const waveWrap = document.getElementById('waveWrap');
+  const waveCanvas = document.getElementById('wave');
+  const shadeLeft = document.getElementById('shadeLeft');
+  const shadeRight = document.getElementById('shadeRight');
+  const handleLeft = document.getElementById('handleLeft');
+  const handleRight = document.getElementById('handleRight');
+  const panel = document.getElementById('panel');
+  const statusEl = document.getElementById('status');
+  const progressBlock = document.getElementById('progressBlock');
+  const progFill = document.getElementById('progFill');
+  const progText = document.getElementById('progText');
+
+  const gainEl = document.getElementById('gain'), vGain = document.getElementById('vGain');
+  const fadeInEl = document.getElementById('fadeIn'), vFadeIn = document.getElementById('vFadeIn');
+  const fadeOutEl = document.getElementById('fadeOut'), vFadeOut = document.getElementById('vFadeOut');
+  const normalizeEl = document.getElementById('normalize');
+  const formatWavBtn = document.getElementById('formatWav');
+  const formatOpusBtn = document.getElementById('formatOpus');
+  const exportBtn = document.getElementById('exportBtn');
+
+  let audioCtx = null;
+  let decodedBuffer = null;
+  let fileNameBase = 'audio';
+  let trimStart = 0, trimEnd = 0;
+  let exportFormat = 'wav';
+
+  function ensureCtx(){ if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); return audioCtx; }
+
+  function setStatus(msg, cls){ statusEl.textContent = msg || ''; statusEl.className = 'status' + (cls ? ' ' + cls : ''); }
+  function showProgress(pct, label){ progressBlock.classList.add('show'); progFill.style.width = Math.round(pct*100)+'%'; progText.textContent = `${label} ${Math.round(pct*100)}%`; }
+  function hideProgress(){ progressBlock.classList.remove('show'); progFill.style.width = '0%'; }
+
+  window.addEventListener('error', e => { hideProgress(); dropEl.classList.remove('busy'); setStatus('Unexpected error: ' + (e.message||''), 'err'); });
+  window.addEventListener('unhandledrejection', e => { hideProgress(); dropEl.classList.remove('busy'); setStatus('Unexpected error: ' + ((e.reason&&e.reason.message)||e.reason||''), 'err'); });
+
+  dropEl.addEventListener('click', () => fileInput.click());
+  dropEl.addEventListener('dragover', e => { e.preventDefault(); dropEl.classList.add('drag'); });
+  dropEl.addEventListener('dragleave', () => dropEl.classList.remove('drag'));
+  dropEl.addEventListener('drop', e => { e.preventDefault(); dropEl.classList.remove('drag'); if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); });
+  fileInput.addEventListener('change', () => { if (fileInput.files[0]) handleFile(fileInput.files[0]); });
+  clearBtn.addEventListener('click', resetSingle);
+
+  function resetSingle(){
+    decodedBuffer = null;
+    trackInfo.style.display = 'none';
+    videoPreview.style.display = 'none';
+    videoPreview.src = '';
+    waveWrap.style.display = 'none';
+    panel.classList.remove('show');
+    setStatus('');
+    fileInput.value = '';
+  }
+
+  async function handleFile(file){
+    resetSingle();
+    dropEl.classList.add('busy');
+    fileNameBase = file.name.replace(/\.[^.]+$/, '') || 'audio';
+    trackName.innerHTML = `<b>${escapeHtml(file.name)}</b>`;
+    trackMeta.textContent = formatBytes(file.size);
+    trackInfo.style.display = 'flex';
+    videoPreview.src = URL.createObjectURL(file);
+    videoPreview.style.display = 'block';
+
+    setStatus(mt('statusDecoding'));
+    ensureCtx();
+    try {
+      const arrBuf = await file.arrayBuffer();
+      let buffer;
+      try {
+        buffer = await audioCtx.decodeAudioData(arrBuf.slice(0));
+      } catch (e) {
+        buffer = await decodeViaRealtimeCapture(file);
+      }
+      if (!buffer) { setStatus(mt('statusUnsupported'), 'err'); dropEl.classList.remove('busy'); return; }
+      decodedBuffer = buffer;
+      trimStart = 0; trimEnd = buffer.duration;
+      trackMeta.textContent = formatBytes(file.size) + ' · ' + formatTime(buffer.duration);
+      drawWaveform();
+      waveWrap.style.display = 'block';
+      panel.classList.add('show');
+      setStatus(mt('statusReady'), 'ok');
+    } catch (err) {
+      console.error(err);
+      setStatus(mt('statusUnsupported'), 'err');
+    } finally {
+      dropEl.classList.remove('busy');
+    }
+  }
+
+  function decodeViaRealtimeCapture(file){
+    return new Promise((resolve, reject) => {
+      const v = document.createElement('video');
+      v.muted = false; v.src = URL.createObjectURL(file);
+      v.addEventListener('loadedmetadata', () => {
+        let stream;
+        try { stream = v.captureStream ? v.captureStream() : v.mozCaptureStream(); }
+        catch (e) { reject(e); return; }
+        const audioTracks = stream.getAudioTracks();
+        if (!audioTracks.length) { resolve(null); return; }
+        const audioOnlyStream = new MediaStream(audioTracks);
+        const recorder = new MediaRecorder(audioOnlyStream);
+        const chunks = [];
+        recorder.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+        recorder.onstop = async () => {
+          try {
+            const blob = new Blob(chunks, { type: 'audio/webm' });
+            const buf = await blob.arrayBuffer();
+            const decoded = await audioCtx.decodeAudioData(buf);
+            resolve(decoded);
+          } catch (e) { reject(e); }
+        };
+        v.currentTime = 0;
+        recorder.start();
+        v.play();
+        v.addEventListener('ended', () => recorder.stop());
+        setTimeout(() => { if (recorder.state === 'recording') recorder.stop(); }, (v.duration + 1) * 1000);
+      });
+      v.addEventListener('error', () => reject(new Error('video load error')));
+    });
+  }
+
+  function formatBytes(b){ if (b < 1024*1024) return (b/1024).toFixed(0)+' KB'; return (b/1024/1024).toFixed(1)+' MB'; }
+  function formatTime(s){ const m = Math.floor(s/60), ss = Math.floor(s%60); return m+':'+String(ss).padStart(2,'0'); }
+  function escapeHtml(s){ return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+  function drawWaveform(){
+    if (!decodedBuffer) return;
+    const dpr = window.devicePixelRatio || 1;
+    const rect = waveCanvas.getBoundingClientRect();
+    waveCanvas.width = rect.width * dpr; waveCanvas.height = rect.height * dpr;
+    const ctx2d = waveCanvas.getContext('2d'); ctx2d.scale(dpr, dpr);
+    const data = decodedBuffer.getChannelData(0);
+    const w = rect.width, h = rect.height;
+    const step = Math.max(1, Math.floor(data.length / w));
+    ctx2d.fillStyle = '#B8452C'; ctx2d.globalAlpha = .85;
+    for (let x = 0; x < w; x++){
+      let min=1,max=-1; const start = x*step;
+      for (let i=0;i<step;i++){ const v = data[start+i]||0; if (v<min) min=v; if (v>max) max=v; }
+      const y1=(1+min)*h/2, y2=(1+max)*h/2;
+      ctx2d.fillRect(x, y1, 1, Math.max(1, y2-y1));
+    }
+    updateTrimUI();
+  }
+
+  function updateTrimUI(){
+    const w = waveCanvas.getBoundingClientRect().width;
+    const dur = decodedBuffer.duration;
+    const leftPx = (trimStart/dur)*w, rightPx = w - (trimEnd/dur)*w;
+    shadeLeft.style.width = leftPx+'px';
+    shadeRight.style.width = rightPx+'px';
+    handleLeft.style.left = leftPx+'px';
+    handleRight.style.left = (w-rightPx-10)+'px';
+  }
+
+  function wireTrimHandle(handle, side){
+    let dragging = false;
+    handle.addEventListener('mousedown', e => { dragging = true; e.preventDefault(); });
+    window.addEventListener('mousemove', e => {
+      if (!dragging || !decodedBuffer) return;
+      const rect = waveCanvas.getBoundingClientRect();
+      const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+      const t = pct * decodedBuffer.duration;
+      if (side === 'left') trimStart = Math.min(t, trimEnd - 0.1);
+      else trimEnd = Math.max(t, trimStart + 0.1);
+      updateTrimUI();
+    });
+    window.addEventListener('mouseup', () => dragging = false);
+  }
+  wireTrimHandle(handleLeft, 'left');
+  wireTrimHandle(handleRight, 'right');
+
+  gainEl.addEventListener('input', () => vGain.textContent = gainEl.value + '%');
+  fadeInEl.addEventListener('input', () => vFadeIn.textContent = (fadeInEl.value/10).toFixed(1)+'s');
+  fadeOutEl.addEventListener('input', () => vFadeOut.textContent = (fadeOutEl.value/10).toFixed(1)+'s');
+
+  formatWavBtn.addEventListener('click', () => { exportFormat='wav'; formatWavBtn.classList.add('active'); formatOpusBtn.classList.remove('active'); });
+  formatOpusBtn.addEventListener('click', () => { exportFormat='opus'; formatOpusBtn.classList.add('active'); formatWavBtn.classList.remove('active'); });
+
+  function peakOf(buffer){
+    let peak = 0;
+    for (let c=0;c<buffer.numberOfChannels;c++){
+      const d = buffer.getChannelData(c);
+      for (let i=0;i<d.length;i++){ const a = Math.abs(d[i]); if (a>peak) peak=a; }
+    }
+    return peak;
+  }
+
+  async function renderProcessed(){
+    const dur = trimEnd - trimStart;
+    const offline = new OfflineAudioContext(decodedBuffer.numberOfChannels, Math.ceil(dur*decodedBuffer.sampleRate), decodedBuffer.sampleRate);
+    const src = offline.createBufferSource(); src.buffer = decodedBuffer;
+    const gainNode = offline.createGain();
+    let gainVal = gainEl.value/100;
+    if (normalizeEl.checked){
+      const peak = peakOf(decodedBuffer);
+      if (peak > 0.001) gainVal *= (0.891/peak);
+    }
+    const fi = fadeInEl.value/10, fo = fadeOutEl.value/10;
+    gainNode.gain.setValueAtTime(fi>0?0:gainVal, 0);
+    if (fi>0) gainNode.gain.linearRampToValueAtTime(gainVal, fi);
+    if (fo>0){ gainNode.gain.setValueAtTime(gainVal, Math.max(0,dur-fo)); gainNode.gain.linearRampToValueAtTime(0, dur); }
+    src.connect(gainNode); gainNode.connect(offline.destination);
+    src.start(0, trimStart, dur);
+    return offline.startRendering();
+  }
+
+  function encodeWav(buffer){
+    const numCh = buffer.numberOfChannels;
+    const len = buffer.length*numCh*2+44;
+    const arrBuf = new ArrayBuffer(len);
+    const view = new DataView(arrBuf);
+    const writeStr = (o,s) => { for (let i=0;i<s.length;i++) view.setUint8(o+i, s.charCodeAt(i)); };
+    writeStr(0,'RIFF'); view.setUint32(4,len-8,true); writeStr(8,'WAVE');
+    writeStr(12,'fmt '); view.setUint32(16,16,true); view.setUint16(20,1,true);
+    view.setUint16(22,numCh,true); view.setUint32(24,buffer.sampleRate,true);
+    view.setUint32(28,buffer.sampleRate*numCh*2,true); view.setUint16(32,numCh*2,true);
+    view.setUint16(34,16,true); writeStr(36,'data'); view.setUint32(40,len-44,true);
+    let offset=44; const chans=[]; for (let c=0;c<numCh;c++) chans.push(buffer.getChannelData(c));
+    for (let i=0;i<buffer.length;i++){
+      for (let c=0;c<numCh;c++){
+        let s = Math.max(-1,Math.min(1,chans[c][i]));
+        view.setInt16(offset, s<0?s*0x8000:s*0x7FFF, true);
+        offset+=2;
+      }
+    }
+    return new Blob([arrBuf], { type:'audio/wav' });
+  }
+
+  function downloadBlob(blob, filename){
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+  }
+
+  async function exportViaOpus(buffer){
+    return new Promise((resolve, reject) => {
+      const liveCtx = ensureCtx();
+      const dest = liveCtx.createMediaStreamDestination();
+      const src = liveCtx.createBufferSource(); src.buffer = buffer; src.connect(dest);
+      const recorder = new MediaRecorder(dest.stream, { mimeType: 'audio/webm;codecs=opus' });
+      const chunks = [];
+      recorder.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+      recorder.onstop = () => resolve(new Blob(chunks, { type:'audio/webm' }));
+      recorder.onerror = reject;
+      const startedAt = performance.now();
+      const totalMs = buffer.duration*1000;
+      const tick = () => {
+        const elapsed = performance.now()-startedAt;
+        showProgress(Math.min(1, elapsed/totalMs), mt('statusRenderingRealtime'));
+        if (elapsed < totalMs) requestAnimationFrame(tick);
+      };
+      recorder.start();
+      src.start();
+      tick();
+      src.onended = () => setTimeout(() => recorder.stop(), 150);
+    });
+  }
+
+  exportBtn.addEventListener('click', async () => {
+    if (!decodedBuffer) return;
+    exportBtn.disabled = true;
+    setStatus(mt('statusProcessing'));
+    try {
+      const rendered = await renderProcessed();
+      if (exportFormat === 'wav'){
+        const blob = encodeWav(rendered);
+        downloadBlob(blob, fileNameBase + '.wav');
+      } else {
+        const blob = await exportViaOpus(rendered);
+        downloadBlob(blob, fileNameBase + '.webm');
+      }
+      setStatus(mt('statusExportDone'), 'ok');
+    } catch (err) {
+      console.error(err);
+      setStatus(mt('statusExportError'), 'err');
+    } finally {
+      exportBtn.disabled = false;
+      setTimeout(hideProgress, 400);
+    }
+  });
+
+  const batchDrop = document.getElementById('batchDrop');
+  const batchFileInput = document.getElementById('batchFile');
+  const batchList = document.getElementById('batchList');
+  const batchExportBtn = document.getElementById('batchExportBtn');
+  const batchStatus = document.getElementById('batchStatus');
+  let batchFiles = [];
+
+  batchDrop.addEventListener('click', () => batchFileInput.click());
+  batchDrop.addEventListener('dragover', e => { e.preventDefault(); batchDrop.classList.add('drag'); });
+  batchDrop.addEventListener('dragleave', () => batchDrop.classList.remove('drag'));
+  batchDrop.addEventListener('drop', e => { e.preventDefault(); batchDrop.classList.remove('drag'); addBatchFiles(Array.from(e.dataTransfer.files)); });
+  batchFileInput.addEventListener('change', () => addBatchFiles(Array.from(batchFileInput.files)));
+
+  function addBatchFiles(files){
+    files.forEach(f => batchFiles.push({ file: f, status: 'waiting', blob: null }));
+    renderBatchList();
+    batchExportBtn.style.display = batchFiles.length ? 'inline-flex' : 'none';
+  }
+
+  function renderBatchList(){
+    batchList.innerHTML = batchFiles.map((item, i) => `
+      <div class="batch-item" data-i="${i}">
+        <span class="bi-name">${escapeHtml(item.file.name)}</span>
+        <span class="bi-status">${statusLabel(item.status)}</span>
+        ${item.blob ? `<a class="bi-dl" href="${item.url}" download="${item.file.name.replace(/\.[^.]+$/,'')}.wav">${mt('biDownload')}</a>` : ''}
+      </div>`).join('');
+  }
+  function statusLabel(s){
+    if (s==='waiting') return mt('biWaiting');
+    if (s==='processing') return mt('biProcessing');
+    if (s==='done') return mt('biDone');
+    return mt('biError');
+  }
+
+  batchExportBtn.addEventListener('click', async () => {
+    batchExportBtn.disabled = true;
+    ensureCtx();
+    for (const item of batchFiles){
+      if (item.status === 'done') continue;
+      item.status = 'processing'; renderBatchList();
+      try {
+        const arrBuf = await item.file.arrayBuffer();
+        let buffer;
+        try { buffer = await audioCtx.decodeAudioData(arrBuf.slice(0)); }
+        catch (e) { buffer = await decodeViaRealtimeCapture(item.file); }
+        if (!buffer) throw new Error('no audio');
+        const blob = encodeWav(buffer);
+        item.blob = blob; item.url = URL.createObjectURL(blob);
+        item.status = 'done';
+      } catch (e) {
+        item.status = 'error';
+      }
+      renderBatchList();
+    }
+    batchStatus.textContent = mt('statusBatchDone');
+    batchStatus.className = 'status ok';
+    batchExportBtn.disabled = false;
+  });
+
+  applyLocalI18n();
+})();
+</script>
+</body>
+</html>

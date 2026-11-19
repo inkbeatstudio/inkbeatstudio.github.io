@@ -1,0 +1,13 @@
+{
+  "id": "arp-pluck",
+  "name": "Arp Pluck",
+  "type": "instrument",
+  "category": "Instruments",
+  "version": "1.0.0",
+  "author": "InkBeat",
+  "description": "Короткий яскравий щипковий тембр для арпеджіо та швидких мелодій.",
+  "params": [
+    { "id": "brightness", "name": "Brightness", "min": 500, "max": 9000, "default": 4500, "step": 50, "unit": "Hz" },
+    { "id": "snap", "name": "Snap", "min": 0.01, "max": 0.3, "default": 0.08, "step": 0.01, "unit": "s" }
+  ]
+}

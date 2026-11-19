@@ -1,0 +1,14 @@
+{
+  "id": "stereo-chorus",
+  "name": "Stereo Chorus",
+  "type": "effect",
+  "category": "Effects",
+  "version": "1.0.0",
+  "author": "InkBeat",
+  "description": "Стерео-хорус: дві модульовані затримки для ширини та руху звуку.",
+  "params": [
+    { "id": "rate", "name": "Rate", "min": 0.05, "max": 5, "default": 0.8, "step": 0.05, "unit": "Hz" },
+    { "id": "depth", "name": "Depth", "min": 0, "max": 1, "default": 0.5, "step": 0.01, "unit": "" },
+    { "id": "mix", "name": "Mix", "min": 0, "max": 1, "default": 0.4, "step": 0.01, "unit": "" }
+  ]
+}

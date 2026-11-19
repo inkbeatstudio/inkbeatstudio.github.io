@@ -1,0 +1,14 @@
+{
+  "id": "deep-sub",
+  "name": "Deep Sub",
+  "type": "instrument",
+  "category": "Instruments",
+  "version": "1.0.0",
+  "author": "InkBeat",
+  "description": "Чистий синусоїдний саб-бас з легкою сатурацією для тепла.",
+  "params": [
+    { "id": "drive", "name": "Drive", "min": 0, "max": 1, "default": 0.25, "step": 0.01, "unit": "" },
+    { "id": "glide", "name": "Glide", "min": 0, "max": 0.25, "default": 0.02, "step": 0.005, "unit": "s" },
+    { "id": "sub", "name": "Sub Level", "min": 0, "max": 1, "default": 0.6, "step": 0.01, "unit": "" }
+  ]
+}
