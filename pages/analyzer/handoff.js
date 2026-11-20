@@ -3,7 +3,7 @@
 
   const DB_NAME = 'inkbeat-studio';
   const DB_STORE = 'projects';
-  const PIANO_LOW = 48, PIANO_HIGH = 72;
+  const PIANO_LOW = 24, PIANO_HIGH = 84;
   const DRUM_KEYS = ['kick', 'snare', 'hihat', 'ohat', 'clap', 'tom', 'perc'];
 
   function openDB() {
@@ -79,25 +79,54 @@
     if (o.drums && ctx.drums && ctx.drums.pattern) {
       seqBars = ctx.drums.bars;
       const L = seqBars * 16;
-      ['kick', 'snare', 'hihat', 'ohat'].forEach(k => {
-        if (o.rows[k] !== false) pattern[k] = tile(ctx.drums.pattern[k], L);
+      ['kick', 'snare', 'hihat', 'ohat', 'clap', 'tom'].forEach(k => {
+        if (ctx.drums.pattern[k] && o.rows[k] !== false) pattern[k] = tile(ctx.drums.pattern[k], L);
       });
     }
 
-    const melody = {};
-    for (let m = PIANO_HIGH; m >= PIANO_LOW; m--) melody[m] = new Array(64).fill(false);
-    let melodyBars = 2;
-    if (o.chords && ctx.chords && ctx.chords.loop.length) {
-      melodyBars = ctx.chords.loopBars;
-      ctx.chords.loop.forEach((c, bar) => {
-        if (!c) return;
-        const root = PIANO_LOW + c.root;
-        [root, root + (c.minor ? 3 : 4), root + 7].forEach(m => {
-          if (m < PIANO_LOW || m > PIANO_HIGH) return;
-          for (let s = bar * 16; s < bar * 16 + 16; s++) melody[m][s] = true;
-        });
+    const emptyMap = () => { const m = {}; for (let n = PIANO_HIGH; n >= PIANO_LOW; n--) m[n] = new Array(256).fill(false); return m; };
+    const putNote = (map, midi, s0, len) => {
+      if (!map[midi]) return;
+      for (let i = s0; i < Math.min(256, s0 + len); i++) map[midi][i] = true;
+    };
+    const noteLayer = (notes, bars, instrument) => {
+      const map = emptyMap();
+      (notes || []).forEach((e, i) => {
+        const nx = notes[i + 1];
+        let len = e.len;
+        if (nx && nx.midi === e.midi && nx.s === e.s + len && len > 1) len -= 1;
+        putNote(map, e.midi, e.s, len);
       });
+      return { melody: map, bars, instrument, legato: true };
+    };
+
+    const chordsLayer = { melody: emptyMap(), bars: 2, instrument: o.instrumentId ? 'plugin:' + o.instrumentId : 'pad', legato: true };
+    if (o.chords && ctx.chords && ctx.chords.loop.length) {
+      const loopBars = ctx.chords.loopBars;
+      const comp = o.comp && ctx.comp && ctx.comp.bars && ctx.comp.style === 'pluck' ? ctx.comp : null;
+      const bars = comp ? Math.max(loopBars, comp.bars) : loopBars;
+      chordsLayer.bars = bars;
+      if (comp) chordsLayer.instrument = 'pluck';
+      for (let b = 0; b < bars; b++) {
+        const c = ctx.chords.loop[b % loopBars];
+        if (!c) continue;
+        let steps = comp ? comp.steps.filter(x => Math.floor(x / 16) === b % comp.bars).map(x => x % 16) : [0];
+        if (!steps.length) steps = [0];
+        steps.sort((p, q) => p - q);
+        const onsets = [];
+        steps.forEach(x => { if (!onsets.length || x - onsets[onsets.length - 1] > 1) onsets.push(x); });
+        const r = PIANO_LOW + 24 + c.root;
+        const voicing = comp ? [r, r + (c.minor ? 3 : 4), r + 7, r + 12] : [r, r + (c.minor ? 3 : 4), r + 7];
+        onsets.forEach((x, k) => {
+          const next = k + 1 < onsets.length ? onsets[k + 1] : 16;
+          const len = comp ? Math.max(1, next - x - 1) : 16;
+          voicing.forEach(m => putNote(chordsLayer.melody, m, b * 16 + x, len));
+        });
+      }
     }
+    const bassLayer = o.bass && ctx.bass && ctx.bass.notes.length ? noteLayer(ctx.bass.notes, ctx.bass.bars, 'bass') : { melody: emptyMap(), bars: 2, instrument: 'bass', legato: true };
+    const leadLayer = o.lead && ctx.lead && ctx.lead.notes.length ? noteLayer(ctx.lead.notes, ctx.lead.bars, 'lead') : { melody: emptyMap(), bars: 2, instrument: 'lead', legato: true };
+    const melody = chordsLayer.melody, melodyBars = chordsLayer.bars;
 
     const keyShort = ctx.key ? ctx.key.name.replace(' minor', 'm').replace(' major', '') : '';
     const name = `${ctx.baseName} · ${Math.round(bpm * 10) / 10} BPM · ${keyShort}`;
@@ -119,8 +148,9 @@
       name, savedAt: new Date().toISOString(),
       bpm, seqBars, seqSwing: 0, kit: 'modern',
       pattern, melody, melodyBars,
-      melodyInstrument: o.instrumentId ? 'plugin:' + o.instrumentId : 'pad',
+      melodyInstrument: chordsLayer.instrument,
       melodyLegato: true,
+      layers: { chords: chordsLayer, bass: bassLayer, lead: leadLayer },
       pluginFxChain: [], pluginInstrumentParams: {},
       markers: [], nextMarkerId: 1,
       tracks,

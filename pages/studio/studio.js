@@ -23,7 +23,7 @@
       titleZoomOut: 'Зменшити', titleZoomIn: 'Збільшити',
       hintDrop: 'Перетягніть аудіофайли сюди, або на конкретну доріжку — можна додавати кілька сегментів на одну доріжку та редагувати кожен окремо.',
       labelBars: 'Такти', labelSwing: 'Свінг', labelPreset: 'Пресет', optChoose: '— Обрати —', labelKit: 'Кіт',
-      btnClear: 'Очистити', btnRandom: 'Рандом', labelInstrument: 'Інструмент', labelLegato: 'Легато (довгі ноти)',
+      btnClear: 'Очистити', btnRandom: 'Рандом', labelInstrument: 'Інструмент', labelLegato: 'Легато (довгі ноти)', labelLayer: 'Шар', layerChords: 'Акорди / гітара', layerBass: 'Бас', layerLead: 'Лід',
       fxCompressor: 'Компресор', fxDistortion: 'Дисторшн', fxSidechain: 'Sidechain (за кіком)', fxLimiter: 'Лімітер (майстер)', fxAnalyser: 'Аналізатор спектра',
       fxTargetLabel: 'Застосувати ефекти до', fxTargetMasterOpt: 'Майстер (весь мікс)',
       fxTargetHintMaster: 'Ці ефекти лягають на весь мікс одразу', fxTargetHintTrack: 'Ці ефекти лягають лише на цю доріжку. Sidechain і лімітер завжди керують майстер-шиною.',
@@ -86,7 +86,7 @@
       titleZoomOut: 'Zoom out', titleZoomIn: 'Zoom in',
       hintDrop: 'Drag audio files here, or onto a specific track — you can add multiple segments to one track and edit each one separately.',
       labelBars: 'Bars', labelSwing: 'Swing', labelPreset: 'Preset', optChoose: '— Choose —', labelKit: 'Kit',
-      btnClear: 'Clear', btnRandom: 'Random', labelInstrument: 'Instrument', labelLegato: 'Legato (long notes)',
+      btnClear: 'Clear', btnRandom: 'Random', labelInstrument: 'Instrument', labelLegato: 'Legato (long notes)', labelLayer: 'Layer', layerChords: 'Chords / guitar', layerBass: 'Bass', layerLead: 'Lead',
       fxCompressor: 'Compressor', fxDistortion: 'Distortion', fxSidechain: 'Sidechain (from kick)', fxLimiter: 'Limiter (master)', fxAnalyser: 'Spectrum Analyzer',
       fxTargetLabel: 'Apply effects to', fxTargetMasterOpt: 'Master (whole mix)',
       fxTargetHintMaster: 'These effects sit on the entire mix at once', fxTargetHintTrack: 'These effects apply to this track only. Sidechain and the limiter always control the master bus.',
@@ -178,7 +178,7 @@
   const TRACK_COLORS = ['#B8452C', '#8D84C4', '#8C5A3C', '#6E1423', '#5C6E8C', '#A8763F'];
 
   const PIANO_NOTES = [];
-  for (let midi = 72; midi >= 48; midi--) {
+  for (let midi = 84; midi >= 24; midi--) {
     const names = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
     const name = names[midi % 12] + (Math.floor(midi / 12) - 1);
     const isBlack = names[midi % 12].includes('#');
@@ -243,7 +243,67 @@
     recSettings: { countdown: true, highpass: true, noiseGate: false, trimSilence: true }
   };
   DRUM_ROWS.forEach(r => { state.pattern[r.key] = new Array(64).fill(false); });
-  PIANO_NOTES.forEach(n => { state.melody[n.midi] = new Array(64).fill(false); });
+  const LAYER_IDS = ['chords', 'bass', 'lead'];
+  const LAYER_DEFAULT_INSTR = { chords: 'bass', bass: 'bass', lead: 'lead' };
+  const LAYER_SCROLL_TOP = { chords: 76, bass: 58, lead: 84 };
+  const MELODY_STEPS = 256;
+  function emptyMelody() { const m = {}; PIANO_NOTES.forEach(n => { m[n.midi] = new Array(MELODY_STEPS).fill(false); }); return m; }
+  function newLayer(id) { return { melody: emptyMelody(), bars: 2, instrument: LAYER_DEFAULT_INSTR[id], legato: false }; }
+  state.layers = {};
+  LAYER_IDS.forEach(id => { state.layers[id] = newLayer(id); });
+  state.activeLayer = 'chords';
+  state.layers.chords.bars = state.melodyBars;
+  state.layers.chords.instrument = state.melodyInstrument;
+  [['melody', 'melody'], ['melodyBars', 'bars'], ['melodyInstrument', 'instrument'], ['melodyLegato', 'legato']].forEach(([k, f]) => {
+    delete state[k];
+    Object.defineProperty(state, k, {
+      configurable: true, enumerable: true,
+      get() { return state.layers[state.activeLayer][f]; },
+      set(v) { state.layers[state.activeLayer][f] = v; }
+    });
+  });
+  function normalizeMelody(m) {
+    const out = emptyMelody();
+    if (m) Object.keys(m).forEach(k => { if (out[k] && m[k]) out[k] = Array.from({ length: MELODY_STEPS }, (_, i) => !!m[k][i]); });
+    return out;
+  }
+  function serializeLayers() {
+    const o = {};
+    LAYER_IDS.forEach(id => { const L = state.layers[id]; o[id] = { melody: L.melody, bars: L.bars, instrument: L.instrument, legato: L.legato }; });
+    return o;
+  }
+  function applyLayers(obj) {
+    state.activeLayer = 'chords';
+    state.layers.chords.melody = normalizeMelody(state.layers.chords.melody);
+    LAYER_IDS.forEach(id => {
+      const src = obj && obj[id];
+      const L = state.layers[id];
+      if (src) {
+        L.melody = normalizeMelody(src.melody);
+        L.bars = [1, 2, 4, 8, 16].includes(+src.bars) ? +src.bars : 2;
+        L.instrument = src.instrument || LAYER_DEFAULT_INSTR[id];
+        L.legato = !!src.legato;
+      } else if (id !== 'chords') {
+        state.layers[id] = newLayer(id);
+      }
+    });
+    const sel = document.getElementById('piano-layer');
+    if (sel) sel.value = 'chords';
+  }
+  function resetLayers() {
+    LAYER_IDS.forEach(id => { state.layers[id] = newLayer(id); });
+    state.activeLayer = 'chords';
+    const sel = document.getElementById('piano-layer');
+    if (sel) sel.value = 'chords';
+  }
+  function hasAnyMelody() {
+    return LAYER_IDS.some(id => Object.values(state.layers[id].melody).some(a => a.some(Boolean)));
+  }
+  function layerRunLen(L, midi, i, steps) {
+    let n = 1;
+    while (i + n < steps && L.melody[midi][i + n]) n++;
+    return n;
+  }
 
   const clipBufferCache = new Map();
 
@@ -623,11 +683,6 @@
 
   function totalSteps() { return state.seqBars * 16; }
   function melodyTotalSteps() { return state.melodyBars * 16; }
-  function melodyRunLen(midi, i, steps) {
-    let n = 1;
-    while (i + n < steps && state.melody[midi][i + n]) n++;
-    return n;
-  }
   function stepDuration() { return (60 / state.bpm) / 4; }
 
   function clipDuration(clip) {
@@ -776,16 +831,20 @@
         }
       });
 
-      PIANO_NOTES.forEach(n => {
-        if (!state.melody[n.midi][melodyStep]) return;
-        if (state.melodyLegato) {
-          const cont = melodyStep > 0 && state.melody[n.midi][melodyStep - 1];
-          if (cont && state.currentStepIndex !== state.melodyFirstStep) return;
-          const run = melodyRunLen(n.midi, melodyStep, melodyTotalSteps());
-          playSynthNote(actx, state.melodyTrack.nodes.gain, midiToFreq(n.midi), t, dur * run * 0.98, state.melodyInstrument);
-        } else {
-          playSynthNote(actx, state.melodyTrack.nodes.gain, midiToFreq(n.midi), t, dur * 0.92, state.melodyInstrument);
-        }
+      LAYER_IDS.forEach(id => {
+        const L = state.layers[id];
+        const ls = state.currentStepIndex % (L.bars * 16);
+        PIANO_NOTES.forEach(n => {
+          if (!L.melody[n.midi][ls]) return;
+          if (L.legato) {
+            const cont = ls > 0 && L.melody[n.midi][ls - 1];
+            if (cont && state.currentStepIndex !== state.melodyFirstStep) return;
+            const run = layerRunLen(L, n.midi, ls, L.bars * 16);
+            playSynthNote(actx, state.melodyTrack.nodes.gain, midiToFreq(n.midi), t, dur * run * 0.98, L.instrument);
+          } else {
+            playSynthNote(actx, state.melodyTrack.nodes.gain, midiToFreq(n.midi), t, dur * 0.92, L.instrument);
+          }
+        });
       });
 
       if (state.metronomeOn) {
@@ -1594,6 +1653,14 @@
     });
   }
 
+  function syncPianoScroll(reset) {
+    const sc = document.querySelector('.st-piano-grid-scroll');
+    const keys = document.getElementById('piano-keys');
+    if (!sc || !keys) return;
+    if (reset) sc.scrollTop = Math.max(0, (84 - (LAYER_SCROLL_TOP[state.activeLayer] || 76)) * 20);
+    keys.scrollTop = sc.scrollTop;
+  }
+
   function renderPianoRoll() {
     const keysEl = document.getElementById('piano-keys');
     const gridEl = document.getElementById('piano-grid');
@@ -1609,6 +1676,7 @@
       }
       return `<div class="st-piano-row ${n.isBlack ? 'black-key' : ''}">${cells}</div>`;
     }).join('');
+    syncPianoScroll(true);
     gridEl.querySelectorAll('.st-piano-cell').forEach(cell => {
       cell.addEventListener('click', () => {
         commit();
@@ -2228,7 +2296,7 @@
       })),
       nextTrackId: state.nextTrackId, nextClipId: state.nextClipId,
       bpm: state.bpm, seqBars: state.seqBars, seqSwing: state.seqSwing, kit: state.kit,
-      pattern: state.pattern, melody: state.melody, melodyBars: state.melodyBars, melodyInstrument: state.melodyInstrument, melodyLegato: state.melodyLegato,
+      pattern: state.pattern, melody: state.melody, melodyBars: state.melodyBars, melodyInstrument: state.melodyInstrument, melodyLegato: state.melodyLegato, layers: serializeLayers(),
       seqTrack: { volume: state.seqTrack.volume, pan: state.seqTrack.pan, mute: state.seqTrack.mute, solo: state.seqTrack.solo },
       melodyTrack: { volume: state.melodyTrack.volume, pan: state.melodyTrack.pan, mute: state.melodyTrack.mute, solo: state.melodyTrack.solo },
       fx: state.fx, sidechain: state.sidechain, masterVolume: state.masterVolume,
@@ -2252,8 +2320,10 @@
     });
     state.nextTrackId = d.nextTrackId; state.nextClipId = d.nextClipId || state.nextClipId;
     state.bpm = d.bpm; state.seqBars = d.seqBars; state.seqSwing = d.seqSwing; state.kit = d.kit || 'modern';
+    state.activeLayer = 'chords';
     state.pattern = d.pattern; state.melody = d.melody || state.melody;
     state.melodyBars = d.melodyBars || 2; state.melodyInstrument = d.melodyInstrument || 'bass'; state.melodyLegato = !!d.melodyLegato;
+    applyLayers(d.layers);
     Object.assign(state.seqTrack, d.seqTrack);
     Object.assign(state.melodyTrack, d.melodyTrack || {});
     Object.assign(state.fx, d.fx);
@@ -2351,7 +2421,7 @@
       name: state.currentProjectName,
       savedAt: new Date().toISOString(),
       bpm: state.bpm, seqBars: state.seqBars, seqSwing: state.seqSwing, kit: state.kit,
-      pattern: state.pattern, melody: state.melody, melodyBars: state.melodyBars, melodyInstrument: state.melodyInstrument, melodyLegato: state.melodyLegato,
+      pattern: state.pattern, melody: state.melody, melodyBars: state.melodyBars, melodyInstrument: state.melodyInstrument, melodyLegato: state.melodyLegato, layers: serializeLayers(),
       fx: state.fx, sidechain: state.sidechain, masterVolume: state.masterVolume,
       limiter: state.limiter, markers: state.markers, nextMarkerId: state.nextMarkerId,
       seqTrack: { volume: state.seqTrack.volume, pan: state.seqTrack.pan, mute: state.seqTrack.mute, solo: state.seqTrack.solo },
@@ -2399,11 +2469,13 @@
     state.seqBars = payload.seqBars || 2;
     state.seqSwing = payload.seqSwing || 0;
     state.kit = payload.kit || 'modern';
+    state.activeLayer = 'chords';
     state.pattern = payload.pattern || state.pattern;
     state.melody = payload.melody || state.melody;
     state.melodyBars = payload.melodyBars || 2;
     state.melodyInstrument = payload.melodyInstrument || 'bass';
     state.melodyLegato = !!payload.melodyLegato;
+    applyLayers(payload.layers);
     Object.assign(state.fx, payload.fx || {});
     Object.assign(state.sidechain, payload.sidechain || {});
     state.masterVolume = payload.masterVolume ?? 0.85;
@@ -2503,7 +2575,7 @@
     state.currentProjectId = null;
     state.currentProjectName = st('untitledProject');
     DRUM_ROWS.forEach(r => { state.pattern[r.key] = new Array(64).fill(false); });
-    PIANO_NOTES.forEach(n => { state.melody[n.midi] = new Array(64).fill(false); });
+    resetLayers();
     state.markers = [];
     historyStack.length = 0; redoStack.length = 0;
     renderTracks(); renderSequencer(); renderPianoRoll(); renderMixer();
@@ -2604,29 +2676,31 @@
 
     if (options.includeMelody !== false) {
       const stepDur = stepDuration();
-      const steps = melodyTotalSteps();
-      const patternLen = steps * stepDur;
       const meloAudible = options.onlyTrackId != null ? true : (anySolo ? state.melodyTrack.solo : !state.melodyTrack.mute);
       const meloGain = offlineCtx.createGain(); meloGain.gain.value = meloAudible ? state.melodyTrack.volume : 0;
       meloGain.connect(graph.mixBus);
-      if (patternLen > 0) {
+      LAYER_IDS.forEach(id => {
+        const L = state.layers[id];
+        const steps = L.bars * 16;
+        const patternLen = steps * stepDur;
+        if (patternLen <= 0) return;
         for (let t0 = 0; t0 < dur; t0 += patternLen) {
           for (let i = 0; i < steps; i++) {
             const t = t0 + i * stepDur;
             if (t >= dur) break;
             PIANO_NOTES.forEach(n => {
-              if (!state.melody[n.midi][i]) return;
-              if (state.melodyLegato) {
-                if (i > 0 && state.melody[n.midi][i - 1]) return;
-                const run = melodyRunLen(n.midi, i, steps);
-                playSynthNote(offlineCtx, meloGain, midiToFreq(n.midi), t, stepDur * run * 0.98, state.melodyInstrument);
+              if (!L.melody[n.midi][i]) return;
+              if (L.legato) {
+                if (i > 0 && L.melody[n.midi][i - 1]) return;
+                const run = layerRunLen(L, n.midi, i, steps);
+                playSynthNote(offlineCtx, meloGain, midiToFreq(n.midi), t, stepDur * run * 0.98, L.instrument);
               } else {
-                playSynthNote(offlineCtx, meloGain, midiToFreq(n.midi), t, stepDur * 0.92, state.melodyInstrument);
+                playSynthNote(offlineCtx, meloGain, midiToFreq(n.midi), t, stepDur * 0.92, L.instrument);
               }
             });
           }
         }
-      }
+      });
     }
 
     applyFxToGraph();
@@ -2656,7 +2730,7 @@
   async function exportStems() {
     ensureAudioContext();
     const hasAnyClip = state.tracks.some(t => t.clips.some(c => c.buffer));
-    if (!hasAnyClip && !Object.values(state.pattern).some(a => a.some(Boolean)) && !Object.values(state.melody).some(a => a.some(Boolean))) {
+    if (!hasAnyClip && !Object.values(state.pattern).some(a => a.some(Boolean)) && !hasAnyMelody()) {
       showToast(st('nothingToExport')); return;
     }
     showToast(st('renderingStems'));
@@ -2671,7 +2745,7 @@
       downloadBlob(audioBufferToWavBlob(rendered), 'inkbeat-beat.wav');
       await new Promise(r => setTimeout(r, 250));
     }
-    if (Object.values(state.melody).some(a => a.some(Boolean))) {
+    if (hasAnyMelody()) {
       const rendered = await renderOfflineMix({ onlyTrackId: -1, includeBeat: false, includeMelody: true });
       downloadBlob(audioBufferToWavBlob(rendered), 'inkbeat-melody.wav');
     }
@@ -2961,6 +3035,14 @@
 
   function wirePianoToolbar() {
     document.getElementById('piano-instrument').addEventListener('change', e => { state.melodyInstrument = e.target.value; });
+    document.getElementById('piano-layer').addEventListener('change', e => {
+      state.activeLayer = e.target.value;
+      document.getElementById('piano-bars').value = state.melodyBars;
+      document.getElementById('piano-instrument').value = state.melodyInstrument;
+      document.getElementById('piano-legato').checked = !!state.melodyLegato;
+      renderPianoRoll();
+    });
+    document.querySelector('.st-piano-grid-scroll').addEventListener('scroll', () => syncPianoScroll(false));
     document.getElementById('piano-legato').addEventListener('change', e => { state.melodyLegato = e.target.checked; });
     document.getElementById('piano-bars').addEventListener('change', e => {
       commit();
@@ -2969,7 +3051,7 @@
     });
     document.getElementById('btn-piano-clear').addEventListener('click', () => {
       commit();
-      PIANO_NOTES.forEach(n => state.melody[n.midi] = new Array(64).fill(false));
+      PIANO_NOTES.forEach(n => state.melody[n.midi] = new Array(MELODY_STEPS).fill(false));
       renderPianoRoll();
     });
   }

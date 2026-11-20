@@ -329,9 +329,14 @@
     const chroma = await chromaPass(x, p => report('chroma', p));
     const key = detectKey(chroma);
 
+    report('separate', 0);
+    const hp = await hpssPass(x, p => report('separate', p));
+    const A0 = { on, hp };
+    const pe = percEnvelopes(A0);
+
     report('done', 1);
     return {
-      sr: SR, duration: x.length / SR, mono: x, on, nrm, bt,
+      sr: SR, duration: x.length / SR, mono: x, on, nrm, bt, hp, onP: pe.on, nrmP: pe.nrm,
       tempo: { bpm: fit.bpm, candidates: cands.map(c => c.bpm), confidence, drift },
       chroma, key
     };
@@ -428,13 +433,19 @@
 
   function drums(A, G, opts) {
     opts = opts || {};
+    const perc = opts.src !== 'raw' && !!A.nrmP;
+    const NR = perc ? A.nrmP : A.nrm;
     const stepSec = G.beatSec / 4;
     const nSteps = Math.max(0, Math.floor((A.duration - G.d) / stepSec));
     const stepF = stepSec * FPS;
     const w = Math.max(1, Math.round(0.35 * stepF));
     const vals = { kick: new Float32Array(nSteps), snare: new Float32Array(nSteps), hat: new Float32Array(nSteps), noise: new Float32Array(nSteps) };
     const gap = { kick: new Float32Array(nSteps), snare: new Float32Array(nSteps), hat: new Float32Array(nSteps) };
-    const noiseN = scaledByP99(A.on.noise);
+    if (perc) {
+      ['body', 'tomb', 'sub'].forEach(k => { vals[k] = new Float32Array(nSteps); });
+      ['noise', 'tomb'].forEach(k => { gap[k] = new Float32Array(nSteps); });
+    }
+    const noiseN = perc ? A.nrmP.noise : scaledByP99(A.on.noise);
     const halfF = stepF / 2, wg = Math.max(1, Math.round(0.2 * stepF));
     const between = (env, f) => Math.max(
       maxIn(env, Math.round(f - halfF) - wg, Math.round(f - halfF) + wg),
@@ -443,20 +454,27 @@
     for (let i = 0; i < nSteps; i++) {
       const f = Math.round(timeToFrame(G.d + i * stepSec));
       centers[i] = f;
-      vals.kick[i] = maxIn(A.nrm.kick, f - w, f + w);
-      vals.snare[i] = maxIn(A.nrm.snare, f - w, f + w);
-      vals.hat[i] = maxIn(A.nrm.hat, f - w, f + w);
+      vals.kick[i] = maxIn(NR.kick, f - w, f + w);
+      vals.snare[i] = maxIn(NR.snare, f - w, f + w);
+      vals.hat[i] = maxIn(NR.hat, f - w, f + w);
       vals.noise[i] = maxIn(noiseN, f - w, f + w);
-      gap.kick[i] = between(A.nrm.kick, f);
-      gap.snare[i] = between(A.nrm.snare, f);
-      gap.hat[i] = between(A.nrm.hat, f);
+      gap.kick[i] = between(NR.kick, f);
+      gap.snare[i] = between(NR.snare, f);
+      gap.hat[i] = between(NR.hat, f);
+      if (perc) {
+        vals.body[i] = maxIn(NR.body, f - w, f + w);
+        vals.tomb[i] = maxIn(NR.tomb, f - w, f + w);
+        vals.sub[i] = maxIn(NR.sub, f - w, f + w);
+        gap.noise[i] = between(noiseN, f);
+        gap.tomb[i] = between(NR.tomb, f);
+      }
     }
     const present = {
       kick: true,
       snare: percentile(A.on.noise, 0.99) >= 0.006,
       hat: percentile(A.on.hat, 0.99) >= 0.01
     };
-    const thrFrac = { kick: opts.kickThr || 0.4, snare: opts.snareThr || 0.35, hat: opts.hatThr || 0.3, noise: 0.4 };
+    const thrFrac = { kick: opts.kickThr || 0.4, snare: opts.snareThr || 0.35, hat: opts.hatThr || 0.3, noise: 0.4, body: 0.4, tomb: 0.4, sub: 0.4 };
     const thr = {};
     const p95 = {};
     for (const k of Object.keys(vals)) {
@@ -469,23 +487,51 @@
 
     const hits = {
       kick: new Uint8Array(nSteps), snare: new Uint8Array(nSteps),
-      hihat: new Uint8Array(nSteps), ohat: new Uint8Array(nSteps)
+      hihat: new Uint8Array(nSteps), ohat: new Uint8Array(nSteps),
+      clap: new Uint8Array(nSteps), tom: new Uint8Array(nSteps)
     };
+    const hatRatio = new Float32Array(nSteps).fill(-1);
     for (let i = 0; i < nSteps; i++) {
-      if (vals.kick[i] > thr.kick && stands('kick', i)) hits.kick[i] = 1;
-      if (present.snare && vals.snare[i] > thr.snare && vals.noise[i] > thr.noise && stands('snare', i) && vals.kick[i] < 0.6 * vals.snare[i]) hits.snare[i] = 1;
+      if (vals.kick[i] > thr.kick && stands('kick', i) && (!perc || vals.sub[i] >= 0.6 * vals.kick[i])) hits.kick[i] = 1;
+      if (present.snare && vals.snare[i] > thr.snare && vals.noise[i] > thr.noise && stands('snare', i) && vals.kick[i] < 0.6 * vals.snare[i] && (!perc || vals.body[i] >= 0.4 * vals.noise[i])) hits.snare[i] = 1;
+      if (perc) {
+        if (!hits.snare[i] && present.snare && vals.noise[i] > thr.noise && stands('noise', i) && vals.body[i] < 0.4 * vals.noise[i] && vals.kick[i] < 0.5 * vals.noise[i]) hits.clap[i] = 1;
+        if (!hits.snare[i] && !hits.kick[i] && vals.tomb[i] > thr.tomb && stands('tomb', i) && vals.noise[i] < 0.35 * vals.tomb[i] && vals.sub[i] < 0.6 * vals.tomb[i]) hits.tom[i] = 1;
+      }
       if (present.hat && vals.hat[i] > thr.hat && stands('hat', i)) {
         const f = centers[i];
-        let pk = 0; for (let d = -1; d <= 2; d++) pk = Math.max(pk, A.on.hatE[Math.min(A.on.nF - 1, Math.max(0, f + d))]);
+        const HE = perc ? A.onP.hatE : A.on.hatE;
+        let pk = 0; for (let d = -1; d <= 2; d++) pk = Math.max(pk, HE[Math.min(A.on.nF - 1, Math.max(0, f + d))]);
         let tail = 0, c = 0;
-        for (let d = 3; d <= 9; d++) { const j = f + d; if (j < A.on.nF) { tail += A.on.hatE[j]; c++; } }
-        const ratio = pk > 0 && c ? (tail / c) / pk : 0;
-        const openThr = hits.snare[i] ? 0.35 : 0.12;
-        if (ratio > openThr) hits.ohat[i] = 1; else hits.hihat[i] = 1;
+        for (let d = 3; d <= 9; d++) { const j = f + d; if (j < A.on.nF) { tail += HE[j]; c++; } }
+        hatRatio[i] = pk > 0 && c ? (tail / c) / pk : 0;
+      }
+    }
+    {
+      const cand = [];
+      for (let i = 0; i < nSteps; i++) if (hatRatio[i] >= 0) cand.push(hatRatio[i]);
+      let openThr = perc ? 0.3 : 0.12;
+      if (perc && cand.length >= 8) {
+        const sorted = cand.slice().sort((a, b) => a - b);
+        let best = -1, bt = openThr;
+        for (let q = 1; q < sorted.length; q++) {
+          const lo = sorted.slice(0, q), hi = sorted.slice(q);
+          const ml = lo.reduce((a, b) => a + b, 0) / lo.length, mh = hi.reduce((a, b) => a + b, 0) / hi.length;
+          const sc = lo.length * hi.length * (mh - ml) * (mh - ml);
+          if (sc > best) { best = sc; bt = (sorted[q - 1] + sorted[q]) / 2; if (mh < 2.2 * ml + 0.05) bt = bt; }
+        }
+        const lo = sorted.filter(v => v <= bt), hi = sorted.filter(v => v > bt);
+        const ml = lo.length ? lo.reduce((a, b) => a + b, 0) / lo.length : 0, mh = hi.length ? hi.reduce((a, b) => a + b, 0) / hi.length : 0;
+        if (hi.length && hi.length <= 0.45 * sorted.length && mh >= 2.2 * ml + 0.1) openThr = Math.max(0.2, bt);
+      }
+      for (let i = 0; i < nSteps; i++) {
+        if (hatRatio[i] < 0) continue;
+        const thrO = hits.snare[i] ? openThr + 0.15 : openThr;
+        if (hatRatio[i] > thrO) hits.ohat[i] = 1; else hits.hihat[i] = 1;
       }
     }
 
-    const names = ['kick', 'snare', 'hihat', 'ohat'];
+    const names = perc ? ['kick', 'snare', 'hihat', 'ohat', 'clap', 'tom'] : ['kick', 'snare', 'hihat', 'ohat'];
     const fold = (barsN) => {
       const L = 16 * barsN, cycles = Math.floor(nSteps / L);
       if (cycles < 1) return null;
@@ -520,13 +566,13 @@
     }
     const result = {
       stepsTotal: nSteps, hits, fold: chosen, folds, debug: { vals, thr },
-      presence: { kick: present.kick, snare: present.snare, hihat: present.hat, ohat: present.hat }
+      presence: { kick: present.kick, snare: present.snare, hihat: present.hat, ohat: present.hat, clap: perc && present.snare, tom: perc }
     };
     if (chosen) {
       result.bars = chosen.bars;
       result.pattern = {};
       for (const nm of names) result.pattern[nm] = Array.from(chosen.cons[nm]).map(v => !!v);
-      for (const nm of ['kick', 'snare']) {
+      for (const nm of perc ? ['kick', 'snare', 'clap', 'tom'] : ['kick', 'snare']) {
         const dens = result.pattern[nm].filter(Boolean).length / result.pattern[nm].length;
         if (dens > 0.45) { result.pattern[nm] = result.pattern[nm].map(() => false); result.presence[nm] = false; }
       }
@@ -536,7 +582,7 @@
     return result;
   }
 
-  function chords(A, G) {
+  function chords(A, G, copts) {
     const { data, energy, nF } = A.chroma;
     const times = f => (f * HOP2 + N2 / 2) / SR;
     const gate = percentile(energy, 0.15);
@@ -561,6 +607,7 @@
         for (let i = 0; i < 12; i++) tpl[(i + r) % 12] = base[i];
         let s = cosine(acc, tpl);
         if (!dia.has(r + ':' + (minor ? 1 : 0))) s *= 0.9;
+        if (copts && copts.rootPrior && copts.rootPrior[b] === r) s += (copts.priorWeight || 0.12);
         scores.push({ root: r, minor, s });
       }
       scores.sort((a, b) => b.s - a.s);
@@ -586,8 +633,569 @@
     return { perBar, loop, loopBars };
   }
 
+  const HN = 2048, HHOP = 512, HK = 980;
+  const HFPS = SR / HHOP;
+  const HBIN = SR / HN;
+  const hbin = hz => Math.round(hz / HBIN);
+  const hz = m => 440 * Math.pow(2, (m - 69) / 12);
+  const toMidi = f => 69 + 12 * Math.log2(f / 440);
+
+  function medLine(src, out, base, st, n, w, buf) {
+    const h = w >> 1;
+    for (let j = 0; j < w; j++) buf[j] = src[base + Math.min(n - 1, Math.max(0, j - h)) * st];
+    const sorted = buf.subarray(0, w);
+    sorted.sort();
+    out[base] = sorted[h];
+    for (let i = 1; i < n; i++) {
+      const outV = src[base + Math.min(n - 1, Math.max(0, i - 1 - h)) * st];
+      const inV = src[base + Math.min(n - 1, Math.max(0, i + h)) * st];
+      if (outV !== inV) {
+        let lo = 0, hi = w - 1;
+        while (lo < hi) { const m = (lo + hi) >> 1; if (sorted[m] < outV) lo = m + 1; else hi = m; }
+        let j = lo;
+        if (inV > outV) { while (j + 1 < w && sorted[j + 1] < inV) { sorted[j] = sorted[j + 1]; j++; } }
+        else { while (j > 0 && sorted[j - 1] > inV) { sorted[j] = sorted[j - 1]; j--; } }
+        sorted[j] = inV;
+      }
+      out[base + i * st] = sorted[h];
+    }
+  }
+
+  async function hpssPass(x, progress) {
+    const nF = Math.max(0, Math.floor((x.length - HN) / HHOP) + 1);
+    const mag = new Float32Array(nF * HK);
+    const win = hann(HN), fft = makeFFT(HN);
+    const re = new Float32Array(HN), im = new Float32Array(HN);
+    const sc = 4 / HN;
+    for (let f = 0; f < nF; f++) {
+      const off = f * HHOP;
+      for (let i = 0; i < HN; i++) { re[i] = x[off + i] * win[i]; im[i] = 0; }
+      fft(re, im);
+      const o = f * HK;
+      for (let k = 1; k < HK; k++) mag[o + k] = Math.sqrt(re[k] * re[k] + im[k] * im[k]) * sc;
+      if ((f & 127) === 0) { if (progress) progress(0.5 * f / nF); await tick(); }
+    }
+    const H = new Float32Array(nF * HK), P = new Float32Array(nF * HK);
+    const buf = new Float32Array(32);
+    for (let k = 0; k < HK; k++) {
+      medLine(mag, H, k, HK, nF, 17, buf);
+      if ((k & 63) === 0) { if (progress) progress(0.5 + 0.25 * k / HK); await tick(); }
+    }
+    for (let f = 0; f < nF; f++) {
+      medLine(mag, P, f * HK, 1, HK, 17, buf);
+      if ((f & 127) === 0) { if (progress) progress(0.75 + 0.25 * f / nF); await tick(); }
+    }
+    for (let i = 0; i < H.length; i++) {
+      const h2 = H[i] * H[i], p2 = P[i] * P[i];
+      const mh = h2 / (h2 + p2 + 1e-12);
+      H[i] = mag[i] * mh;
+      P[i] = mag[i] * (1 - mh);
+    }
+    return { nF, K: HK, mag, H, P };
+  }
+
+  const PB = {
+    sub: [hbin(40), hbin(90)], low: [hbin(43), hbin(150)], tomb: [hbin(108), hbin(260)],
+    body: [hbin(172), hbin(390)], noise: [hbin(1800), hbin(5500)], hat: [hbin(7000), hbin(10400)],
+    full: [hbin(43), hbin(6500)]
+  };
+
+  function percEnvelopes(A) {
+    const hp = A.hp, nH = hp.nF, K = hp.K;
+    const names = Object.keys(PB);
+    const raw = {};
+    names.forEach(n => { raw[n] = new Float32Array(nH); });
+    const prev = new Float32Array(K), cur = new Float32Array(K);
+    const prevF = new Float32Array(K), curF = new Float32Array(K);
+    for (let f = 0; f < nH; f++) {
+      const o = f * K;
+      for (let k = 1; k < K; k++) {
+        const m = hp.P[o + k];
+        cur[k] = Math.log(1 + 12 * m);
+        curF[k] = Math.log(1 + 1000 * m);
+      }
+      if (f > 0) {
+        for (const n of names) {
+          const [a, b] = PB[n];
+          const C = n === 'full' ? curF : cur, Pv = n === 'full' ? prevF : prev;
+          let s = 0;
+          for (let k = a; k <= b; k++) { const d = C[k] - Pv[k]; if (d > 0) s += d; }
+          raw[n][f] = s / (b - a + 1);
+        }
+      }
+      prev.set(cur); prevF.set(curF);
+    }
+    const nF = A.on.nF;
+    const up = src => {
+      const out = new Float32Array(nF);
+      for (let f = 0; f < nF; f++) {
+        const p = f / 2 - 1, i0 = Math.max(0, Math.min(nH - 1, Math.floor(p))), i1 = Math.min(nH - 1, i0 + 1), t = p - Math.floor(p);
+        out[f] = src[i0] * (1 - t) + src[i1] * t;
+      }
+      return out;
+    };
+    const hatE = new Float32Array(nH);
+    for (let f = 0; f < nH; f++) {
+      let e = 0; const base = f * K;
+      for (let k = PB.hat[0]; k <= PB.hat[1]; k++) { const v = hp.P[base + k]; e += v * v; }
+      hatE[f] = e;
+    }
+    const o = {};
+    names.forEach(n => { o[n] = up(raw[n]); });
+    o.hatE = up(hatE);
+    const nrm = {};
+    names.forEach(n => { nrm[n] = scaledByP99(o[n]); });
+    nrm.kick = nrm.low;
+    nrm.snare = new Float32Array(nF);
+    for (let i = 0; i < nF; i++) nrm.snare[i] = Math.sqrt(nrm.body[i] * nrm.noise[i]);
+    return { on: o, nrm };
+  }
+
+  function lowpassDecimate(x, factor, cutoff) {
+    const taps = 255, half = taps >> 1;
+    const fc = cutoff / SR;
+    const h = new Float32Array(taps);
+    let sum = 0;
+    for (let i = 0; i < taps; i++) {
+      const n = i - half;
+      const s = n === 0 ? 2 * fc : Math.sin(2 * Math.PI * fc * n) / (Math.PI * n);
+      const w = 0.5 - 0.5 * Math.cos(2 * Math.PI * i / (taps - 1));
+      h[i] = s * w; sum += h[i];
+    }
+    for (let i = 0; i < taps; i++) h[i] /= sum;
+    const n = Math.floor((x.length - taps) / factor);
+    const y = new Float32Array(Math.max(0, n));
+    for (let i = 0; i < n; i++) {
+      const base = i * factor;
+      let s = 0;
+      for (let j = 0; j < taps; j++) s += x[base + j] * h[j];
+      y[i] = s;
+    }
+    return { y, fs: SR / factor, delay: half / SR };
+  }
+
+  function yinTrack(y, fs, hopDec, W, fLo, fHi, gate, rms) {
+    const nF = Math.max(0, Math.floor((y.length - W - Math.ceil(fs / fLo)) / hopDec) + 1);
+    const tauMin = Math.max(2, Math.floor(fs / fHi)), tauMax = Math.ceil(fs / fLo);
+    const f0 = new Float32Array(nF), ap = new Float32Array(nF).fill(1);
+    const d = new Float32Array(tauMax + 2), cm = new Float32Array(tauMax + 2);
+    for (let f = 0; f < nF; f++) {
+      if (rms[f] < gate) continue;
+      const s = f * hopDec;
+      d[0] = 0;
+      for (let tau = 1; tau <= tauMax; tau++) {
+        let acc = 0;
+        for (let j = 0; j < W; j++) { const df = y[s + j] - y[s + j + tau]; acc += df * df; }
+        d[tau] = acc;
+      }
+      let run = 0;
+      cm[0] = 1;
+      for (let tau = 1; tau <= tauMax; tau++) { run += d[tau]; cm[tau] = run > 0 ? d[tau] * tau / run : 1; }
+      let tauBest = -1;
+      for (let tau = tauMin; tau <= tauMax; tau++) {
+        if (cm[tau] < 0.2) {
+          while (tau + 1 <= tauMax && cm[tau + 1] < cm[tau]) tau++;
+          tauBest = tau; break;
+        }
+      }
+      if (tauBest < 0) {
+        let m = 1, mt = -1;
+        for (let tau = tauMin; tau <= tauMax; tau++) if (cm[tau] < m) { m = cm[tau]; mt = tau; }
+        if (mt > 0 && m < 0.3) tauBest = mt;
+      }
+      if (tauBest < 0) continue;
+      let t = tauBest;
+      if (t > 1 && t < tauMax) {
+        const a = cm[t - 1], b = cm[t], c = cm[t + 1];
+        const den = a - 2 * b + c;
+        if (Math.abs(den) > 1e-9) t += 0.5 * (a - c) / den;
+      }
+      f0[f] = fs / t; ap[f] = cm[tauBest];
+    }
+    return { nF, f0, ap };
+  }
+
+  function bandRatio(hp, f, loA, loB, hiB) {
+    const o = f * hp.K;
+    let lo = 0, all = 0;
+    for (let k = loA; k <= hiB; k++) { const v = hp.H[o + k]; const e = v * v; all += e; if (k <= loB) lo += e; }
+    return all > 1e-12 ? lo / all : 0;
+  }
+
+  function rleSegments(midi, minLen, bridge, anyGap) {
+    const n = midi.length, segs = [];
+    let i = 0;
+    while (i < n) {
+      if (midi[i] < 0) { i++; continue; }
+      let j = i, last = i;
+      while (j + 1 < n) {
+        if (midi[j + 1] === midi[i]) { j++; last = j; continue; }
+        let k = j + 1, gap = 0;
+        while (k < n && (anyGap ? midi[k] !== midi[i] : midi[k] < 0) && gap <= bridge) { k++; gap++; }
+        if (k < n && midi[k] === midi[i] && gap <= bridge) { j = k; last = k; continue; }
+        break;
+      }
+      if (last - i + 1 >= minLen) segs.push({ a: i, b: last, midi: midi[i] });
+      i = last + 1;
+    }
+    return segs;
+  }
+
+  function medianOf(a) {
+    const s = Array.from(a).sort((p, q) => p - q);
+    return s.length ? s[s.length >> 1] : 0;
+  }
+
+  function quantizeNotes(notes, G, nSteps) {
+    const stepSec = G.beatSec / 4;
+    const events = [];
+    for (const nt of notes) {
+      let s = Math.round((nt.t0 - G.d) / stepSec);
+      if (s < 0 || s >= nSteps) continue;
+      let e = Math.round((nt.t1 - G.d) / stepSec);
+      events.push({ s, len: Math.max(1, e - s), midi: nt.midi });
+    }
+    events.sort((p, q) => p.s - q.s || p.midi - q.midi);
+    const out = [];
+    for (const ev of events) {
+      const prev = out[out.length - 1];
+      if (prev && prev.s === ev.s) continue;
+      out.push(ev);
+    }
+    for (let i = 0; i + 1 < out.length; i++) {
+      const gapEnd = out[i + 1].s - out[i].s;
+      if (out[i].len > gapEnd) out[i].len = gapEnd;
+    }
+    return out;
+  }
+
+  function foldNotes(events, nSteps) {
+    const bySt = new Map();
+    events.forEach(e => bySt.set(e.s, e));
+    const folds = [];
+    for (const barsN of [1, 2, 4]) {
+      const L = 16 * barsN, cycles = Math.floor(nSteps / L);
+      if (cycles < 1) continue;
+      const cnt = new Array(cycles).fill(0);
+      for (const e of events) { const c = Math.floor(e.s / L); if (c < cycles) cnt[c]++; }
+      const sorted = cnt.filter(v => v > 0).sort((a, b) => a - b);
+      const med = sorted.length ? sorted[sorted.length >> 1] : 0;
+      const active = []; for (let c = 0; c < cycles; c++) if (cnt[c] >= 0.3 * med && cnt[c] > 0) active.push(c);
+      if (!active.length) continue;
+      const loop = [];
+      for (let s = 0; s < L; s++) {
+        const votes = new Map();
+        for (const c of active) {
+          const e = bySt.get(c * L + s);
+          if (e) { const v = votes.get(e.midi) || { n: 0, lens: [] }; v.n++; v.lens.push(e.len); votes.set(e.midi, v); }
+        }
+        let best = null;
+        for (const [m, v] of votes) if (!best || v.n > best.v.n) best = { m, v };
+        if (best && best.v.n >= 0.5 * active.length) loop.push({ s, midi: best.m, len: Math.max(1, medianOf(best.v.lens)) });
+      }
+      const key = (s, m) => s * 128 + m;
+      const cons = new Set(loop.map(e => key(e.s, e.midi)));
+      let inter = 0, uni = 0;
+      for (const c of active) {
+        const set = new Set();
+        for (let s = 0; s < L; s++) { const e = bySt.get(c * L + s); if (e) set.add(key(s, e.midi)); }
+        let i2 = 0; for (const k of set) if (cons.has(k)) i2++;
+        inter += i2; uni += set.size + cons.size - i2;
+      }
+      folds.push({ bars: barsN, L, cycles, active: active.length, loop, consistency: uni ? inter / uni : 0 });
+    }
+    if (!folds.length) return null;
+    const ref = Math.max.apply(null, folds.map(f => f.consistency));
+    return folds.find(f => f.consistency >= ref - 0.03 && f.active >= 2) || folds.reduce((a, b) => (b.consistency > a.consistency ? b : a));
+  }
+
+  function bassLine(A, G, kickHits) {
+    const hp = A.hp;
+    const stepSec = G.beatSec / 4;
+    const nSteps = Math.max(0, Math.floor((A.duration - G.d) / stepSec));
+    const lp = lowpassDecimate(A.mono, 4, 330);
+    const hop = HHOP / 4, W = 512;
+    const nH = hp.nF;
+    const rmsF = new Float32Array(nH);
+    for (let f = 0; f < nH; f++) {
+      let e = 0, c = 0;
+      for (let j = f * hop; j < f * hop + W && j < lp.y.length; j++) { e += lp.y[j] * lp.y[j]; c++; }
+      rmsF[f] = c ? Math.sqrt(e / c) : 0;
+    }
+    const eLow = new Float32Array(nH);
+    const kA = hbin(30), kB = hbin(170);
+    for (let f = 0; f < nH; f++) { let e = 0; const o = f * hp.K; for (let k = kA; k <= kB; k++) e += hp.H[o + k] * hp.H[o + k]; eLow[f] = Math.sqrt(e); }
+    const gate = Math.max(1e-4, 0.08 * percentile(rmsF, 0.95));
+    const yin = yinTrack(lp.y, lp.fs, hop, W, 32, 330, gate, rmsF);
+    const nF = Math.min(nH, yin.nF);
+    const midi = new Int16Array(nF).fill(-1);
+    const loB = hbin(200), hiB = hbin(2000), loA = hbin(30);
+    for (let f = 0; f < nF; f++) {
+      const f0 = yin.f0[f];
+      if (f0 < 32 || f0 > 200 || yin.ap[f] > 0.25) continue;
+      if (bandRatio(hp, f, loA, loB, hiB) < 0.2) continue;
+      midi[f] = Math.round(toMidi(f0));
+    }
+    {
+      const copy = Int16Array.from(midi);
+      for (let f = 0; f < nF; f++) {
+        if (copy[f] < 0) continue;
+        const neigh = [];
+        for (let j = Math.max(0, f - 4); j <= Math.min(nF - 1, f + 4); j++) if (j !== f && copy[j] >= 0) neigh.push(copy[j]);
+        if (neigh.length < 3) continue;
+        neigh.sort((a, b) => a - b);
+        const med = neigh[neigh.length >> 1];
+        const diff = copy[f] - med;
+        if (Math.abs(diff) === 12 || Math.abs(diff) === 11 || Math.abs(diff) === 13) midi[f] = med;
+      }
+    }
+    for (let f = 1; f + 1 < nF; f++) {
+      if (midi[f] >= 0 && midi[f - 1] === midi[f + 1] && midi[f - 1] !== midi[f]) midi[f] = midi[f - 1];
+    }
+    const segs = rleSegments(midi, 3, 3, true);
+    const frameT = f => (f * hop + W / 2) / lp.fs - lp.delay;
+    if (kickHits) {
+      for (let i = 0; i + 1 < segs.length; i++) {
+        const s1 = segs[i], s2 = segs[i + 1];
+        const gapN = s2.a - s1.b - 1;
+        if (s1.midi !== s2.midi || gapN < 1 || gapN > 10) continue;
+        let kick = false, mn = 1e9, pk = 0;
+        for (let f = Math.max(s1.a, s1.b - 2); f <= s1.b; f++) pk = Math.max(pk, eLow[f]);
+        for (let f = s1.b + 1; f < s2.a; f++) {
+          mn = Math.min(mn, eLow[f]);
+          const st = Math.round((frameT(f) - G.d) / stepSec);
+          if (st >= 0 && st < kickHits.length && kickHits[st]) kick = true;
+        }
+        if (kick && mn >= 0.35 * pk && eLow[s2.a] >= 0.5 * pk) { s1.b = s2.b; segs.splice(i + 1, 1); i--; }
+      }
+    }
+    const fineHop = 32, fineW = 128;
+    const nFine = Math.max(0, Math.floor((lp.y.length - fineW) / fineHop));
+    const env = new Float32Array(nFine);
+    for (let i = 0; i < nFine; i++) { let e = 0; for (let j = 0; j < fineW; j++) { const v = lp.y[i * fineHop + j]; e += v * v; } env[i] = Math.sqrt(e / fineW); }
+    const fineT = i => (i * fineHop + fineW / 2) / lp.fs - lp.delay;
+    const refineOnset = tc => {
+      const a = Math.max(2, Math.floor(((tc - 0.14 + lp.delay) * lp.fs - fineW / 2) / fineHop));
+      const b = Math.min(nFine - 3, Math.floor(((tc + 0.02 + lp.delay) * lp.fs - fineW / 2) / fineHop));
+      let best = -1, bv = 0;
+      for (let i = a; i <= b; i++) { const d = env[i + 2] - env[i - 2]; if (d > bv) { bv = d; best = i; } }
+      return best < 0 ? tc : fineT(best);
+    };
+    const notes = [];
+    for (const sg of segs) {
+      const parts = [];
+      let start = sg.a;
+      for (let f = sg.a + 3; f <= sg.b; f++) {
+        const m = Math.min(eLow[f - 1], eLow[f - 2], eLow[f - 3]);
+        const stIdx = Math.round((frameT(f) - G.d) / stepSec);
+        const k = kickHits && stIdx >= 0 && stIdx < kickHits.length && kickHits[stIdx] ? 1.6 : 1;
+        if (eLow[f] > 2.0 * k * m && eLow[f] > 1.4 * eLow[f - 1] && f - start >= 3) { parts.push([start, f - 1]); start = f; }
+      }
+      parts.push([start, sg.b]);
+      for (let pi = 0; pi < parts.length; pi++) {
+        const [a, b] = parts[pi];
+        const t0 = refineOnset(frameT(a));
+        const limit = pi + 1 < parts.length ? parts[pi + 1][0] - 1 : Math.min(nF - 1, b + 40);
+        let pk = 0; for (let f = a; f <= Math.min(a + 2, nF - 1); f++) pk = Math.max(pk, eLow[f]);
+        let e = b;
+        while (e + 1 <= limit && eLow[e + 1] >= 0.35 * pk && (midi[e + 1] < 0 || midi[e + 1] === sg.midi)) e++;
+        notes.push({ t0, t1: Math.max(frameT(e) + 0.5 * (hop * 2 / lp.fs), t0 + 0.04), midi: sg.midi });
+      }
+    }
+    const events = quantizeNotes(notes, G, nSteps);
+    const chosen = foldNotes(events, nSteps);
+    const voiced = Array.from(midi).filter(v => v >= 0).length / Math.max(1, nF);
+    return {
+      events, fold: chosen, voicedShare: voiced, dbg: { midi, ap: yin.ap, f0: yin.f0, eLow },
+      bars: chosen ? chosen.bars : 0, notes: chosen ? chosen.loop : [], consistency: chosen ? chosen.consistency : 0,
+      present: !!chosen && chosen.loop.length >= 2 && voiced > 0.05
+    };
+  }
+
+  function harmonicOnsets(A) {
+    const hp = A.hp, nH = hp.nF, K = hp.K;
+    const a = hbin(200), b = hbin(3500);
+    const out = new Float32Array(nH);
+    const prev = new Float32Array(K), cur = new Float32Array(K);
+    for (let f = 0; f < nH; f++) {
+      const o = f * K;
+      for (let k = a; k <= b; k++) cur[k] = Math.log(1 + 30 * hp.H[o + k]);
+      if (f > 0) { let s = 0; for (let k = a; k <= b; k++) { const d = cur[k] - prev[k]; if (d > 0) s += d; } out[f] = s / (b - a + 1); }
+      prev.set(cur);
+    }
+    return out;
+  }
+
+  function compRhythm(A, G) {
+    const env = scaledByP99(harmonicOnsets(A));
+    const stepSec = G.beatSec / 4;
+    const nSteps = Math.max(0, Math.floor((A.duration - G.d) / stepSec));
+    const toH = t => (t * SR - HN / 2) / HHOP;
+    const w = 0.4 * stepSec * HFPS;
+    const vals = new Float32Array(nSteps), gap = new Float32Array(nSteps);
+    const mx = (a, b) => { let m = 0; for (let i = Math.max(0, Math.round(a)); i <= Math.min(env.length - 1, Math.round(b)); i++) if (env[i] > m) m = env[i]; return m; };
+    for (let i = 0; i < nSteps; i++) {
+      const c = toH(G.d + i * stepSec) + 1;
+      vals[i] = mx(c - w, c + w);
+      const g = 0.5 * stepSec * HFPS;
+      gap[i] = Math.max(mx(c - g - 0.3 * w, c - g + 0.3 * w), mx(c + g - 0.3 * w, c + g + 0.3 * w));
+    }
+    const p95 = Math.max(1e-6, percentile(vals, 0.95));
+    const floor = Math.min(percentile(vals, 0.1), 0.8 * p95);
+    const thr = floor + 0.5 * (p95 - floor);
+    const events = [];
+    for (let i = 0; i < nSteps; i++) if (vals[i] > thr && vals[i] >= 1.5 * (gap[i] + 0.05 * p95)) events.push({ s: i, midi: 0, len: 1 });
+    const chosen = foldNotes(events, nSteps);
+    const bars = chosen ? chosen.bars : 0;
+    const steps = chosen ? chosen.loop.map(e => e.s) : [];
+    const perBar = chosen ? steps.length / bars : 0;
+    return { events, fold: chosen, bars, steps, perBar, style: perBar <= 1.5 ? 'pad' : 'pluck', consistency: chosen ? chosen.consistency : 0 };
+  }
+
+  function leadLine(A, G) {
+    const hp = A.hp, nH = hp.nF, K = hp.K;
+    const stepSec = G.beatSec / 4;
+    const nSteps = Math.max(0, Math.floor((A.duration - G.d) / stepSec));
+    const mLo = 55, mHi = 88, nm = mHi - mLo + 1;
+    const val = (o, f) => {
+      const k0 = Math.floor(f * Math.pow(2, -0.5 / 12) / HBIN), k1 = Math.ceil(f * Math.pow(2, 0.5 / 12) / HBIN);
+      let m = 0;
+      for (let k = Math.max(1, k0); k <= Math.min(K - 1, k1); k++) { const v = hp.H[o + k]; if (v > m) m = v; }
+      return m;
+    };
+    const midi = new Int16Array(nH).fill(-1);
+    const conf = new Float32Array(nH);
+    const S = new Float32Array(nm);
+    const sal = [];
+    for (let f = 0; f < nH; f++) {
+      const o = f * K;
+      let best = -1, bv = 0, tot = 0;
+      for (let i = 0; i < nm; i++) {
+        const f0 = hz(mLo + i);
+        let s = 0, wgt = 1;
+        for (let h = 1; h <= 6; h++) { const fr = f0 * h; if (fr > 10000) break; s += wgt * val(o, fr); wgt *= 0.85; }
+        S[i] = s; tot += s;
+        if (s > bv) { bv = s; best = i; }
+      }
+      if (best < 0) continue;
+      const mean = tot / nm;
+      sal.push(bv);
+      let m = mLo + best;
+      const e1 = val(o, hz(m)), e2 = val(o, hz(m) * 2);
+      if (e1 < 0.25 * e2 && m + 12 <= mHi) m += 12;
+      if (bv > 3.0 * mean && bv > 0) { midi[f] = m; conf[f] = bv; }
+    }
+    const gateV = 0.25 * percentile(Float32Array.from(sal), 0.9);
+    for (let f = 0; f < nH; f++) if (conf[f] < gateV) midi[f] = -1;
+    for (let f = 1; f + 1 < nH; f++) if (midi[f] >= 0 && midi[f - 1] === midi[f + 1] && midi[f - 1] !== midi[f]) midi[f] = midi[f - 1];
+    const segs = rleSegments(midi, 3, 1);
+    const frameT = f => (f * HHOP + HN / 2) / SR;
+    const notes = segs.map(sg => ({ t0: frameT(sg.a) - 0.012, t1: frameT(sg.b) + 0.012, midi: sg.midi }));
+    const events = quantizeNotes(notes, G, nSteps);
+    const chosen = foldNotes(events, nSteps);
+    return {
+      events, fold: chosen, bars: chosen ? chosen.bars : 0, notes: chosen ? chosen.loop : [],
+      consistency: chosen ? chosen.consistency : 0,
+      present: !!chosen && chosen.loop.length >= 3 && chosen.consistency >= 0.45
+    };
+  }
+
+  function barRoots(events, G) {
+    const stepsPerBar = 16;
+    const res = [];
+    for (let b = 0; b < G.totalBars; b++) {
+      const w = new Float64Array(12);
+      let any = false;
+      for (const e of events) {
+        if (e.s >= b * stepsPerBar && e.s < (b + 1) * stepsPerBar) { w[((e.midi % 12) + 12) % 12] += e.len + (e.s % 16 === 0 ? 2 : 0); any = true; }
+      }
+      let bi = -1, bv = 0;
+      if (any) for (let i = 0; i < 12; i++) if (w[i] > bv) { bv = w[i]; bi = i; }
+      res.push(bi);
+    }
+    return res;
+  }
+
+  function monoVoice(notes, pick) {
+    const ns = notes.slice().sort((a, b) => a.t0 - b.t0 || pick(b) - pick(a));
+    const out = [];
+    for (const n of ns) {
+      const prev = out[out.length - 1];
+      if (prev && n.t0 - prev.t0 < 0.05) { if (pick(n) > pick(prev)) out[out.length - 1] = n; continue; }
+      if (prev && prev.t1 > n.t0) prev.t1 = n.t0;
+      out.push({ t0: n.t0, t1: n.t1, midi: n.midi, amp: n.amp });
+    }
+    return out.filter(n => n.t1 - n.t0 > 0.03);
+  }
+
+  function voiceLayer(notes, G, A, minAmp) {
+    const stepSec = G.beatSec / 4;
+    const nSteps = Math.max(0, Math.floor((A.duration - G.d) / stepSec));
+    const events = quantizeNotes(notes.filter(n => n.amp >= minAmp), G, nSteps);
+    const chosen = foldNotes(events, nSteps);
+    return {
+      events, fold: chosen, bars: chosen ? chosen.bars : 0, notes: chosen ? chosen.loop : [],
+      consistency: chosen ? chosen.consistency : 0,
+      present: !!chosen && chosen.loop.length >= 3 && chosen.consistency >= 0.45
+    };
+  }
+
+  function layersFromNotes(notes, G, A) {
+    const bassN = monoVoice(notes.filter(n => n.midi <= 50), n => -n.midi);
+    const leadN = monoVoice(notes.filter(n => n.midi >= 62), n => n.midi + 4 * n.amp);
+    const amps = leadN.map(n => n.amp).sort((a, b) => a - b);
+    const leadMin = amps.length ? 0.6 * amps[Math.floor(amps.length * 0.25)] : 0;
+    const bamps = bassN.map(n => n.amp).sort((a, b) => a - b);
+    const bassMin = bamps.length ? 0.6 * bamps[Math.floor(bamps.length * 0.25)] : 0;
+    return { bass: voiceLayer(bassN, G, A, bassMin), lead: voiceLayer(leadN, G, A, leadMin) };
+  }
+
+  function analyzeLayers(A, G, opts) {
+    opts = opts || {};
+    const D = drums(A, G, opts.drums);
+    let bass = bassLine(A, G, D.hits && D.hits.kick);
+    let lead = leadLine(A, G);
+    if (opts.notes && opts.notes.length) {
+      const nl = layersFromNotes(opts.notes, G, A);
+      const better = (o, n) => n.events.length >= 3 && (!o.present || n.consistency >= o.consistency - 0.02 || o.events.length < 3);
+      if (better(bass, nl.bass)) bass = Object.assign(bass, nl.bass);
+      if (better(lead, nl.lead)) lead = Object.assign(lead, nl.lead);
+    }
+    const C = chords(A, G, { rootPrior: barRoots(bass.events, G) });
+    const comp = compRhythm(A, G);
+    return { drums: D, bass, chords: C, comp, lead };
+  }
+
+  function windowLayers(L, G, startBar, nBars) {
+    const s0 = startBar * 16, s1 = (startBar + nBars) * 16;
+    const cut = events => events.filter(e => e.s >= s0 && e.s < s1).map(e => ({ s: e.s - s0, midi: e.midi, len: Math.max(1, Math.min(e.len, s1 - e.s)) }));
+    const mk = events => { const notes = cut(events); return { notes, bars: nBars, consistency: 1, present: notes.length >= 3 }; };
+    const bass = mk(L.bass.events), lead = mk(L.lead.events);
+    const compEv = cut(L.comp.events);
+    const comp = { steps: compEv.map(e => e.s), bars: nBars, perBar: compEv.length / nBars, style: compEv.length / nBars <= 1.5 ? 'pad' : 'pluck', consistency: 1 };
+    const loop = [];
+    for (let b = startBar; b < startBar + nBars; b++) {
+      const pb = L.chords.perBar[b];
+      loop.push(pb && !pb.nc ? { root: pb.root, minor: pb.minor, label: pb.label } : null);
+    }
+    return { bass, lead, comp, chords: { loop, loopBars: nBars, perBar: L.chords.perBar } };
+  }
+
+  function suggestWindow(L, G, nBars) {
+    const total = G.totalBars;
+    let best = 0, bv = -1;
+    const cnt = new Float32Array(total + 1);
+    [L.bass.events, L.lead.events, L.comp.events].forEach(ev => ev.forEach(e => { const b = Math.floor(e.s / 16); if (b < total) cnt[b]++; }));
+    for (let a = 0; a + nBars <= total; a += 1) {
+      let v = 0; for (let b = a; b < a + nBars; b++) v += Math.min(cnt[b], 24);
+      v -= 0.01 * a;
+      if (v > bv) { bv = v; best = a; }
+    }
+    return best;
+  }
+
   root.InkBeatAnalyzer = {
-    SR, FPS, NAMES,
+    SR, FPS, NAMES, windowLayers, suggestWindow, bassLine, compRhythm, leadLine, analyzeLayers,
     analyzeMono, analyzeBuffer, resampleToMono, grid, refine, drums, chords,
     frameToTime, timeToFrame, chordLabel
   };

@@ -38,6 +38,15 @@
     <h1 class="an-h1"><span class="gradient-text" data-i18n="heroTitle">Мінус → проєкт у студії</span></h1>
     <p class="an-lead" data-i18n="heroLead">Завантаж готовий мінус (наприклад, зі Suno). Програма визначить темп, тональність, акорди та ударний патерн і розкладе їх у студії по тактах — як заготовку, яку далі доводиш руками.</p>
 
+    <div class="an-mode">
+      <span class="an-mode-label" data-i18n="modeLabel">Режим аналізу</span>
+      <select id="an-mode">
+        <option value="fast" data-i18n="modeFast">Швидкий — без моделей, офлайн</option>
+        <option value="accurate" data-i18n="modeAccurate">Точний — модель нот (довше, офлайн)</option>
+        <option value="max" disabled data-i18n="modeMax">Максимум — розділення на стеми, десктоп (скоро)</option>
+      </select>
+    </div>
+
     <label class="an-drop" id="an-drop" tabindex="0">
       <input type="file" id="an-file" accept="audio/*,.mp3,.wav,.ogg,.m4a,.flac,.aac" hidden/>
       <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
@@ -50,7 +59,7 @@
       <summary data-i18n="expectTitle">Чого очікувати від аналізу</summary>
       <ul>
         <li data-i18n="expect1"><b>Надійно:</b> темп, сітка тактів, тональність.</li>
-        <li data-i18n="expect2"><b>Добре:</b> ударні (kick / snare / hi-hat) і акорди по тактах.</li>
+        <li data-i18n="expect2"><b>Добре:</b> ударні (kick, snare, hi-hat, clap, tom), акорди по тактах, ритм гітари, бас-лінія.</li>
         <li data-i18n="expect3"><b>Не розпізнається:</b> мелодія, вокал, точні тембри. Звук оригіналу відтворити неможливо — це схожа аранжировка з наших інструментів.</li>
         <li data-i18n="expect4">Різкі ноти баса іноді читаються як kick — зайві удари можна вимкнути або прибрати вручну перед створенням проєкту.</li>
       </ul>
@@ -143,11 +152,59 @@
       </details>
     </div>
 
+    <div class="an-card">
+      <div class="an-card-head">
+        <h2 data-i18n="srcTitle">Звідки брати бас, гітару й лід</h2>
+      </div>
+      <div class="an-opts">
+        <label class="an-check"><input type="radio" name="an-src" value="loop" checked/> <span data-i18n="srcLoop">Повторюваний цикл (такти згортаються в 1, 2 або 4)</span></label>
+        <label class="an-check"><input type="radio" name="an-src" value="window"/> <span data-i18n="srcWindow">Відрізок треку як є (до 16 тактів, без згортання)</span></label>
+      </div>
+      <div class="an-window" id="an-window" hidden>
+        <label><span data-i18n="winFrom">від такту</span> <input type="number" id="an-win-start" min="1" value="1"/></label>
+        <label><span data-i18n="winLen">довжина</span>
+          <select id="an-win-len"><option value="4">4</option><option value="8" selected>8</option><option value="16">16</option></select>
+        </label>
+        <button class="an-chip" id="an-win-auto" data-i18n="winAuto">Підібрати автоматично</button>
+      </div>
+      <p class="an-hint" data-i18n="srcHint">Цикл підходить для повторюваних партій. «Відрізок» переносить ноти такими, як вони звучать у вибраних тактах, тому підходить для мелодій і партій, що не повторюються.</p>
+    </div>
+
+    <div class="an-card">
+      <div class="an-card-head">
+        <h2 data-i18n="bassTitle">Бас</h2>
+        <span class="an-tag" id="an-bass-tag"></span>
+      </div>
+      <canvas class="an-mini" id="an-bass-cv" hidden></canvas>
+      <p class="an-hint" id="an-bass-hint"></p>
+    </div>
+
+    <div class="an-card">
+      <div class="an-card-head">
+        <h2 data-i18n="compTitle">Гітара / ритм акордів</h2>
+        <span class="an-tag" id="an-comp-tag"></span>
+      </div>
+      <canvas class="an-mini" id="an-comp-cv" hidden></canvas>
+      <p class="an-hint" id="an-comp-hint"></p>
+    </div>
+
+    <div class="an-card">
+      <div class="an-card-head">
+        <h2 data-i18n="leadTitle">Лід-мелодія (експериментально)</h2>
+        <span class="an-tag" id="an-lead-tag"></span>
+      </div>
+      <canvas class="an-mini" id="an-lead-cv" hidden></canvas>
+      <p class="an-hint" id="an-lead-hint"></p>
+    </div>
+
     <div class="an-card an-export">
       <h2 data-i18n="exportTitle">Створити проєкт у студії</h2>
       <div class="an-opts">
         <label class="an-check"><input type="checkbox" id="an-opt-drums" checked/> <span data-i18n="optDrums">Ударні → секвенсор</span></label>
         <label class="an-check"><input type="checkbox" id="an-opt-chords" checked/> <span data-i18n="optChords">Акорди → піано-рол</span></label>
+        <label class="an-check"><input type="checkbox" id="an-opt-bass" checked/> <span data-i18n="optBass">Бас → шар «Бас»</span></label>
+        <label class="an-check"><input type="checkbox" id="an-opt-comp" checked/> <span data-i18n="optComp">Ритм гітари/акордів (інакше акорд тримається весь такт)</span></label>
+        <label class="an-check"><input type="checkbox" id="an-opt-lead"/> <span data-i18n="optLead">Лід-мелодія → шар «Лід» (експериментально)</span></label>
         <label class="an-check"><input type="checkbox" id="an-opt-orig" checked/> <span data-i18n="optOrig">Додати оригінал окремою доріжкою</span></label>
         <label class="an-check"><input type="checkbox" id="an-opt-mute" checked/> <span data-i18n="optMute">Оригінал приглушений (щоб чути аранжировку)</span></label>
       </div>

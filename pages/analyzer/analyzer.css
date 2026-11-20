@@ -112,3 +112,15 @@
 @media (max-width: 720px) {
   .an-drum-row { grid-template-columns: 1fr; gap: 4px; }
 }
+
+.an-mini { display: block; width: 100%; margin-top: 8px; border-radius: 10px; background: #060606; border: 1px solid rgba(255,255,255,.06); }
+
+a.st-icon-btn { text-decoration: none; }
+
+.an-mode { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 0 0 14px; }
+.an-mode-label { font-family: 'JetBrains Mono', monospace; font-size: .68rem; letter-spacing: .06em; text-transform: uppercase; color: rgba(255,255,255,.45); }
+.an-mode select, .an-window select, .an-window input { background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.12); color: #fff; border-radius: 8px; padding: 6px 10px; font: inherit; font-size: .85rem; }
+.an-window { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin: 4px 0 6px; font-size: .84rem; color: rgba(255,255,255,.7); }
+.an-window input[type=number] { width: 72px; }
+.an-edit-reset { margin-top: 6px; background: none; border: 1px solid rgba(255,255,255,.14); color: rgba(255,255,255,.7); border-radius: 8px; padding: 4px 10px; font: inherit; font-size: .78rem; cursor: pointer; }
+.an-edit-reset:hover { color: #fff; border-color: rgba(255,255,255,.3); }

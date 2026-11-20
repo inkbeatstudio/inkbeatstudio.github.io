@@ -230,6 +230,14 @@
   <section class="st-view st-view-piano" id="view-piano">
     <div class="st-seq-toolbar">
       <div class="st-field">
+        <label data-i18n-local="labelLayer">Шар</label>
+        <select id="piano-layer">
+          <option value="chords" data-i18n-local="layerChords">Акорди / гітара</option>
+          <option value="bass" data-i18n-local="layerBass">Бас</option>
+          <option value="lead" data-i18n-local="layerLead">Лід</option>
+        </select>
+      </div>
+      <div class="st-field">
         <label data-i18n-local="labelInstrument">Інструмент</label>
         <select id="piano-instrument">
           <option value="bass">Bass</option>
@@ -240,7 +248,7 @@
       </div>
       <div class="st-field">
         <label data-i18n-local="labelBars">Такти</label>
-        <select id="piano-bars"><option value="1">1</option><option value="2" selected>2</option><option value="4">4</option></select>
+        <select id="piano-bars"><option value="1">1</option><option value="2" selected>2</option><option value="4">4</option><option value="8">8</option><option value="16">16</option></select>
       </div>
       <label class="st-field" style="flex-direction:row;align-items:center;gap:6px;cursor:pointer"><input type="checkbox" id="piano-legato"/> <span data-i18n-local="labelLegato">Легато (довгі ноти)</span></label>
       <button class="st-icon-btn" id="btn-piano-clear" data-i18n-local="btnClear">Очистити</button>

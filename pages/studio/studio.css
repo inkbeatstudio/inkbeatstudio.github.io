@@ -304,7 +304,7 @@
 .st-strip-fx .st-knob-item { transform: scale(.72); margin: -6px; }
 
 .st-piano-wrap { flex: 1; display: flex; overflow: hidden; }
-.st-piano-keys { width: 60px; flex-shrink: 0; overflow-y: auto; background: #0a0a0a; border-right: 1px solid rgba(255,255,255,.07); }
+.st-piano-keys { width: 60px; flex-shrink: 0; overflow: hidden; background: #0a0a0a; border-right: 1px solid rgba(255,255,255,.07); }
 .st-piano-key { height: 20px; border-bottom: 1px solid rgba(255,255,255,.05); display: flex; align-items: center; justify-content: flex-end; padding-right: 8px; font-family: 'JetBrains Mono',monospace; font-size: .6rem; color: rgba(255,255,255,.35); }
 .st-piano-key.black-key { background: #050505; color: rgba(255,255,255,.2); }
 .st-piano-grid-scroll { flex: 1; overflow: auto; }

@@ -13,8 +13,8 @@
       dropTitle: 'Перетягни аудіофайл сюди', dropSub: 'або натисни, щоб обрати · mp3, wav, ogg, m4a, flac',
       expectTitle: 'Чого очікувати від аналізу',
       expect1: '<b>Надійно:</b> темп, сітка тактів, тональність.',
-      expect2: '<b>Добре:</b> ударні (kick / snare / hi-hat) і акорди по тактах.',
-      expect3: '<b>Не розпізнається:</b> мелодія, вокал, точні тембри. Звук оригіналу відтворити неможливо — це схожа аранжировка з наших інструментів.',
+      expect2: '<b>Добре:</b> ударні (kick, snare, hi-hat, clap, tom), акорди по тактах, ритм гітари, бас-лінія.',
+      expect3: '<b>Приблизно:</b> лід-мелодія (лише якщо повторюється). <b>Не розпізнається:</b> вокал, точні тембри. Звук оригіналу відтворити неможливо — це схожа аранжировка з наших інструментів.',
       expect4: 'Різкі ноти баса іноді читаються як kick — зайві удари можна вимкнути або прибрати вручну перед створенням проєкту.',
       another: 'Інший файл', statTempo: 'Темп', statKey: 'Тональність', statBars: 'Такти',
       firstBar: 'перший такт', altBpm: 'Інші варіанти:', shiftBack: 'Перший такт на долю раніше', shiftFwd: 'Перший такт на долю пізніше',
@@ -27,7 +27,7 @@
       optOrig: 'Додати оригінал окремою доріжкою', optMute: 'Оригінал приглушений (щоб чути аранжировку)',
       sendBtn: 'Відкрити у студії →', sendHint: 'Поточний проєкт студії збережеться в «Проєктах» як резервна копія.',
       decoding: 'Декодування файлу…', stageOnsets: 'Аналіз ритму…', stageTempo: 'Пошук темпу й сітки…',
-      stageChroma: 'Аналіз гармонії…', stageFinish: 'Збираю результат…', stageResample: 'Підготовка звуку…',
+      stageSeparate: 'Розділення на ударні та гармонію…', stageTranscribe: 'Розпізнавання нот моделлю…', errModel: 'Модель нот не завантажилась — показано швидкий результат.', stageChroma: 'Аналіз гармонії…', stageFinish: 'Збираю результат…', stageResample: 'Підготовка звуку…',
       errRead: 'Не вдалося прочитати файл. Підтримуються mp3, wav, ogg, m4a, flac.',
       errShort: 'Трек закороткий для аналізу (потрібно щонайменше 8 секунд).',
       errTempo: 'Не вдалося знайти стабільний темп у цьому файлі.',
@@ -43,7 +43,27 @@
       chordLoop: n => n === 1 ? 'цикл: 1 такт' : `цикл: ${n} такти`,
       noDrums: 'Стабільного ударного патерну не знайдено.',
       noChords: 'Акорди не визначились.',
-      rowKick: 'Kick', rowSnare: 'Snare', rowHihat: 'Hi-hat', rowOhat: 'Open hat',
+      rowKick: 'Kick', rowSnare: 'Snare', rowHihat: 'Hi-hat', rowOhat: 'Open hat', rowClap: 'Clap', rowTom: 'Tom',
+      modeLabel: 'Режим аналізу', modeFast: 'Швидкий — без моделей, офлайн', modeAccurate: 'Точний — модель нот (довше, офлайн)', modeMax: 'Максимум — розділення на стеми, десктоп (скоро)',
+      srcTitle: 'Звідки брати бас, гітару й лід',
+      srcLoop: 'Повторюваний цикл (такти згортаються в 1, 2 або 4)', srcWindow: 'Відрізок треку як є (до 16 тактів, без згортання)',
+      winFrom: 'від такту', winLen: 'довжина', winAuto: 'Підібрати автоматично',
+      srcHint: 'Цикл підходить для повторюваних партій. «Відрізок» переносить ноти такими, як вони звучать у вибраних тактах, тому підходить для мелодій і партій, що не повторюються.',
+      bassTitle: 'Бас', compTitle: 'Гітара / ритм акордів', leadTitle: 'Лід-мелодія (експериментально)',
+      layerTag: (bars, n, c) => `цикл ${bars} такт(и) · ${n} нот · збіг ${c}%`,
+      winTag: (bars, n) => `відрізок ${bars} тактів · ${n} нот`,
+      winCompTag: (bars, per, style) => `відрізок ${bars} тактів · ${per} ударів/такт · ${style}`,
+      compTag: (bars, per, style) => `цикл ${bars} такт(и) · ${per} ударів/такт · ${style}`,
+      styleRhythm: 'ритмічний', stylePad: 'довгі акорди',
+      editHint: 'Клацни по малюнку: по ноті — видалити, по порожньому — додати.', editReset: 'Скинути правки',
+      bassHint: s => `Перші ноти: ${s}. Висоту знайдено автоматично; у студії бас лежить у шарі «Бас».`,
+      noBass: 'Стабільної бас-лінії не знайдено (або в треку немає баса).',
+      compHint: 'Моменти, коли звучить гітара/клавіші; у студії акорди зіграються саме цим ритмом.',
+      noComp: 'Ритм акордів не визначився — акорди триматимуться весь такт.',
+      leadHint: 'Мелодія повторюється по тактах; у студії лежить у шарі «Лід». Перевір на слух.',
+      leadWeak: 'Мелодія майже не повторюється — результат може бути неточним, за замовчуванням вимкнено.',
+      noLead: 'Повторюваної мелодії не знайдено (вокал/соло без чіткого циклу не переносяться).',
+      optBass: 'Бас → шар «Бас»', optComp: 'Ритм гітари/акордів (інакше акорд тримається весь такт)', optLead: 'Лід-мелодія → шар «Лід» (експериментально)',
       hits: n => `${n} уд.`,
       barLabel: 'такт', sending: 'Створюю проєкт…'
     },
@@ -54,8 +74,8 @@
       dropTitle: 'Drop an audio file here', dropSub: 'or click to choose · mp3, wav, ogg, m4a, flac',
       expectTitle: 'What to expect',
       expect1: '<b>Reliable:</b> tempo, bar grid, key.',
-      expect2: '<b>Good:</b> drums (kick / snare / hi-hat) and chords per bar.',
-      expect3: '<b>Not recognised:</b> melody, vocals, exact timbres. The original sound cannot be reproduced — you get a similar arrangement from our instruments.',
+      expect2: '<b>Good:</b> drums (kick, snare, hi-hat, clap, tom), chords per bar, guitar rhythm, bass line.',
+      expect3: '<b>Approximate:</b> lead melody (only if it repeats). <b>Not recognised:</b> vocals, exact timbres. The original sound cannot be reproduced — you get a similar arrangement from our instruments.',
       expect4: 'Sharp bass notes are sometimes read as kicks — switch off or edit extra hits before creating the project.',
       another: 'Another file', statTempo: 'Tempo', statKey: 'Key', statBars: 'Bars',
       firstBar: 'first bar', altBpm: 'Alternatives:', shiftBack: 'First bar one beat earlier', shiftFwd: 'First bar one beat later',
@@ -68,7 +88,7 @@
       optOrig: 'Add the original as a separate track', optMute: 'Mute the original (to hear the arrangement)',
       sendBtn: 'Open in studio →', sendHint: 'Your current studio project is kept in “Projects” as a backup.',
       decoding: 'Decoding file…', stageOnsets: 'Analysing rhythm…', stageTempo: 'Finding tempo and grid…',
-      stageChroma: 'Analysing harmony…', stageFinish: 'Putting results together…', stageResample: 'Preparing audio…',
+      stageSeparate: 'Separating drums from harmony…', stageTranscribe: 'Transcribing notes with the model…', errModel: 'The note model failed to load — showing the fast result.', stageChroma: 'Analysing harmony…', stageFinish: 'Putting results together…', stageResample: 'Preparing audio…',
       errRead: 'Could not read the file. Supported: mp3, wav, ogg, m4a, flac.',
       errShort: 'Track is too short to analyse (at least 8 seconds needed).',
       errTempo: 'Could not find a steady tempo in this file.',
@@ -84,7 +104,27 @@
       chordLoop: n => `loop: ${n} bar${n > 1 ? 's' : ''}`,
       noDrums: 'No stable drum pattern found.',
       noChords: 'No chords detected.',
-      rowKick: 'Kick', rowSnare: 'Snare', rowHihat: 'Hi-hat', rowOhat: 'Open hat',
+      rowKick: 'Kick', rowSnare: 'Snare', rowHihat: 'Hi-hat', rowOhat: 'Open hat', rowClap: 'Clap', rowTom: 'Tom',
+      modeLabel: 'Analysis mode', modeFast: 'Fast — no models, offline', modeAccurate: 'Accurate — note model (slower, offline)', modeMax: 'Maximum — stem separation, desktop (coming soon)',
+      srcTitle: 'Where to take bass, guitar and lead from',
+      srcLoop: 'Repeating loop (bars are folded into 1, 2 or 4)', srcWindow: 'Track section as is (up to 16 bars, no folding)',
+      winFrom: 'from bar', winLen: 'length', winAuto: 'Pick automatically',
+      srcHint: 'The loop suits repeating parts. “Section” transfers the notes exactly as they sound in the chosen bars, so it suits melodies and parts that do not repeat.',
+      bassTitle: 'Bass', compTitle: 'Guitar / chord rhythm', leadTitle: 'Lead melody (experimental)',
+      layerTag: (bars, n, c) => `${bars}-bar loop · ${n} notes · match ${c}%`,
+      winTag: (bars, n) => `${bars}-bar section · ${n} notes`,
+      winCompTag: (bars, per, style) => `${bars}-bar section · ${per} hits/bar · ${style}`,
+      compTag: (bars, per, style) => `${bars}-bar loop · ${per} hits/bar · ${style}`,
+      styleRhythm: 'rhythmic', stylePad: 'sustained chords',
+      editHint: 'Click the roll: on a note to delete it, on empty space to add one.', editReset: 'Undo edits',
+      bassHint: s => `First notes: ${s}. Pitch is detected automatically; in the studio the bass goes to the “Bass” layer.`,
+      noBass: 'No stable bass line found (or the track has no bass).',
+      compHint: 'Moments when the guitar/keys play; in the studio the chords follow exactly this rhythm.',
+      noComp: 'Chord rhythm not detected — chords will be held for the whole bar.',
+      leadHint: 'The melody repeats bar by bar; in the studio it goes to the “Lead” layer. Check by ear.',
+      leadWeak: 'The melody hardly repeats — the result may be inaccurate, so it is off by default.',
+      noLead: 'No repeating melody found (vocals/solos without a clear loop are not transferred).',
+      optBass: 'Bass → “Bass” layer', optComp: 'Guitar/chord rhythm (otherwise a chord is held for the whole bar)', optLead: 'Lead melody → “Lead” layer (experimental)',
       hits: n => `${n} hits`,
       barLabel: 'bar', sending: 'Creating project…'
     }
@@ -104,7 +144,8 @@
   const S = {
     ctx: null, audioBuffer: null, A: null, G: null, D: null, C: null,
     baseName: '', bpm: 120, shift: 0,
-    pattern: null, rowOn: { kick: true, snare: true, hihat: true, ohat: true },
+    srcMode: 'loop', winStart: 0, winLen: 8, mode: 'fast', notes: null, ed: {}, edKey: '',
+    pattern: null, rowOn: { kick: true, snare: true, hihat: true, ohat: true, clap: true, tom: true },
     pxPerSec: 40, peaks: null, peaksPx: 0,
     playing: false, playStartCtx: 0, playStartPos: 0, src: null, clickTimer: null, nextClick: 0, raf: 0
   };
@@ -134,12 +175,26 @@
       catch (e) { throw Object.assign(new Error('read'), { code: 'read' }); }
       S.audioBuffer = audio;
 
-      const stageMap = { resample: [t('stageResample'), 0.05, 0.12], onsets: [t('stageOnsets'), 0.12, 0.55],
-        tempo: [t('stageTempo'), 0.55, 0.62], chroma: [t('stageChroma'), 0.62, 0.96], done: [t('stageFinish'), 0.96, 1] };
+      const stageMap = { resample: [t('stageResample'), 0.04, 0.1], onsets: [t('stageOnsets'), 0.1, 0.4],
+        tempo: [t('stageTempo'), 0.4, 0.45], chroma: [t('stageChroma'), 0.45, 0.62], separate: [t('stageSeparate'), 0.62, 0.96], done: [t('stageFinish'), 0.96, 1] };
+      const acc = S.mode === 'accurate';
+      const sc = acc ? 0.4 : 1;
       const A = await AN.analyzeBuffer(audio, (stage, p) => {
-        const m = stageMap[stage]; if (m) setProgress(m[0], m[1] + (m[2] - m[1]) * (p || 0));
+        const m = stageMap[stage]; if (m) setProgress(m[0], (m[1] + (m[2] - m[1]) * (p || 0)) * sc);
       });
       S.A = A;
+      S.notes = null;
+      if (acc) {
+        try {
+          setProgress(t('stageTranscribe'), 0.4);
+          await loadScript('vendor/notes-engine.js');
+          S.notes = await window.InkBeatNotes.transcribe(A.mono, 'model/model.json', p => setProgress(t('stageTranscribe'), 0.4 + 0.58 * (p || 0)));
+        } catch (err) {
+          console.error(err);
+          S.notes = null;
+          showError(t('errModel'));
+        }
+      }
       S.bpm = A.tempo.bpm; S.shift = 0;
       S.peaks = null;
       recompute(true);
@@ -158,6 +213,15 @@
     }
   }
 
+  function loadScript(src) {
+    return new Promise((res, rej) => {
+      if (window.InkBeatNotes) return res();
+      const el = document.createElement('script');
+      el.src = src; el.onload = () => res(); el.onerror = () => rej(new Error('script'));
+      document.head.appendChild(el);
+    });
+  }
+
   function setProgress(label, p) {
     $('an-stage').textContent = label;
     $('an-bar-fill').style.width = Math.round(Math.max(0, Math.min(1, p)) * 100) + '%';
@@ -166,13 +230,19 @@
   function recompute(initial) {
     const A = S.A;
     S.G = AN.grid(A, S.bpm, { shift: S.shift });
-    S.D = AN.drums(A, S.G);
-    if (initial && S.D.presence) S.rowOn = { kick: true, snare: !!S.D.presence.snare, hihat: !!S.D.presence.hihat, ohat: !!S.D.presence.ohat };
-    S.C = AN.chords(A, S.G);
+    S.ed = {};
+    S.L = AN.analyzeLayers(A, S.G, { notes: S.notes });
+    S.D = S.L.drums;
+    S.C = S.L.chords;
     S.pattern = S.D.pattern ? JSON.parse(JSON.stringify(S.D.pattern)) : null;
+    if (initial && S.D.presence) {
+      const cnt = k => (S.pattern && S.pattern[k] ? S.pattern[k].filter(Boolean).length : 0);
+      S.rowOn = { kick: true, snare: !!S.D.presence.snare, hihat: !!S.D.presence.hihat, ohat: !!S.D.presence.ohat, clap: cnt('clap') >= 1, tom: cnt('tom') >= 1 };
+    }
     renderStats();
     renderDrums();
     renderChords();
+    renderLayers();
     drawWave();
   }
 
@@ -211,7 +281,7 @@
     $('an-bars-note').textContent = t('barsNote', G.d.toFixed(2));
   }
 
-  const DRUM_ROWS = [['kick', 'rowKick'], ['snare', 'rowSnare'], ['hihat', 'rowHihat'], ['ohat', 'rowOhat']];
+  const DRUM_ROWS = [['kick', 'rowKick'], ['snare', 'rowSnare'], ['hihat', 'rowHihat'], ['ohat', 'rowOhat'], ['clap', 'rowClap'], ['tom', 'rowTom']];
 
   function renderDrums() {
     const box = $('an-drums');
@@ -220,6 +290,7 @@
     const L = S.D.bars * 16;
     $('an-drum-cycle').textContent = t('cycle', S.D.bars);
     DRUM_ROWS.forEach(([key, label]) => {
+      if (!S.pattern[key]) return;
       const row = document.createElement('div');
       row.className = 'an-drum-row' + (S.rowOn[key] ? '' : ' off');
       const count = S.pattern[key].filter(Boolean).length;
@@ -247,7 +318,7 @@
   function renderChords() {
     const box = $('an-chords');
     box.innerHTML = '';
-    const { loop, loopBars, perBar } = S.C;
+    const { loop, loopBars, perBar } = currentView().chords;
     const valid = loop.some(Boolean);
     $('an-chord-cycle').textContent = valid ? t('chordLoop', loopBars) : '';
     if (!valid) { box.innerHTML = `<p class="an-hint">${esc(t('noChords'))}</p>`; $('an-chords-all').textContent = ''; return; }
@@ -262,6 +333,106 @@
       parts.push(perBar.slice(i, i + 4).map(c => (c.nc ? '—' : c.label)).join(' '));
     }
     $('an-chords-all').textContent = parts.join('  |  ');
+  }
+
+  const NN = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+  const noteName = m => NN[m % 12] + (Math.floor(m / 12) - 1);
+
+  function drawMini(cv, notes, bars, ticks) {
+    const w = Math.max(300, cv.clientWidth || 600), h = 96;
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    cv.width = Math.floor(w * dpr); cv.height = Math.floor(h * dpr);
+    cv.style.height = h + 'px';
+    const g = cv.getContext('2d');
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.clearRect(0, 0, w, h);
+    const L = bars * 16;
+    for (let i = 0; i <= L; i++) {
+      g.fillStyle = i % 16 === 0 ? 'rgba(255,255,255,.28)' : i % 4 === 0 ? 'rgba(255,255,255,.12)' : 'rgba(255,255,255,.04)';
+      g.fillRect(Math.round(i / L * w), 0, 1, h);
+    }
+    if (!notes.length) { cv._m = null; return; }
+    let lo = 127, hi = 0;
+    notes.forEach(n => { lo = Math.min(lo, n.midi); hi = Math.max(hi, n.midi); });
+    lo -= 1; hi += 1;
+    if (hi - lo < 8) { const c = (hi + lo) / 2; lo = Math.floor(c - 4); hi = Math.ceil(c + 4); }
+    const rows = hi - lo + 1, rh = (h - 6) / rows;
+    cv._m = { lo, hi, rh, L };
+    const grad = g.createLinearGradient(0, 0, w, 0);
+    grad.addColorStop(0, '#B8452C'); grad.addColorStop(1, '#8D84C4');
+    g.fillStyle = grad;
+    notes.forEach(n => {
+      const x = n.s / L * w + 1, wd = Math.max(3, n.len / L * w - 2);
+      if (ticks) g.fillRect(x, 6, Math.max(3, w / L - 2), h - 12);
+      else g.fillRect(x, 3 + (hi - n.midi) * rh, wd, Math.max(2, rh - 1));
+    });
+  }
+
+  function baseView() {
+    if (S.srcMode === 'window' && S.L) {
+      const maxStart = Math.max(0, S.G.totalBars - S.winLen);
+      S.winStart = Math.max(0, Math.min(maxStart, S.winStart));
+      return AN.windowLayers(S.L, S.G, S.winStart, S.winLen);
+    }
+    return { bass: S.L.bass, comp: S.L.comp, lead: S.L.lead, chords: S.C };
+  }
+
+  function currentView() {
+    const v = baseView();
+    const key = S.srcMode + ':' + S.winStart + ':' + S.winLen;
+    if (key !== S.edKey) { S.edKey = key; S.ed = {}; }
+    ['bass', 'lead'].forEach(k => {
+      if (S.ed[k]) v[k] = Object.assign({}, v[k], { notes: S.ed[k], present: S.ed[k].length > 0 });
+    });
+    return v;
+  }
+
+  function editNote(layer, ev) {
+    const cv = ev.currentTarget, m = cv._m;
+    if (!m) return;
+    const r = cv.getBoundingClientRect();
+    const x = (ev.clientX - r.left) / r.width, y = ev.clientY - r.top;
+    const step = Math.floor(x * m.L);
+    const midi = m.hi - Math.floor((y - 3) / m.rh);
+    const cur = currentView()[layer];
+    const list = (S.ed[layer] || cur.notes).map(n => Object.assign({}, n));
+    const hit = list.findIndex(n => step >= n.s && step < n.s + n.len && Math.abs(n.midi - midi) <= 0);
+    if (hit >= 0) list.splice(hit, 1);
+    else {
+      const next = list.filter(n => n.s > step).reduce((a, n) => Math.min(a, n.s), m.L);
+      list.push({ s: step, len: Math.max(1, Math.min(2, next - step)), midi });
+      list.sort((a, b) => a.s - b.s);
+    }
+    S.ed[layer] = list;
+    renderLayers();
+  }
+
+  function renderLayers() {
+    const L = currentView();
+    const bass = L.bass, comp = L.comp, lead = L.lead;
+    const setCard = (id, tag, notes, bars, ticks, hint) => {
+      $('an-' + id + '-tag').textContent = tag;
+      $('an-' + id + '-hint').textContent = hint;
+      const cv = $('an-' + id + '-cv');
+      cv.hidden = !notes.length && !S.ed[id];
+      if (!cv.hidden) requestAnimationFrame(() => drawMini(cv, notes, bars, ticks));
+    };
+    const bassHas = bass.notes.length > 0;
+    const win = S.srcMode === 'window';
+    const tagFor = x => win ? t('winTag', x.bars, x.notes.length) : t('layerTag', x.bars, x.notes.length, Math.round(x.consistency * 100));
+    setCard('bass', bassHas ? tagFor(bass) : '',
+      bass.notes, bass.bars, false, bassHas ? t('bassHint', bass.notes.slice(0, 6).map(n => noteName(n.midi)).join(' ')) : t('noBass'));
+    const compNotes = comp.steps.map(s => ({ s, len: 1, midi: 0 }));
+    setCard('comp', compNotes.length ? t(win ? 'winCompTag' : 'compTag', comp.bars, comp.perBar.toFixed(1), comp.style === 'pluck' ? t('styleRhythm') : t('stylePad')) : '',
+      compNotes, comp.bars, true, compNotes.length ? t('compHint') : t('noComp'));
+    const leadHas = lead.notes.length > 0;
+    setCard('lead', leadHas ? tagFor(lead) : '',
+      lead.notes, lead.bars, false, leadHas ? (lead.present ? t('leadHint') : t('leadWeak')) : t('noLead'));
+    ['bass', 'lead'].forEach(k => { const b = $('an-' + k + '-reset'); if (b) { b.hidden = !S.ed[k]; b.textContent = t('editReset'); } });
+    $('an-opt-bass').checked = !!bass.present; $('an-opt-bass').disabled = !bassHas;
+    $('an-opt-lead').checked = !!lead.present; $('an-opt-lead').disabled = !leadHas;
+    $('an-opt-comp').disabled = !compNotes.length;
+    $('an-opt-comp').checked = !!compNotes.length && comp.style === 'pluck';
   }
 
   const WAVE_H = 150, LANE_H = 7;
@@ -410,11 +581,12 @@
       const drums = S.pattern ? { pattern: S.pattern, bars: S.D.bars } : null;
       await HO.sendToStudio({
         baseName: S.baseName, audioBuffer: S.audioBuffer, G: S.G, key: S.A.key,
-        drums, chords: S.C,
+        drums, chords: currentView().chords, bass: currentView().bass, comp: currentView().comp, lead: currentView().lead,
         options: {
           drums: $('an-opt-drums').checked, chords: $('an-opt-chords').checked,
           keepOriginal: $('an-opt-orig').checked, muteOriginal: $('an-opt-mute').checked,
-          rows: S.rowOn, instrumentId
+          rows: S.rowOn, instrumentId,
+          bass: $('an-opt-bass').checked, comp: $('an-opt-comp').checked, lead: $('an-opt-lead').checked
         }
       });
       stopPlayback();
@@ -460,6 +632,19 @@
     $('an-shift-dn').addEventListener('click', () => { S.shift = (S.shift + 3) % 4; stopPlayback(); recompute(); });
     $('an-shift-up').addEventListener('click', () => { S.shift = (S.shift + 1) % 4; stopPlayback(); recompute(); });
 
+    $('an-mode').addEventListener('change', e => { S.mode = e.target.value; });
+
+    ['bass', 'lead'].forEach(k => {
+      const cv = $('an-' + k + '-cv');
+      cv.style.cursor = 'pointer';
+      cv.title = t('editHint');
+      cv.addEventListener('click', e => editNote(k, e));
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'an-edit-reset'; b.hidden = true; b.id = 'an-' + k + '-reset';
+      b.addEventListener('click', () => { delete S.ed[k]; renderLayers(); });
+      cv.insertAdjacentElement('afterend', b);
+    });
+
     $('an-play').addEventListener('click', () => { if (S.playing) stopPlayback(); else startPlayback(S.playStartPos || 0); });
     $('an-zoom-in').addEventListener('click', () => { S.pxPerSec = Math.min(160, S.pxPerSec * 1.5); drawWave(); });
     $('an-zoom-out').addEventListener('click', () => { S.pxPerSec = Math.max(6, S.pxPerSec / 1.5); drawWave(); });
@@ -476,6 +661,20 @@
     });
     window.addEventListener('resize', () => { if (S.A) drawWave(); });
     $('an-send').addEventListener('click', send);
+    const refreshSrc = () => {
+      $('an-window').hidden = S.srcMode !== 'window';
+      if (S.srcMode === 'window') $('an-win-start').value = S.winStart + 1;
+      if (S.A) { renderChords(); renderLayers(); }
+    };
+    document.querySelectorAll('input[name="an-src"]').forEach(r => r.addEventListener('change', () => {
+      if (!r.checked) return;
+      S.srcMode = r.value;
+      if (S.srcMode === 'window' && S.L && !S.winTouched) S.winStart = AN.suggestWindow(S.L, S.G, S.winLen);
+      refreshSrc();
+    }));
+    $('an-win-start').addEventListener('change', e => { S.winTouched = true; S.winStart = Math.max(0, (parseInt(e.target.value, 10) || 1) - 1); refreshSrc(); });
+    $('an-win-len').addEventListener('change', e => { S.winLen = parseInt(e.target.value, 10) || 8; S.winTouched = false; if (S.L) S.winStart = AN.suggestWindow(S.L, S.G, S.winLen); refreshSrc(); });
+    $('an-win-auto').addEventListener('click', () => { S.winTouched = false; if (S.L) S.winStart = AN.suggestWindow(S.L, S.G, S.winLen); refreshSrc(); });
   }
 
   document.addEventListener('DOMContentLoaded', init);
