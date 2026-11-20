@@ -299,12 +299,10 @@ function initNavbar() {
   const navbar = document.getElementById('navbar')
   if (!navbar) return
 
-  
   window.addEventListener('scroll', () => {
     navbar.classList.toggle('scrolled', window.scrollY > 40)
   })
 
-  
   const burger = document.querySelector('.burger')
   const mobileMenu = document.querySelector('.mobile-menu')
   const mobileClose = document.querySelector('.mobile-close')

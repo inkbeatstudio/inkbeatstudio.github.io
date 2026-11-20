@@ -32,6 +32,11 @@
 </url>
 
 <url>
+<loc>https://inkbeatstudio.github.io/pages/analyzer/index.html</loc>
+<priority>0.6</priority>
+</url>
+
+<url>
 <loc>https://inkbeatstudio.github.io/pages/master/mastering.html</loc>
 <priority>0.5</priority>
 </url>

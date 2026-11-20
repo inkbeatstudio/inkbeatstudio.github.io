@@ -370,8 +370,6 @@
     graph.convolver.buffer = makeImpulseBuffer(actx, state.fx.reverbSize, state.fx.reverbDecay);
   }
 
-  // Shared by the master FX chain and every per-track FX chain: both expose the
-  // same node names (distShaper/eqLow/compressor/delayNode/reverbWet, etc).
   function applyFxValuesToNodes(f, n) {
     n.distShaper.curve = makeDistortionCurve(f.distOn ? f.distAmount : 0);
     n.distDry.gain.value = f.distOn ? (1 - f.distMix) : 1;
@@ -412,8 +410,6 @@
     };
   }
 
-  // Builds a self-contained dist -> EQ -> comp -> delay -> reverb chain that can be
-  // dropped into any signal path (used per-track, and per-stem on offline export).
   function createFxChainNodes(ctx) {
     const distIn = ctx.createGain();
     const distDry = ctx.createGain();
@@ -680,8 +676,6 @@
     updateTransportUI();
   }
 
-  // Moves the playhead to an arbitrary position, keeping playback running (from the
-  // new spot) if it was already running. Used by the draggable playhead/ruler.
   function seekTo(seconds) {
     const dur = Math.max(projectDuration(), 0.001);
     seconds = Math.max(0, Math.min(dur, seconds));
@@ -697,8 +691,6 @@
     if (wasPlaying) beginPlaybackFromPosition();
   }
 
-  // Lightweight visual-only move used while the mouse is down; the audio graph is
-  // only touched once, at mousedown (pause) and at mouseup (seekTo/resume).
   function previewSeek(seconds) {
     const dur = Math.max(projectDuration(), 0.001);
     seconds = Math.max(0, Math.min(dur, seconds));
@@ -1754,8 +1746,6 @@
     return { set: v => { val = v; render(); } };
   }
 
-  // 'master' targets the shared master-bus chain (state.fx); a track id targets
-  // that track's own independent chain (tr.fx), inserted right after its volume gain.
   let fxTarget = 'master';
   let fxKnobsReady = false;
   const knobCtrl = {};
@@ -2990,8 +2980,6 @@
     document.getElementById('btn-tap-tempo').addEventListener('click', tapTempo);
   }
 
-  // Keeps the track-header column and the scrollable lane area moving together
-  // vertically, so headers always line up with the lanes they describe.
   function wireTimelineScrollSync() {
     const headers = document.getElementById('track-headers');
     const scroll = document.getElementById('timeline-scroll');
@@ -3011,8 +2999,6 @@
     });
   }
 
-  // Lets the person drag the playhead itself, or click/drag anywhere on the ruler
-  // or the markers lane, to scrub to a new playback position.
   function wireTransportScrubbing() {
     const ruler = document.getElementById('timeline-ruler');
     const markersLane = document.getElementById('markers-lane');

@@ -505,10 +505,6 @@
     });
   }
 
-  // iOS Safari/Chrome (both run on WebKit) has a known decodeAudioData bug where decoding
-  // can hang forever for certain files without ever calling the success or error callback.
-  // A fresh AudioContext often "unsticks" it, so we retry once with a brand new context
-  // before giving up, and we don't make the user wait too long to find out.
   async function decodeWithRetry(arrayBuf, fileSize, onRetry){
     const timeoutMs = Math.max(12000, Math.min(45000, fileSize / 2500));
     try{
@@ -643,9 +639,9 @@
     high.type = 'highshelf'; high.frequency.value = 8000; high.gain.value = p.treb;
 
     const compressor = ctx.createDynamicsCompressor();
-    compressor.threshold.value = -6 - p.comp*24;   
+    compressor.threshold.value = -6 - p.comp*24;
     compressor.knee.value = 18;
-    compressor.ratio.value = 1 + p.comp*11;         
+    compressor.ratio.value = 1 + p.comp*11;
     compressor.attack.value = 0.003;
     compressor.release.value = 0.25;
 
@@ -656,7 +652,7 @@
     low.connect(high);
     high.connect(compressor);
     compressor.connect(makeup);
-    return makeup; 
+    return makeup;
   }
 
   function stopPlayback(){
@@ -718,7 +714,6 @@
 
     src.onended = () => {
       if (stoppingManually){ stoppingManually = false; return; }
-      // reached the natural end of the track
       isPlaying = false;
       pauseOffset = 0;
       updatePlayIcon();
