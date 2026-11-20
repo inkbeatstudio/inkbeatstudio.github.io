@@ -1152,18 +1152,56 @@
 
   function analyzeLayers(A, G, opts) {
     opts = opts || {};
-    const D = drums(A, G, opts.drums);
-    let bass = bassLine(A, G, D.hits && D.hits.kick);
-    let lead = leadLine(A, G);
+    const st = opts.stems || {};
+    const D = drums(st.drums || A, G, opts.drums);
+    let bass = bassLine(st.bass || A, G, D.hits && D.hits.kick);
+    let lead = leadLine(st.lead || A, G);
     if (opts.notes && opts.notes.length) {
       const nl = layersFromNotes(opts.notes, G, A);
       const better = (o, n) => n.events.length >= 3 && (!o.present || n.consistency >= o.consistency - 0.02 || o.events.length < 3);
-      if (better(bass, nl.bass)) bass = Object.assign(bass, nl.bass);
-      if (better(lead, nl.lead)) lead = Object.assign(lead, nl.lead);
+      if (!st.bass && better(bass, nl.bass)) bass = Object.assign(bass, nl.bass);
+      if (!st.lead && better(lead, nl.lead)) lead = Object.assign(lead, nl.lead);
     }
-    const C = chords(A, G, { rootPrior: barRoots(bass.events, G) });
-    const comp = compRhythm(A, G);
+    const H = st.harmony || A;
+    const C = chords(H, G, { rootPrior: barRoots(bass.events, G) });
+    const comp = compRhythm(H, G);
     return { drums: D, bass, chords: C, comp, lead };
+  }
+
+  function stemRole(name) {
+    const n = String(name || '').toLowerCase();
+    if (/fx|effect|sfx|noise/.test(n)) return 'ignore';
+    if (/backing|backup|harmon|choir/.test(n)) return 'ignore';
+    if (/vocal|vox|voice|sing|lead\s*vocal/.test(n)) return 'vocals';
+    if (/drum|perc|kit|beat/.test(n)) return 'drums';
+    if (/bass|sub/.test(n)) return 'bass';
+    if (/lead|melod|solo|flute|violin|sax/.test(n)) return 'lead';
+    return 'harmony';
+  }
+
+  function mixStems(list) {
+    let n = 0;
+    list.forEach(x => { if (x.length > n) n = x.length; });
+    const out = new Float32Array(n);
+    list.forEach(x => { for (let i = 0; i < x.length; i++) out[i] += x[i]; });
+    return out;
+  }
+
+  async function analyzeStems(groups, progress) {
+    const out = {};
+    const roles = Object.keys(groups).filter(r => groups[r].length);
+    let i = 0;
+    for (const r of roles) {
+      const key = r === 'vocals' ? 'lead' : r;
+      if (r === 'vocals' && groups.lead && groups.lead.length) { i++; continue; }
+      const x = groups[r].length === 1 ? groups[r][0] : mixStems(groups[r]);
+      try { out[key] = await analyzeMono(x, (st, p) => { if (progress) progress((i + (p || 0)) / roles.length); }); }
+      catch (e) { out[key] = null; }
+      i++;
+      if (progress) progress(i / roles.length);
+    }
+    Object.keys(out).forEach(k => { if (!out[k]) delete out[k]; });
+    return out;
   }
 
   function windowLayers(L, G, startBar, nBars) {
@@ -1195,7 +1233,7 @@
   }
 
   root.InkBeatAnalyzer = {
-    SR, FPS, NAMES, windowLayers, suggestWindow, bassLine, compRhythm, leadLine, analyzeLayers,
+    SR, FPS, NAMES, stemRole, analyzeStems, windowLayers, suggestWindow, bassLine, compRhythm, leadLine, analyzeLayers,
     analyzeMono, analyzeBuffer, resampleToMono, grid, refine, drums, chords,
     frameToTime, timeToFrame, chordLabel
   };

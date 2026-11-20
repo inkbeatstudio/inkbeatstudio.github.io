@@ -55,6 +55,7 @@
       winCompTag: (bars, per, style) => `відрізок ${bars} тактів · ${per} ударів/такт · ${style}`,
       compTag: (bars, per, style) => `цикл ${bars} такт(и) · ${per} ударів/такт · ${style}`,
       styleRhythm: 'ритмічний', stylePad: 'довгі акорди',
+      stemsTitle: 'Окремі доріжки (стеми)', stemsHint: 'Якщо в тебе є розділені доріжки зі Suno — завантаж їх: бас, ударні, мелодія й акорди аналізуватимуться окремо, і результат буде набагато точнішим. Роль визначається за назвою файлу, її можна змінити.', stemsPick: 'Вибрати доріжки', stemsRun: 'Проаналізувати доріжки', stemsClear: 'Прибрати доріжки', stemsBusy: 'Аналіз доріжок…', stemsDone: n => `Готово: використано доріжок — ${n}. Шари нижче оновлено.`, stemsNone: 'Жодна доріжка не підійшла (замало звуку або роль «ігнорувати»).', roleDrums: 'Ударні', roleBass: 'Бас', roleVocals: 'Вокал → лід', roleLead: 'Лід', roleHarmony: 'Гітара / клавіші', roleIgnore: 'Ігнорувати',
       editHint: 'Клацни по малюнку: по ноті — видалити, по порожньому — додати.', editReset: 'Скинути правки',
       bassHint: s => `Перші ноти: ${s}. Висоту знайдено автоматично; у студії бас лежить у шарі «Бас».`,
       noBass: 'Стабільної бас-лінії не знайдено (або в треку немає баса).',
@@ -116,6 +117,7 @@
       winCompTag: (bars, per, style) => `${bars}-bar section · ${per} hits/bar · ${style}`,
       compTag: (bars, per, style) => `${bars}-bar loop · ${per} hits/bar · ${style}`,
       styleRhythm: 'rhythmic', stylePad: 'sustained chords',
+      stemsTitle: 'Separate tracks (stems)', stemsHint: 'If you have split stems from Suno, upload them: bass, drums, melody and chords are analysed separately, which is much more accurate. The role is guessed from the file name and can be changed.', stemsPick: 'Choose stems', stemsRun: 'Analyse stems', stemsClear: 'Remove stems', stemsBusy: 'Analysing stems…', stemsDone: n => `Done: ${n} stem(s) used. Layers below were updated.`, stemsNone: 'No stem was usable (too short or set to ignore).', roleDrums: 'Drums', roleBass: 'Bass', roleVocals: 'Vocals → lead', roleLead: 'Lead', roleHarmony: 'Guitar / keys', roleIgnore: 'Ignore',
       editHint: 'Click the roll: on a note to delete it, on empty space to add one.', editReset: 'Undo edits',
       bassHint: s => `First notes: ${s}. Pitch is detected automatically; in the studio the bass goes to the “Bass” layer.`,
       noBass: 'No stable bass line found (or the track has no bass).',
@@ -144,7 +146,7 @@
   const S = {
     ctx: null, audioBuffer: null, A: null, G: null, D: null, C: null,
     baseName: '', bpm: 120, shift: 0,
-    srcMode: 'loop', winStart: 0, winLen: 8, mode: 'fast', notes: null, ed: {}, edKey: '',
+    srcMode: 'loop', winStart: 0, winLen: 8, mode: 'fast', notes: null, ed: {}, edKey: '', stemFiles: [], stemA: null,
     pattern: null, rowOn: { kick: true, snare: true, hihat: true, ohat: true, clap: true, tom: true },
     pxPerSec: 40, peaks: null, peaksPx: 0,
     playing: false, playStartCtx: 0, playStartPos: 0, src: null, clickTimer: null, nextClick: 0, raf: 0
@@ -184,6 +186,7 @@
       });
       S.A = A;
       S.notes = null;
+      resetStems();
       if (acc) {
         try {
           setProgress(t('stageTranscribe'), 0.4);
@@ -213,6 +216,60 @@
     }
   }
 
+  const ROLES = ['drums', 'bass', 'vocals', 'lead', 'harmony', 'ignore'];
+  const roleKey = r => 'role' + r.charAt(0).toUpperCase() + r.slice(1);
+
+  function resetStems() {
+    S.stemFiles = []; S.stemA = null;
+    if ($('an-stem-list')) { renderStemList(); $('an-stem-status').textContent = ''; }
+  }
+
+  function renderStemList() {
+    const box = $('an-stem-list');
+    box.innerHTML = '';
+    S.stemFiles.forEach((f, i) => {
+      const row = document.createElement('div');
+      row.className = 'an-stem-row';
+      const nm = document.createElement('span');
+      nm.textContent = f.file.name;
+      const sel = document.createElement('select');
+      ROLES.forEach(r => { const o = document.createElement('option'); o.value = r; o.textContent = t(roleKey(r)); if (r === f.role) o.selected = true; sel.appendChild(o); });
+      sel.addEventListener('change', () => { f.role = sel.value; });
+      row.appendChild(nm); row.appendChild(sel);
+      box.appendChild(row);
+    });
+    $('an-stem-run').hidden = !S.stemFiles.length;
+    $('an-stem-clear').hidden = !S.stemFiles.length && !S.stemA;
+  }
+
+  async function runStems() {
+    const st = $('an-stem-status');
+    const run = $('an-stem-run');
+    run.disabled = true;
+    st.textContent = t('stemsBusy');
+    try {
+      const groups = {};
+      for (const f of S.stemFiles) {
+        if (f.role === 'ignore') continue;
+        const buf = await f.file.arrayBuffer();
+        const audio = await S.ctx.decodeAudioData(buf.slice(0));
+        const ch = [];
+        for (let c = 0; c < audio.numberOfChannels; c++) ch.push(audio.getChannelData(c));
+        const mono = await AN.resampleToMono(ch, audio.sampleRate);
+        (groups[f.role] = groups[f.role] || []).push(mono);
+      }
+      const res = await AN.analyzeStems(groups, p => { st.textContent = t('stemsBusy') + ' ' + Math.round(p * 100) + '%'; });
+      const n = Object.keys(res).length;
+      if (!n) { st.textContent = t('stemsNone'); S.stemA = null; }
+      else { S.stemA = res; stopPlayback(); recompute(true); st.textContent = t('stemsDone', n); }
+    } catch (e) {
+      console.error(e);
+      st.textContent = t('errGeneric') + (e && e.message);
+    }
+    run.disabled = false;
+    renderStemList();
+  }
+
   function loadScript(src) {
     return new Promise((res, rej) => {
       if (window.InkBeatNotes) return res();
@@ -231,7 +288,7 @@
     const A = S.A;
     S.G = AN.grid(A, S.bpm, { shift: S.shift });
     S.ed = {};
-    S.L = AN.analyzeLayers(A, S.G, { notes: S.notes });
+    S.L = AN.analyzeLayers(A, S.G, { notes: S.notes, stems: S.stemA || undefined });
     S.D = S.L.drums;
     S.C = S.L.chords;
     S.pattern = S.D.pattern ? JSON.parse(JSON.stringify(S.D.pattern)) : null;
@@ -644,6 +701,15 @@
       b.addEventListener('click', () => { delete S.ed[k]; renderLayers(); });
       cv.insertAdjacentElement('afterend', b);
     });
+
+    $('an-stem-files').addEventListener('change', e => {
+      S.stemFiles = Array.from(e.target.files).map(file => ({ file, role: AN.stemRole(file.name) }));
+      e.target.value = '';
+      $('an-stem-status').textContent = '';
+      renderStemList();
+    });
+    $('an-stem-run').addEventListener('click', runStems);
+    $('an-stem-clear').addEventListener('click', () => { const had = !!S.stemA; resetStems(); if (had) recompute(true); });
 
     $('an-play').addEventListener('click', () => { if (S.playing) stopPlayback(); else startPlayback(S.playStartPos || 0); });
     $('an-zoom-in').addEventListener('click', () => { S.pxPerSec = Math.min(160, S.pxPerSec * 1.5); drawWave(); });

@@ -124,3 +124,8 @@ a.st-icon-btn { text-decoration: none; }
 .an-window input[type=number] { width: 72px; }
 .an-edit-reset { margin-top: 6px; background: none; border: 1px solid rgba(255,255,255,.14); color: rgba(255,255,255,.7); border-radius: 8px; padding: 4px 10px; font: inherit; font-size: .78rem; cursor: pointer; }
 .an-edit-reset:hover { color: #fff; border-color: rgba(255,255,255,.3); }
+.an-stem-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.an-stem-pick { cursor: pointer; }
+.an-stem-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,.06); font-size: .85rem; }
+.an-stem-row span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.an-stem-row select { background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.12); color: #fff; border-radius: 8px; padding: 4px 8px; font: inherit; font-size: .8rem; }

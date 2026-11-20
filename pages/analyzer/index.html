@@ -154,6 +154,20 @@
 
     <div class="an-card">
       <div class="an-card-head">
+        <h2 data-i18n="stemsTitle">Окремі доріжки (стеми)</h2>
+      </div>
+      <p class="an-hint" data-i18n="stemsHint">Якщо в тебе є розділені доріжки зі Suno — завантаж їх.</p>
+      <div class="an-stem-actions">
+        <label class="an-chip an-stem-pick"><input type="file" id="an-stem-files" accept="audio/*,.mp3,.wav,.ogg,.m4a,.flac,.aac" multiple hidden/><span data-i18n="stemsPick">Вибрати доріжки</span></label>
+        <button class="an-chip" id="an-stem-run" hidden data-i18n="stemsRun">Проаналізувати доріжки</button>
+        <button class="an-chip" id="an-stem-clear" hidden data-i18n="stemsClear">Прибрати доріжки</button>
+      </div>
+      <div id="an-stem-list"></div>
+      <p class="an-hint" id="an-stem-status"></p>
+    </div>
+
+    <div class="an-card">
+      <div class="an-card-head">
         <h2 data-i18n="srcTitle">Звідки брати бас, гітару й лід</h2>
       </div>
       <div class="an-opts">
