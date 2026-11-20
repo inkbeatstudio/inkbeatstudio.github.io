@@ -33,7 +33,6 @@
   </div>
 </div>
 
-<!-- ===== TOP BAR ===== -->
 <header class="st-topbar">
   <div class="st-topbar-left">
     <a href="../../index.html" class="st-logo gradient-text">INKBEAT</a>
@@ -90,7 +89,6 @@
   </div>
 </header>
 
-<!-- ===== TRANSPORT ===== -->
 <div class="st-transport">
   <div class="st-transport-group">
     <button class="st-play-btn" id="btn-play" title="Play / Pause" data-i18n-local-title="titlePlayPause">
@@ -135,7 +133,6 @@
   </div>
 </div>
 
-<!-- ===== VIEW TABS ===== -->
 <nav class="st-tabs">
   <button class="st-tab active" data-view="timeline">
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h10"/></svg>
@@ -160,14 +157,12 @@
   <div class="st-tabs-status" id="tabs-status"></div>
 </nav>
 
-<!-- ===== MAIN AREA ===== -->
 <main class="st-main">
 
-  <!-- ---- TIMELINE VIEW ---- -->
   <section class="st-view st-view-timeline active" id="view-timeline">
     <div class="st-timeline-wrap">
       <div class="st-track-headers" id="track-headers">
-        <!-- track headers injected by JS -->
+
       </div>
       <div class="st-timeline-scroll" id="timeline-scroll">
         <div class="st-timeline-ruler" id="timeline-ruler"></div>
@@ -198,7 +193,6 @@
     </div>
   </section>
 
-  <!-- ---- SEQUENCER VIEW ---- -->
   <section class="st-view st-view-sequencer" id="view-sequencer">
     <div class="st-seq-toolbar">
       <div class="st-field">
@@ -233,11 +227,10 @@
       <button class="st-icon-btn" id="btn-seq-random" data-i18n-local="btnRandom">Рандом</button>
     </div>
     <div class="st-seq-grid-wrap">
-      <div id="seq-rows"><!-- injected --></div>
+      <div id="seq-rows"></div>
     </div>
   </section>
 
-  <!-- ---- PIANO ROLL VIEW ---- -->
   <section class="st-view st-view-piano" id="view-piano">
     <div class="st-seq-toolbar">
       <div class="st-field">
@@ -264,14 +257,12 @@
     </div>
   </section>
 
-  <!-- ---- MIXER VIEW ---- -->
   <section class="st-view st-view-mixer" id="view-mixer">
     <div class="st-mixer-strips" id="mixer-strips">
-      <!-- channel strips injected + master strip -->
+
     </div>
   </section>
 
-  <!-- ---- FX VIEW ---- -->
   <section class="st-view st-view-fx" id="view-fx">
     <div class="st-fx-grid">
 
@@ -383,7 +374,6 @@
 
 </main>
 
-<!-- ---- SAMPLE BROWSER DRAWER ---- -->
 <aside class="st-browser" id="sample-browser">
   <div class="st-browser-head">
     <span data-i18n-local="browserTitle">Бібліотека семплів</span>
@@ -392,7 +382,6 @@
   <div class="st-browser-list" id="browser-list"></div>
 </aside>
 
-<!-- ---- DRAG OVERLAY ---- -->
 <div class="st-drop-overlay" id="drop-overlay">
   <div class="st-drop-overlay-inner">
     <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
@@ -400,7 +389,6 @@
   </div>
 </div>
 
-<!-- ---- TOAST ---- -->
 <div class="st-toast" id="toast"></div>
 
 <div class="st-countdown-overlay" id="countdown-overlay"><span id="countdown-num">3</span></div>
@@ -411,7 +399,6 @@
   <button class="st-icon-btn" id="btn-punch-cancel" data-i18n-local="btnCancel">Скасувати</button>
 </div>
 
-<!-- ---- PROJECTS MODAL ---- -->
 <div class="st-modal-overlay" id="projects-modal">
   <div class="st-modal">
     <div class="st-modal-head">

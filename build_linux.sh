@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# Збірка InkBeat Studio Desktop в один виконуваний файл для Linux.
 set -e
 
 cd "$(dirname "$0")"

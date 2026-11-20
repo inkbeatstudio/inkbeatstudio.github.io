@@ -1,4 +1,3 @@
-// InkBeat Studio plugin: Analog Strings (instrument)
 InkBeatPlugins.register({
   id: 'analog-strings',
   type: 'instrument',

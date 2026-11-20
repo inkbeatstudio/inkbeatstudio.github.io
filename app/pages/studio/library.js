@@ -1,13 +1,3 @@
-/*
- * InkBeat Studio — Library panel
- * ================================
- * З'єднує UI "Бібліотека" (модалка з вкладками Семпли / Інструменти /
- * Ефекти / Проєкти) з on-disk API (/api/library, /api/projects) та
- * з window.InkBeatStudio / window.InkBeatPlugins.
- *
- * Не залежить від внутрішньої структури studio.js — використовує лише
- * публічний контракт window.InkBeatStudio, тож безпечний для розширення.
- */
 (function () {
   'use strict';
 
@@ -25,7 +15,6 @@
     return libraryData;
   }
 
-  // ---------- Modal scaffold ----------
   function ensureModal() {
     if (document.getElementById('lib-modal')) return;
     const overlay = document.createElement('div');
@@ -76,7 +65,6 @@
     return String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   }
 
-  // ---------- Tab: Samples ----------
   function renderSamplesTab() {
     const body = document.getElementById('lib-modal-body');
     const items = libraryData.samples || [];
@@ -160,9 +148,6 @@
     }
   }
 
-  // Дозволяє відкрити семпли бібліотеки у вже готовому drawer'і
-  // (той самий, що й для "Папка" з диска) — щоб можна було
-  // перетягувати їх прямо на доріжки, а не тільки клікати.
   function openLibrarySamplesInDrawer() {
     const s = studio();
     if (!s) return;
@@ -175,7 +160,6 @@
     s.openBrowserDrawer();
   }
 
-  // ---------- Tab: Instruments / Effects (plugins) ----------
   function renderPluginsTab(kind) {
     const body = document.getElementById('lib-modal-body');
     const list = kind === 'instruments' ? libraryData.instruments : libraryData.effects;
@@ -282,7 +266,6 @@
     });
   }
 
-  // ---------- Tab: Projects (files on disk) ----------
   function renderProjectsTab() {
     const s = studio();
     const body = document.getElementById('lib-modal-body');
@@ -341,7 +324,6 @@
     else if (tab === 'projects') renderProjectsTab();
   }
 
-  // ---------- Toolbar wiring ----------
   function wireToolbarButton() {
     const topbarRight = document.querySelector('.st-topbar-right');
     if (!topbarRight) return;
@@ -369,8 +351,6 @@
   }
 
   document.addEventListener('DOMContentLoaded', () => {
-    // Дочекатись, поки studio.js виставить window.InkBeatStudio (він робить
-    // це синхронно при завантаженні скрипта, тому до DOMContentLoaded вже готово).
     init();
     if (window.InkBeatPlugins) {
       window.InkBeatPlugins.loadAll().then(() => {

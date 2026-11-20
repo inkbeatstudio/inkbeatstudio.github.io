@@ -1,5 +1,3 @@
-// InkBeat Studio plugin: Crystal Bell (instrument)
-// FM-подібний дзвіночок: несуча + модулятор із негармонійним співвідношенням.
 InkBeatPlugins.register({
   id: 'crystal-bell',
   type: 'instrument',
@@ -13,7 +11,7 @@ InkBeatPlugins.register({
 
     const carrier = ctx.createOscillator(); carrier.type = 'sine'; carrier.frequency.value = note.freq;
     const modulator = ctx.createOscillator(); modulator.type = 'sine';
-    modulator.frequency.value = note.freq * 1.41; // негармонійне співвідношення -> "металевий" тембр
+    modulator.frequency.value = note.freq * 1.41;
 
     const modGain = ctx.createGain();
     modGain.gain.setValueAtTime(note.freq * brightness, note.time);

@@ -1,19 +1,9 @@
-/*
- * InkBeat Analyzer — передача результату в студію
- * ================================================
- * Збирає з аналізу «проєкт» у тому ж форматі, що й автозбереження студії,
- * і записує його в IndexedDB студії (той самий origin → та сама база).
- * Студія при відкритті бере ключ 'current' і завантажує його як звичайний проєкт.
- *
- * Перед записом поточний автозбережений проєкт студії копіюється в
- * 'proj:backup-before-analysis', щоб нічого не втратити.
- */
 (function (root) {
   'use strict';
 
   const DB_NAME = 'inkbeat-studio';
   const DB_STORE = 'projects';
-  const PIANO_LOW = 48, PIANO_HIGH = 72;     // діапазон піано-ролу студії
+  const PIANO_LOW = 48, PIANO_HIGH = 72;
   const DRUM_KEYS = ['kick', 'snare', 'hihat', 'ohat', 'clap', 'tom', 'perc'];
 
   function openDB() {
@@ -42,7 +32,6 @@
     });
   }
 
-  /** WAV (16-bit PCM) з AudioBuffer; padSec секунд тиші додається на початку. */
   function audioBufferToWav(buffer, padSec) {
     const ch = Math.min(2, buffer.numberOfChannels);
     const sr = buffer.sampleRate;
@@ -73,15 +62,14 @@
     return out;
   }
 
-  /**
-   * ctx: { baseName, audioBuffer, G, drums (pattern {kick,snare,hihat,ohat}, bars), chords ({loop, loopBars}),
-   *        key, options: { drums, chords, keepOriginal, muteOriginal, rows:{kick:true,...}, instrumentId } }
-   */
+  function isEn() {
+    try { return localStorage.getItem('lang') === 'en'; } catch (e) { return false; }
+  }
+
   function buildPayload(ctx) {
     const { G, options: o } = ctx;
     const bpm = Math.max(40, Math.min(240, +G.bpm.toFixed(3)));
 
-    // пауза на початку, якщо перший такт починається «до» файлу (d < 0)
     const padSec = G.d < 0 ? -G.d : 0;
     const trimStart = G.d > 0 ? G.d : 0;
 
@@ -103,7 +91,7 @@
       melodyBars = ctx.chords.loopBars;
       ctx.chords.loop.forEach((c, bar) => {
         if (!c) return;
-        const root = PIANO_LOW + c.root;                 // 48..59
+        const root = PIANO_LOW + c.root;
         [root, root + (c.minor ? 3 : 4), root + 7].forEach(m => {
           if (m < PIANO_LOW || m > PIANO_HIGH) return;
           for (let s = bar * 16; s < bar * 16 + 16; s++) melody[m][s] = true;
@@ -117,7 +105,7 @@
     const tracks = [];
     if (o.keepOriginal && ctx.audioBuffer) {
       tracks.push({
-        id: 1, name: 'Оригінал', color: '#8D84C4',
+        id: 1, name: isEn() ? 'Original' : 'Оригінал', color: '#8D84C4',
         volume: 0.9, pan: 0, mute: !!o.muteOriginal, solo: false, reverbSend: 0, eqTilt: 0,
         clips: [{
           id: 1, fileName: ctx.baseName, clipStart: 0, trimStart, trimDuration: null,
@@ -143,7 +131,6 @@
     };
   }
 
-  /** Записує проєкт у IndexedDB студії. Повертає id проєкту. */
   async function sendToStudio(ctx) {
     const payload = buildPayload(ctx);
     const db = await openDB();
@@ -152,7 +139,7 @@
       const prev = await idbGet(db, 'current');
       if (prev) {
         entries.push(['proj:backup-before-analysis',
-          Object.assign({}, prev, { name: '(резерв) ' + (prev.name || 'без назви'), savedAt: new Date().toISOString() })]);
+          Object.assign({}, prev, { name: (isEn() ? '(backup) ' : '(резерв) ') + (prev.name || (isEn() ? 'untitled' : 'без назви')), savedAt: new Date().toISOString() })]);
       }
       const id = 'proj_' + Date.now();
       entries.push(['proj:' + id, payload], ['current', payload], ['current-id', id]);

@@ -1,15 +1,4 @@
 #!/usr/bin/env python3
-"""
-Генерує стартовий пак семплів для InkBeat Studio — повністю оригінальні,
-синтезовані звуки (без стороннього ліцензованого контенту), щоб студія
-одразу мала з чим працювати "з коробки".
-
-Запуск (не обов'язково — вже згенеровано і лежить в репозиторії):
-    python3 tools/generate_sample_pack.py
-
-Використовує лише стандартну бібліотеку Python (wave + math + random +
-struct) — без numpy, щоб не додавати зайву залежність до збірки.
-"""
 
 import math
 import os
@@ -23,11 +12,10 @@ OUT_ROOT = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__
 
 
 def write_wav(path, samples_stereo):
-    """samples_stereo: list[(l, r)] у діапазоні приблизно [-1, 1]."""
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with wave.open(path, "wb") as wf:
         wf.setnchannels(2)
-        wf.setsampwidth(2)  # 16-bit
+        wf.setsampwidth(2)
         wf.setframerate(SAMPLE_RATE)
         frames = bytearray()
         for l, r in samples_stereo:
@@ -54,13 +42,10 @@ def white_noise():
 
 
 def mono_to_stereo(mono, pan=0.0):
-    # pan: -1 (ліво) .. 1 (право)
     left = min(1.0, 1 - max(0.0, pan))
     right = min(1.0, 1 + min(0.0, pan))
     return [(s * left, s * right) for s in mono]
 
-
-# ---------------------------------------------------------------- Drums ----
 
 def make_kick():
     dur = 0.5
@@ -68,7 +53,7 @@ def make_kick():
     out = []
     for i in range(n):
         t = i / SAMPLE_RATE
-        freq = 150 * math.exp(-18 * t) + 45  # pitch drop
+        freq = 150 * math.exp(-18 * t) + 45
         amp = envelope_exp(i, n, decay=7.0)
         click = white_noise() * math.exp(-i / (SAMPLE_RATE * 0.002)) * 0.25 if i < SAMPLE_RATE * 0.01 else 0
         out.append(sine(freq, t) * amp + click)
@@ -92,14 +77,13 @@ def make_hihat(open_hat=False):
     n = n_samples(dur)
     decay = 5.0 if open_hat else 26.0
     out = []
-    # металевий тембр — сума негармонійних квадратних хвиль + шум, через фейковий band-pass (просте диференціювання)
     prev = 0.0
     freqs = [3200, 4300, 5600, 6700, 8100]
     for i in range(n):
         t = i / SAMPLE_RATE
         val = sum(1 if math.sin(2 * math.pi * f * t) > 0 else -1 for f in freqs) / len(freqs)
         val += white_noise() * 0.35
-        hp = val - prev  # проста high-pass "різниця"
+        hp = val - prev
         prev = val
         amp = envelope_exp(i, n, decay)
         out.append(hp * amp * 0.6)
@@ -110,7 +94,6 @@ def make_clap():
     dur = 0.3
     n = n_samples(dur)
     out = [0.0] * n
-    # кілька коротких сплесків шуму зі зсувом — імітація плескання в долоні
     bursts = [0.0, 0.012, 0.024, 0.045]
     for b_start in bursts:
         start_i = int(b_start * SAMPLE_RATE)
@@ -155,8 +138,6 @@ def make_shaker():
     return mono_to_stereo(out)
 
 
-# ----------------------------------------------------------------- Bass ----
-
 def make_sub_bass(note_freq=55.0):
     dur = 1.2
     n = n_samples(dur)
@@ -165,7 +146,7 @@ def make_sub_bass(note_freq=55.0):
         t = i / SAMPLE_RATE
         amp = 1.0 if t < dur - 0.15 else envelope_exp(i - (n - n_samples(0.15)), n_samples(0.15), 6.0)
         val = sine(note_freq, t)
-        val = math.tanh(val * 1.6)  # легка сатурація для тепла
+        val = math.tanh(val * 1.6)
         out.append(val * amp * 0.85)
     return mono_to_stereo(out)
 
@@ -182,12 +163,10 @@ def make_pluck_bass(note_freq=110.0):
     return mono_to_stereo(out)
 
 
-# --------------------------------------------------------------- Melodic ---
-
 def make_bell_chord():
     dur = 2.0
     n = n_samples(dur)
-    freqs = [261.63, 329.63, 392.00, 523.25]  # Cmaj
+    freqs = [261.63, 329.63, 392.00, 523.25]
     out = []
     for i in range(n):
         t = i / SAMPLE_RATE
@@ -200,7 +179,7 @@ def make_bell_chord():
 def make_pad_swell():
     dur = 3.0
     n = n_samples(dur)
-    freqs = [220.0, 277.18, 329.63]  # Am-ish
+    freqs = [220.0, 277.18, 329.63]
     out = []
     attack_n = n_samples(1.2)
     for i in range(n):
@@ -215,7 +194,7 @@ def make_pad_swell():
 
 
 def main():
-    random.seed(42)  # відтворюваність
+    random.seed(42)
     jobs = [
         ("Drums/Kick_Deep.wav", make_kick),
         ("Drums/Snare_Tight.wav", make_snare),

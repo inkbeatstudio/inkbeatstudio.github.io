@@ -1,4 +1,3 @@
-/* InkBeat — сторінка «Аналіз треку»: інтерфейс поверх engine.js і handoff.js */
 (function () {
   'use strict';
 
@@ -6,7 +5,6 @@
   const HO = window.InkBeatHandoff;
   const $ = id => document.getElementById(id);
 
-  // ------------------------------------------------------------- i18n ----
   const I18N = {
     uk: {
       title: 'Аналіз треку', badge: 'Локально, без інтернету', menu: '← Меню', toStudio: 'Студія →',
@@ -28,7 +26,6 @@
       optDrums: 'Ударні → секвенсор', optChords: 'Акорди → піано-рол',
       optOrig: 'Додати оригінал окремою доріжкою', optMute: 'Оригінал приглушений (щоб чути аранжировку)',
       sendBtn: 'Відкрити у студії →', sendHint: 'Поточний проєкт студії збережеться в «Проєктах» як резервна копія.',
-      // динамічні
       decoding: 'Декодування файлу…', stageOnsets: 'Аналіз ритму…', stageTempo: 'Пошук темпу й сітки…',
       stageChroma: 'Аналіз гармонії…', stageFinish: 'Збираю результат…', stageResample: 'Підготовка звуку…',
       errRead: 'Не вдалося прочитати файл. Підтримуються mp3, wav, ogg, m4a, flac.',
@@ -104,7 +101,6 @@
     document.title = 'InkBeat — ' + t('title');
   }
 
-  // ------------------------------------------------------------ state ----
   const S = {
     ctx: null, audioBuffer: null, A: null, G: null, D: null, C: null,
     baseName: '', bpm: 120, shift: 0,
@@ -121,7 +117,6 @@
   }
   function showError(msg) { const e = $('an-error'); e.textContent = msg; e.hidden = !msg; }
 
-  // ---------------------------------------------------------- loading ----
   async function handleFile(file) {
     if (!file) return;
     showError('');
@@ -168,12 +163,10 @@
     $('an-bar-fill').style.width = Math.round(Math.max(0, Math.min(1, p)) * 100) + '%';
   }
 
-  // -------------------------------------------------------- recompute ----
   function recompute(initial) {
     const A = S.A;
     S.G = AN.grid(A, S.bpm, { shift: S.shift });
     S.D = AN.drums(A, S.G);
-    // рядки, яких у звуку немає (напр., трек без ударних), одразу вимкнені
     if (initial && S.D.presence) S.rowOn = { kick: true, snare: !!S.D.presence.snare, hihat: !!S.D.presence.hihat, ohat: !!S.D.presence.ohat };
     S.C = AN.chords(A, S.G);
     S.pattern = S.D.pattern ? JSON.parse(JSON.stringify(S.D.pattern)) : null;
@@ -194,10 +187,8 @@
     else if (A.tempo.confidence < 0.35) { note.textContent = t('bpmNoteLow'); note.classList.add('warn'); }
     else note.textContent = t('bpmNoteOk');
 
-    // альтернативні варіанти темпу (інші піки автокореляції), окрім майже збіжних із поточним
     const alts = $('an-bpm-alts');
     alts.innerHTML = '';
-    // без майже збіжних із поточним і без октав (×2, ÷2) — для них є окремі кнопки
     const farFrom = (c, k) => Math.abs(c - S.bpm * k) / (S.bpm * k) > 0.03;
     const others = A.tempo.candidates.filter(c => farFrom(c, 1) && farFrom(c, 2) && farFrom(c, 0.5)).slice(0, 3);
     if (others.length) {
@@ -220,7 +211,6 @@
     $('an-bars-note').textContent = t('barsNote', G.d.toFixed(2));
   }
 
-  // ------------------------------------------------------------ drums ----
   const DRUM_ROWS = [['kick', 'rowKick'], ['snare', 'rowSnare'], ['hihat', 'rowHihat'], ['ohat', 'rowOhat']];
 
   function renderDrums() {
@@ -254,7 +244,6 @@
     });
   }
 
-  // ----------------------------------------------------------- chords ----
   function renderChords() {
     const box = $('an-chords');
     box.innerHTML = '';
@@ -275,7 +264,6 @@
     $('an-chords-all').textContent = parts.join('  |  ');
   }
 
-  // --------------------------------------------------------- waveform ----
   const WAVE_H = 150, LANE_H = 7;
 
   function computePeaks(px) {
@@ -313,7 +301,6 @@
       g.fillRect(i, y1, 1, Math.max(1, y2 - y1));
     }
 
-    // сітка: долі та такти
     const beatPx = G.beatSec * pps;
     for (let k = 0, tt = G.d; tt < A.duration; k++, tt = G.d + k * G.beatSec) {
       if (tt < 0) continue;
@@ -331,7 +318,6 @@
       if (x >= 0) g.fillText(String(b + 1), x + 3, 10);
     }
 
-    // знайдені удари по всьому треку (для візуальної перевірки)
     const lanes = [['kick', '#B8452C'], ['snare', '#8D84C4'], ['hat', '#d8d2c6']];
     const H = S.D.hits, stepSec = G.beatSec / 4;
     lanes.forEach(([lane, color], li) => {
@@ -345,7 +331,6 @@
     });
   }
 
-  // --------------------------------------------------------- playback ----
   function curPos() {
     if (!S.playing) return S.playStartPos;
     return S.playStartPos + (S.ctx.currentTime - S.playStartCtx);
@@ -409,7 +394,6 @@
     S.raf = requestAnimationFrame(tickPlayhead);
   }
 
-  // ------------------------------------------------------------- send ----
   async function send() {
     const btn = $('an-send'), err = $('an-send-error');
     err.hidden = true;
@@ -420,7 +404,7 @@
       try {
         const lib = await (await fetch('/api/library')).json();
         if ((lib.instruments || []).some(p => p.id === 'analog-strings')) instrumentId = 'analog-strings';
-      } catch (e) { /* бібліотеки немає — студія використає вбудований pad */ }
+      } catch (e) { }
 
       const drums = S.pattern ? { pattern: S.pattern, bars: S.D.bars } : null;
       await HO.sendToStudio({
@@ -443,7 +427,6 @@
     }
   }
 
-  // ------------------------------------------------------------- wire ----
   function changeBpm(v) {
     S.bpm = Math.max(40, Math.min(240, v));
     stopPlayback();
@@ -465,7 +448,6 @@
     ['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
     ['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
     drop.addEventListener('drop', e => handleFile(e.dataTransfer.files[0]));
-    // перетягування будь-де на сторінці в початковому стані
     window.addEventListener('dragover', e => e.preventDefault());
     window.addEventListener('drop', e => { e.preventDefault(); if (!$('an-intro').hidden && e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]); });
 
@@ -496,5 +478,5 @@
   }
 
   document.addEventListener('DOMContentLoaded', init);
-  window.__anState = S;   // для налагодження/тестів
+  window.__anState = S;
 })();

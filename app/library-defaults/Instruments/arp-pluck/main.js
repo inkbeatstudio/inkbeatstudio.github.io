@@ -1,4 +1,3 @@
-// InkBeat Studio plugin: Arp Pluck (instrument)
 InkBeatPlugins.register({
   id: 'arp-pluck',
   type: 'instrument',

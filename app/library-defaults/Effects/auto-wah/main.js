@@ -1,4 +1,3 @@
-// InkBeat Studio plugin: Auto Wah (effect)
 InkBeatPlugins.register({
   id: 'auto-wah',
   type: 'effect',

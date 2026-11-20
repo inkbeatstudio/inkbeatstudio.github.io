@@ -1,21 +1,3 @@
-/*
- * InkBeat Plugin System
- * =====================
- * Легкий "VST-подібний" реєстр плагінів для Web Audio API.
- *
- * Плагін — це тека в Library/Instruments/<id>/ або Library/Effects/<id>/,
- * що містить:
- *   plugin.json  — маніфест { id, name, type, version, author, params[] }
- *   main.js      — викликає InkBeatPlugins.register({...}) при завантаженні
- *
- * Детальний опис формату — у PLUGIN_DEV_GUIDE.md.
- *
- * Використання з боку студії (studio.js):
- *   InkBeatPlugins.instruments['warm-pluck']   // визначення інструмента
- *   InkBeatPlugins.effects['tape-delay']       // визначення ефекту
- *   await InkBeatPlugins.loadAll()             // підвантажити все з бібліотеки
- *   InkBeatPlugins.onReady(cb)                 // підписка на подію готовності
- */
 (function (global) {
   'use strict';
 
@@ -36,7 +18,7 @@
   function loadScript(url) {
     return new Promise((resolve, reject) => {
       const script = document.createElement('script');
-      script.src = url + '?t=' + Date.now(); // без кешу — щоб бачити зміни під час розробки плагіна
+      script.src = url + '?t=' + Date.now();
       script.onload = () => resolve();
       script.onerror = () => reject(new Error('Не вдалося завантажити ' + url));
       document.head.appendChild(script);

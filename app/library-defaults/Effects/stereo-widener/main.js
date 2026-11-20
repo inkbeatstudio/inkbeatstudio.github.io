@@ -1,7 +1,3 @@
-// InkBeat Studio plugin: Stereo Widener (effect)
-// Mid/Side обробка чистими Web Audio нодами (без AudioWorklet):
-//   M = (L+R)*0.5, S = (L-R)*0.5
-//   L' = M + S*width, R' = M - S*width
 InkBeatPlugins.register({
   id: 'stereo-widener',
   type: 'effect',

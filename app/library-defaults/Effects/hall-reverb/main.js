@@ -1,6 +1,3 @@
-// InkBeat Studio plugin: Hall Reverb (effect)
-// Генерує імпульсну характеристику (білий шум із загасанням) і згортає
-// через ConvolverNode — класичний спосіб алгоритмічної реверберації.
 InkBeatPlugins.register({
   id: 'hall-reverb',
   type: 'effect',

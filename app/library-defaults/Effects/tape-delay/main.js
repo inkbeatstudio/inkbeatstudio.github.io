@@ -1,5 +1,3 @@
-// InkBeat Studio plugin: Tape Delay (effect)
-// Контракт: createNode(ctx, params) -> { input, output, setParam(id,val) }
 InkBeatPlugins.register({
   id: 'tape-delay',
   type: 'effect',
@@ -15,7 +13,6 @@ InkBeatPlugins.register({
     const feedback = ctx.createGain();
     const tone = ctx.createBiquadFilter(); tone.type = 'lowpass'; tone.frequency.value = 3200;
 
-    // LFO для "плавання" стрічки (wobble) — модулює delayTime
     const wobbleLfo = ctx.createOscillator(); wobbleLfo.type = 'sine'; wobbleLfo.frequency.value = 0.7;
     const wobbleDepth = ctx.createGain(); wobbleDepth.gain.value = 0;
     wobbleLfo.connect(wobbleDepth); wobbleDepth.connect(delay.delayTime);

@@ -1,4 +1,3 @@
-// InkBeat Studio plugin: Stereo Chorus (effect)
 InkBeatPlugins.register({
   id: 'stereo-chorus',
   type: 'effect',
@@ -23,7 +22,6 @@ InkBeatPlugins.register({
     lfoR.connect(depthR); depthR.connect(delayR.delayTime);
 
     input.connect(dry); dry.connect(output);
-    // мономіксуємо вхід у обидва канали хоруса для стабільної ширини
     input.connect(delayL);
     input.connect(delayR);
     delayL.connect(merger, 0, 0);
@@ -36,7 +34,7 @@ InkBeatPlugins.register({
 
     function apply() {
       lfoL.frequency.setTargetAtTime(p.rate, ctx.currentTime, 0.02);
-      lfoR.frequency.setTargetAtTime(p.rate * 1.15, ctx.currentTime, 0.02); // трохи різна швидкість L/R -> ширина
+      lfoR.frequency.setTargetAtTime(p.rate * 1.15, ctx.currentTime, 0.02);
       const depthSec = 0.002 + p.depth * 0.01;
       depthL.gain.setTargetAtTime(depthSec, ctx.currentTime, 0.02);
       depthR.gain.setTargetAtTime(depthSec, ctx.currentTime, 0.02);

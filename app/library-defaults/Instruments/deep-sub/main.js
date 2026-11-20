@@ -1,4 +1,3 @@
-// InkBeat Studio plugin: Deep Sub (instrument)
 InkBeatPlugins.register({
   id: 'deep-sub',
   type: 'instrument',
@@ -18,7 +17,6 @@ InkBeatPlugins.register({
     const sub = ctx.createOscillator(); sub.type = 'sine'; sub.frequency.value = note.freq / 2;
     const subGain = ctx.createGain(); subGain.gain.value = subLevel;
 
-    // легка сатурація через waveshaper — додає "тепла" без грубого спотворення
     const shaper = ctx.createWaveShaper();
     const curve = new Float32Array(256);
     for (let i = 0; i < 256; i++) {

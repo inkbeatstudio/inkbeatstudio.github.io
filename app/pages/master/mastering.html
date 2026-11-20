@@ -151,7 +151,7 @@
         <span class="lang-sep">|</span>
         <span class="lang-en lang-toggle" data-lang="en">EN</span>
       </div>
-      <a href="index.html" class="nav-order nav-master active"><span class="nav-master-dot"></span><span data-i18n="nav.master">Мастеринг</span></a><a href="../studio/index.html" class="nav-order nav-studio"><span class="nav-master-dot"></span><span data-i18n="nav.studio">Studio</span></a>
+      <a href="index.html" class="nav-order nav-master active"><span class="nav-master-dot"></span><span data-i18n="nav.master">Мастеринг</span></a><a href="../studio/index.html" class="nav-order nav-studio"><span class="nav-master-dot"></span><span data-i18n="nav.studio">Studio</span></a><a href="../analyzer/index.html" class="nav-order nav-studio nav-analyzer"><span class="nav-master-dot"></span><span data-i18n="nav.analyzer">Аналіз</span></a>
     </div>
     <button class="burger"><svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
   </div>
@@ -166,7 +166,7 @@
   <a href="../portfolio.html" data-i18n="nav.portfolio">Портфоліо</a>
   <a href="../contact.html" data-i18n="nav.contact">Контакти</a>
   <a href="index.html" data-i18n="nav.master">Мастеринг</a>
-  <a href="../studio/index.html" data-i18n="nav.studio">Studio</a>
+  <a href="../studio/index.html" data-i18n="nav.studio">Studio</a><a href="../analyzer/index.html" data-i18n="nav.analyzer">Аналіз</a>
   <div class="mobile-lang-switch">
     <span class="lang-ua lang-toggle active" data-lang="uk">UA</span>
     <span class="lang-sep">|</span>
@@ -287,7 +287,7 @@
           <li><a href="../services.html" data-i18n="nav.services">Послуги</a></li>
           <li><a href="../portfolio.html" data-i18n="nav.portfolio">Портфоліо</a></li>
           <li><a href="../contact.html" data-i18n="nav.contact">Контакти</a></li>
-          <li><a href="index.html" data-i18n="nav.master">Мастеринг</a></li><li><a href="../studio/index.html" data-i18n="nav.studio">Studio</a></li><li><a href="video-to-audio.html" data-i18n="nav.videoAudio">Video → Audio</a></li>
+          <li><a href="index.html" data-i18n="nav.master">Мастеринг</a></li><li><a href="../studio/index.html" data-i18n="nav.studio">Studio</a></li><li><a href="../analyzer/index.html" data-i18n="nav.analyzer">Аналіз</a></li><li><a href="video-to-audio.html" data-i18n="nav.videoAudio">Video → Audio</a></li>
         </ul>
       </div>
       <div>
@@ -511,10 +511,6 @@
     });
   }
 
-  // iOS Safari/Chrome (both run on WebKit) has a known decodeAudioData bug where decoding
-  // can hang forever for certain files without ever calling the success or error callback.
-  // A fresh AudioContext often "unsticks" it, so we retry once with a brand new context
-  // before giving up, and we don't make the user wait too long to find out.
   async function decodeWithRetry(arrayBuf, fileSize, onRetry){
     const timeoutMs = Math.max(12000, Math.min(45000, fileSize / 2500));
     try{
@@ -649,9 +645,9 @@
     high.type = 'highshelf'; high.frequency.value = 8000; high.gain.value = p.treb;
 
     const compressor = ctx.createDynamicsCompressor();
-    compressor.threshold.value = -6 - p.comp*24;   
+    compressor.threshold.value = -6 - p.comp*24;
     compressor.knee.value = 18;
-    compressor.ratio.value = 1 + p.comp*11;         
+    compressor.ratio.value = 1 + p.comp*11;
     compressor.attack.value = 0.003;
     compressor.release.value = 0.25;
 
@@ -662,7 +658,7 @@
     low.connect(high);
     high.connect(compressor);
     compressor.connect(makeup);
-    return makeup; 
+    return makeup;
   }
 
   function stopPlayback(){
@@ -724,7 +720,6 @@
 
     src.onended = () => {
       if (stoppingManually){ stoppingManually = false; return; }
-      // reached the natural end of the track
       isPlaying = false;
       pauseOffset = 0;
       updatePlayIcon();

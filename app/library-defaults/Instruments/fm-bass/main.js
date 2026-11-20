@@ -1,4 +1,3 @@
-// InkBeat Studio plugin: FM Bass (instrument)
 InkBeatPlugins.register({
   id: 'fm-bass',
   type: 'instrument',

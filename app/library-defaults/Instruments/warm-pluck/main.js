@@ -1,12 +1,8 @@
-// InkBeat Studio plugin: Warm Pluck (instrument)
-// Формат: див. PLUGIN_DEV_GUIDE.md
 InkBeatPlugins.register({
   id: 'warm-pluck',
   type: 'instrument',
   name: 'Warm Pluck',
 
-  // ctx: AudioContext, dest: AudioNode (куди підключити вихід),
-  // note: { freq, time, duration, velocity (0..1), params }
   createVoice(ctx, dest, note) {
     const p = note.params || {};
     const cutoff = p.cutoff ?? 2200;

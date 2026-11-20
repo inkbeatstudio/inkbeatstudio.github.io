@@ -1,37 +1,3 @@
-"""
-InkBeat Studio — Library backend
-=================================
-Керує теку бібліотеки на диску користувача:
-
-    ~/InkBeatStudio/Library/
-        Samples/        аудіо-семпли (.wav/.mp3/...)
-        Instruments/     плагіни-інструменти (кожен — своя підтека)
-        Effects/         плагіни-ефекти (кожен — своя підтека)
-        Projects/        збережені проєкти (*.inkbeat.json)
-
-Формат плагіна (Instruments/<id>/ або Effects/<id>/):
-    plugin.json   — маніфест (id, name, type, version, params...)
-    main.js       — реалізація на чистому JS (Web Audio API),
-                    реєструється через InkBeatPlugins.register(...)
-
-Дивись PLUGIN_DEV_GUIDE.md для повного опису API.
-
-Цей модуль надає:
-  - LibraryPaths: створення/розташування тек бібліотеки
-  - seed_defaults(): копіює вбудовані приклади плагінів при першому запуску
-  - LibraryHTTPRequestHandler: HTTP-хендлер, що обслуговує:
-      GET  /                      -> app/ (сама студія, статика)
-      GET  /library/<...>         -> файли з теки бібліотеки (аудіо, JS плагінів)
-      GET  /api/library           -> JSON зі списком semples/instruments/effects/projects
-      POST /api/library/upload-sample?name=foo.wav   (тіло = сирі байти файлу)
-      POST /api/library/install-plugin?kind=instrument|effect
-           (тіло = ZIP-архів теки плагіна з plugin.json + main.js)
-      DELETE /api/library/item?category=samples&name=foo.wav
-      GET  /api/projects              -> список проєктів
-      GET  /api/projects/<name>       -> вміст проєкту (JSON)
-      POST /api/projects/<name>       -> зберегти проєкт (тіло = JSON)
-      DELETE /api/projects/<name>     -> видалити проєкт
-"""
 
 from __future__ import annotations
 
@@ -52,8 +18,6 @@ SAFE_NAME_RE = re.compile(r"^[A-Za-z0-9 _.\-\u0400-\u04FF()]+$")
 
 
 def _safe_name(name: str) -> str:
-    """Прибирає шляхи/небезпечні символи з імені файлу, щоб унеможливити
-    вихід за межі теки бібліотеки (path traversal)."""
     name = unquote(name or "").strip()
     name = os.path.basename(name)
     if not name or name in (".", "..") or not SAFE_NAME_RE.match(name):
@@ -62,9 +26,6 @@ def _safe_name(name: str) -> str:
 
 
 def _safe_rel_path(rel: str) -> str:
-    """Як _safe_name, але дозволяє один рівень підтеки (наприклад,
-    'Drums/Kick.wav') — для організації семплів по категоріях.
-    Забороняє '..' та абсолютні шляхи."""
     rel = unquote(rel or "").strip().replace("\\", "/")
     rel = rel.lstrip("/")
     parts = [p for p in rel.split("/") if p]
@@ -108,9 +69,6 @@ def default_library_root() -> str:
 
 
 def seed_defaults(paths: LibraryPaths, defaults_dir: str) -> None:
-    """Копіює вбудовані приклади плагінів та стартовий пак семплів
-    (з app/library-defaults/) у теку користувача — тільки те, чого там
-    ще немає, щоб не затирати користувацькі зміни/видалення."""
     if not os.path.isdir(defaults_dir):
         return
     for kind, dest_root in (("Instruments", paths.instruments), ("Effects", paths.effects)):
@@ -208,8 +166,6 @@ def list_library(paths: LibraryPaths) -> dict:
 
 
 def install_plugin_zip(paths: LibraryPaths, kind: str, zip_bytes: bytes) -> dict:
-    """Розпаковує ZIP з плагіном (plugin.json + main.js у корені архіву,
-    або в одній підтеці) у Library/Instruments або Library/Effects."""
     if kind not in ("instrument", "effect"):
         raise ValueError("kind має бути 'instrument' або 'effect'")
     dest_root = paths.instruments if kind == "instrument" else paths.effects
@@ -220,7 +176,7 @@ def install_plugin_zip(paths: LibraryPaths, kind: str, zip_bytes: bytes) -> dict
             raise ValueError("У ZIP-архіві не знайдено plugin.json")
 
         manifest_entry = next(n for n in names if n.endswith("plugin.json"))
-        prefix = manifest_entry.rsplit("plugin.json", 1)[0]  # '' або 'subdir/'
+        prefix = manifest_entry.rsplit("plugin.json", 1)[0]
         manifest = json.loads(zf.read(manifest_entry))
         plugin_id = _safe_name(manifest.get("id") or manifest.get("name") or "plugin")
         target_dir = os.path.join(dest_root, plugin_id)
@@ -243,17 +199,14 @@ def install_plugin_zip(paths: LibraryPaths, kind: str, zip_bytes: bytes) -> dict
 
 
 def make_handler_class(app_dir: str, paths: LibraryPaths):
-    """Повертає клас HTTP-хендлера, що замикає в собі шляхи app_dir/paths
-    (ThreadingHTTPServer вимагає саме клас, не інстанс)."""
 
     class LibraryHTTPRequestHandler(SimpleHTTPRequestHandler):
         def __init__(self, *args, **kwargs):
             super().__init__(*args, directory=app_dir, **kwargs)
 
         def log_message(self, fmt, *args):
-            pass  # тихіше в консолі
+            pass
 
-        # ---------- helpers ----------
         def _send_json(self, payload, status=HTTPStatus.OK):
             body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
             self.send_response(status)
@@ -267,7 +220,6 @@ def make_handler_class(app_dir: str, paths: LibraryPaths):
             length = int(self.headers.get("Content-Length", 0))
             return self.rfile.read(length) if length else b""
 
-        # ---------- routing ----------
         def do_GET(self):
             parsed = urlparse(self.path)
             if parsed.path == "/api/library":

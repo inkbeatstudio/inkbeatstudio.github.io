@@ -1,12 +1,4 @@
 #!/usr/bin/env python3
-"""
-Генератор тестового "мінусу" з ВІДОМОЮ правдою — для перевірки аналізатора треку.
-
-Створює WAV + JSON з істиною (BPM, тональність, акорди по тактах, патерн ударних,
-позиція першого такту). Далі tools/test_engine.js порівнює результат аналізу з істиною.
-
-    python3 tools/make_test_track.py OUT_DIR [--bpm 96] [--sr 22050] [--stereo] [--lead 0.37]
-"""
 import argparse
 import json
 import os
@@ -50,7 +42,7 @@ def snare(sr, rng):
     n = int(sr * 0.22)
     t = np.arange(n) / sr
     noise = rng.uniform(-1, 1, n)
-    noise = noise - np.concatenate([[0], noise[:-1]]) * 0.6  # лёгкий high-pass
+    noise = noise - np.concatenate([[0], noise[:-1]]) * 0.6
     body = np.sin(2 * np.pi * 205 * t) * np.exp(-t * 28) * 0.7
     return (noise * np.exp(-t * 20) * 0.65 + body) * 0.9
 
@@ -94,11 +86,9 @@ def main():
     n = int(total * sr)
     mix = np.zeros(n)
 
-    # Am - F - C - G, один акорд на такт
     prog = [("A", True), ("F", False), ("C", False), ("G", False)]
     chords_truth = []
 
-    # Патерн ударних: 2 такти (16 кроків × 2), тут True = удар
     pat = {
         "kick": [[0, 6, 10], [0, 3, 10, 14]],
         "snare": [[4, 12], [4, 12]],
@@ -118,7 +108,6 @@ def main():
         seg = sample[: n - i]
         mix[i:i + len(seg)] += seg * gain
 
-    # drift: прогресуюче розтягування часу
     def tmap(t_nominal):
         return args.lead + t_nominal * (1.0 + args.drift * (t_nominal / (args.bars * bar)))
 
@@ -129,7 +118,6 @@ def main():
         t0 = tmap(b * bar)
         dur = bar * 0.98
         nn = int(dur * sr)
-        # пад: акорд пилкою через простий low-pass (згладжування)
         pad = np.zeros(nn)
         for m in pcs:
             pad += saw_add(midi_to_hz(m), nn, sr, 7)
@@ -138,7 +126,6 @@ def main():
         pad = np.convolve(pad, np.ones(k) / k, mode="same")
         i0 = int(t0 * sr)
         mix[i0:i0 + nn] += pad[: n - i0]
-        # бас: корінь на 2 октави нижче
         bass_f = midi_to_hz(36 + ((NOTE[root_name] - 36) % 12))
         for hit in (0, 6, 10):
             tb = t0 + hit * step * (1.0 + args.drift * (b * bar / (args.bars * bar)))

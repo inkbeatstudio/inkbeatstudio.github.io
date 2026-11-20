@@ -1,6 +1,4 @@
 #!/usr/bin/env bash
-# Реєструє InkBeat Studio в меню застосунків Linux (.desktop entry).
-# Запускати ПІСЛЯ збірки (./build_linux.sh), з теки inkbeat-desktop.
 set -e
 cd "$(dirname "$0")"
 

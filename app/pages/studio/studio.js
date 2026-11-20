@@ -202,8 +202,8 @@
     melody: {},
     melodyBars: 2,
     melodyInstrument: 'bass',
-    melodyLegato: false,        // сусідні клітинки піано-ролу зливаються в одну довгу ноту
-    melodyFirstStep: -1,        // перший крок поточного запуску (для legato при старті з середини)
+    melodyLegato: false,
+    melodyFirstStep: -1,
     isPlaying: false,
     isLooping: false,
     metronomeOn: false,
@@ -237,8 +237,8 @@
     markers: [],
     nextMarkerId: 1,
     recSettings: { countdown: true, highpass: true, noiseGate: false, trimSilence: true },
-    pluginFxChain: [],          // [{id, params}] активні плагіни-ефекти на майстер-шині
-    pluginInstrumentParams: {}  // {pluginId: {paramId: value}} — збережені налаштування плагін-інструментів
+    pluginFxChain: [],
+    pluginInstrumentParams: {}
   };
   DRUM_ROWS.forEach(r => { state.pattern[r.key] = new Array(64).fill(false); });
   PIANO_NOTES.forEach(n => { state.melody[n.midi] = new Array(64).fill(false); });
@@ -295,10 +295,6 @@
     reverbIn.connect(reverbDry); reverbDry.connect(reverbOut);
     reverbIn.connect(convolver); convolver.connect(reverbWet); reverbWet.connect(reverbOut);
 
-    // ---- Вставка для плагінів-ефектів (Insert FX rack) ----
-    // reverbOut -> pluginFxIn -> [ланцюг активних плагінів] -> pluginFxOut -> masterGain
-    // За замовчуванням pluginFxIn підключений напряму до pluginFxOut (байпас),
-    // rebuildPluginFxChain() перебудовує з'єднання, коли користувач додає/прибирає плагіни.
     const pluginFxIn = ctx.createGain();
     const pluginFxOut = ctx.createGain();
     pluginFxIn.connect(pluginFxOut);
@@ -340,13 +336,10 @@
     rebuildPluginFxChain(state.pluginFxChain || []);
   }
 
-  // Перебудовує послідовний ланцюг плагінів-ефектів на майстер-шині.
-  // chainDefs: [{ id: 'tape-delay', params: {...} }, ...] у порядку застосування.
   function rebuildPluginFxChain(chainDefs) {
     if (!graph.pluginFxIn || !graph.pluginFxOut) return;
     state.pluginFxChain = chainDefs || [];
 
-    // прибираємо старі інстанси
     (graph.pluginFxInstances || []).forEach(inst => {
       try { inst.node.input.disconnect(); } catch (e) {}
       try { inst.node.output.disconnect(); } catch (e) {}
@@ -563,7 +556,6 @@
   const DRUM_FN = { kick: playKick, snare: playSnare, clap: playClap, tom: playTom, perc: playPerc,
     hihat: (c, d, t, k) => playHat(c, d, t, false, k), ohat: (c, d, t, k) => playHat(c, d, t, true, k) };
 
-  // Реєстр активних голосів плагін-інструментів (для панічної зупинки/очищення)
   const pluginVoices = [];
 
   function playSynthNote(ctx, dest, freq, t, dur, instrument) {
@@ -580,7 +572,6 @@
           console.error('[plugin instrument]', pluginId, e);
         }
       }
-      // плагін не знайдено/не завантажено ще — тихо падаємо назад на bass, щоб не було тиші
       instrument = 'bass';
     }
     if (instrument === 'bass') {
@@ -626,7 +617,6 @@
 
   function totalSteps() { return state.seqBars * 16; }
   function melodyTotalSteps() { return state.melodyBars * 16; }
-  // Довжина ноти у кроках, що починається з кроку i (у режимі legato — до першої порожньої клітинки).
   function melodyRunLen(midi, i, steps) {
     let n = 1;
     while (i + n < steps && state.melody[midi][i + n]) n++;
@@ -757,7 +747,7 @@
         if (!state.melody[n.midi][melodyStep]) return;
         if (state.melodyLegato) {
           const cont = melodyStep > 0 && state.melody[n.midi][melodyStep - 1];
-          if (cont && state.currentStepIndex !== state.melodyFirstStep) return; // продовження довгої ноти
+          if (cont && state.currentStepIndex !== state.melodyFirstStep) return;
           const run = melodyRunLen(n.midi, melodyStep, melodyTotalSteps());
           playSynthNote(actx, state.melodyTrack.nodes.gain, midiToFreq(n.midi), t, dur * run * 0.98, state.melodyInstrument);
         } else {
@@ -2295,8 +2285,6 @@
     return bytes.buffer;
   }
 
-  // Зберігає проєкт як РЕАЛЬНИЙ ФАЙЛ у Library/Projects/<name>.inkbeat.json
-  // (на відміну від saveProject(), який пише в IndexedDB браузера).
   async function saveProjectToDisk(name) {
     ensureAudioContext();
     const finalName = name || state.currentProjectName || (st('projectWord') + Date.now());
@@ -2944,8 +2932,6 @@
     setInterval(() => { if (!state.isPlaying) drawSpectrum(); }, 200);
   }
 
-  // Додає опції плагін-інструментів у випадаючий список Piano Roll
-  // (built-in bass/lead/pad/pluck залишаються завжди першими).
   function refreshInstrumentOptions() {
     const sel = document.getElementById('piano-instrument');
     if (!sel || !window.InkBeatPlugins) return;
@@ -2958,7 +2944,6 @@
       opt.textContent = '🧩 ' + def.name;
       sel.appendChild(opt);
     });
-    // проєкт міг завантажитись раніше за плагіни — повертаємо збережений вибір інструмента
     if (state.melodyInstrument && sel.value !== state.melodyInstrument) {
       const has = Array.from(sel.options).some(o => o.value === state.melodyInstrument);
       if (has) sel.value = state.melodyInstrument;
@@ -2967,9 +2952,6 @@
 
   document.addEventListener('DOMContentLoaded', init);
 
-  // ---- Публічний API для розширень (Бібліотека/Плагіни) ----
-  // library.js та plugin-system.js живуть поза цим замиканням і
-  // під'єднуються сюди, щоб не дублювати логіку студії.
   window.InkBeatStudio = {
     state,
     importFiles,

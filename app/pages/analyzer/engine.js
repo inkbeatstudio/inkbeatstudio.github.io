@@ -1,43 +1,22 @@
-/*
- * InkBeat Analyzer — рушій аналізу треку (Етап 1)
- * =================================================
- * Чистий JS, без залежностей і без DOM — працює і в застосунку, і в Node для тестів.
- *
- * Що вміє:
- *   - BPM (автокореляція onset-огинаючої + точне підлаштування сітки),
- *   - позиція першого такту (downbeat) і стабільність темпу,
- *   - тональність (хрома + профілі Крумгансла-Кесслера),
- *   - акорди по тактах (хрома + шаблони тріад, з урахуванням тональності),
- *   - ударні по сітці 16-х: kick / snare / hi-hat / open hat + згортка в цикл 1/2/4 такти.
- *
- * Чого НЕ вміє (чесно): мелодію, вокал, точні тембри. Це наближення, яке потім
- * доводять руками. Усе рахується локально.
- *
- * Публічний API: InkBeatAnalyzer.{analyzeMono, analyzeBuffer, grid, refine, drums, chords}
- */
 (function (root) {
   'use strict';
 
   const SR = 22050;
-  const N1 = 1024, HOP1 = 256;     // для onset-огинаючих
-  const N2 = 4096, HOP2 = 2048;    // для хроми
+  const N1 = 1024, HOP1 = 256;
+  const N2 = 4096, HOP2 = 2048;
   const FPS = SR / HOP1;
-  // Системна затримка між піком флюсу та реальним моментом удару (с).
-  // Калібрується на синтетичному треку (tools/test_engine.js).
   const LATENCY = 0.0;
 
-  // межі смуг у бінах FFT (N1=1024, 21.53 Гц/бін)
   const BAND = {
-    low:   [2, 7],      //  43–151 Гц  — kick
-    body:  [8, 18],     // 172–388 Гц  — тіло малого
-    noise: [84, 255],   // 1.8–5.5 кГц — шум малого
-    hat:   [325, 487],  //   7–10.5 кГц — хет
-    full:  [2, 300]     // широка смуга для темпу
+    low:   [2, 7],
+    body:  [8, 18],
+    noise: [84, 255],
+    hat:   [325, 487],
+    full:  [2, 300]
   };
 
   const tick = () => new Promise(r => setTimeout(r, 0));
 
-  // ---------------------------------------------------------------- DSP ----
   const fftCache = {};
   function makeFFT(n) {
     if (fftCache[n]) return fftCache[n];
@@ -112,11 +91,9 @@
     return out;
   }
 
-  // ------------------------------------------------- time <-> frame (N1) ----
   const frameToTime = f => (f + (N1 / 2) / HOP1) / FPS - LATENCY;
   const timeToFrame = t => (t + LATENCY) * FPS - (N1 / 2) / HOP1;
 
-  // ----------------------------------------------------- pass 1: onsets ----
   async function stftOnsets(x, progress) {
     const nF = Math.max(0, Math.floor((x.length - N1) / HOP1) + 1);
     const out = {
@@ -128,7 +105,6 @@
     const win = hann(N1), fft = makeFFT(N1);
     const re = new Float32Array(N1), im = new Float32Array(N1);
     const nb = N1 / 2, scale = 4 / N1;
-    // 'full' (для темпу) — сильне стиснення; смуги ударних — м'яке, щоб витоки між смугами не роздувались
     let prev = new Float32Array(nb), cur = new Float32Array(nb);
     let prevL = new Float32Array(nb), curL = new Float32Array(nb);
     const mag = new Float32Array(nb);
@@ -164,7 +140,6 @@
     return out;
   }
 
-  // -------------------------------------------------------------- tempo ----
   function estimateTempo(bt) {
     const n = bt.length;
     const maxLag = Math.min(n - 1, 420);
@@ -201,7 +176,6 @@
     return peaks.slice(0, 4);
   }
 
-  // Підбір сітки: максимізує середнє значення огинаючої в точках сітки.
   function fitGrid(env, bpmLo, bpmHi, bpmStep, f0, f1) {
     const hi = f1 === undefined ? env.length - 2 : Math.min(f1, env.length - 2);
     const lo = f0 || 0;
@@ -234,7 +208,6 @@
     return fine;
   }
 
-  // ----------------------------------------------------------- chroma/key ----
   async function chromaPass(x, progress) {
     const nF = Math.max(0, Math.floor((x.length - N2) / HOP2) + 1);
     const data = new Float32Array(nF * 12);
@@ -304,10 +277,9 @@
     };
   }
 
-  // діатонічні тріади для штрафу недіатонічних
   function diatonicSet(key) {
     const set = new Set();
-    const major = [[0, 0], [2, 1], [4, 1], [5, 0], [7, 0], [9, 1]]; // [півтони, minor?]
+    const major = [[0, 0], [2, 1], [4, 1], [5, 0], [7, 0], [9, 1]];
     const minor = [[0, 1], [2, 1], [3, 0], [5, 1], [7, 1], [7, 0], [8, 0], [10, 0]];
     (key.minor ? minor : major).forEach(([iv, mn]) => set.add(((key.root + iv) % 12) + ':' + mn));
     return set;
@@ -324,7 +296,6 @@
 
   function chordLabel(root, minor) { return NAMES[root] + (minor ? 'm' : ''); }
 
-  // ------------------------------------------------------------ analysis ----
   async function analyzeMono(x, progress) {
     if (x.length < SR * 8) throw new Error('short');
     const report = (stage, p) => { if (progress) progress(stage, p); };
@@ -348,7 +319,6 @@
     const top = cands[0];
     const fit = refineTempo(bt, top.bpm, 0.04);
 
-    // стабільність: підлаштування окремо по половинах
     const mid = bt.length >> 1;
     const fa = fitGrid(bt, fit.bpm * 0.985, fit.bpm * 1.015, 0.02, 0, mid);
     const fb = fitGrid(bt, fit.bpm * 0.985, fit.bpm * 1.015, 0.02, mid, bt.length - 2);
@@ -367,20 +337,15 @@
     };
   }
 
-  /**
-   * Моно-мікс і зниження частоти до 22.05 кГц віконним sinc-фільтром (антиаліасинг).
-   * Вбудований ресемплер браузера (OfflineAudioContext) використовує лінійну інтерполяцію без фільтра:
-   * вміст вище 11 кГц (хети, тарілки) «складається» у смугу аналізу й хибно активує детектори.
-   */
   async function resampleToMono(channels, srIn, progress) {
     const nCh = channels.length, nIn = channels[0].length;
     const mono = new Float32Array(nIn);
     for (let c = 0; c < nCh; c++) { const d = channels[c]; for (let i = 0; i < nIn; i++) mono[i] += d[i] / nCh; }
     if (srIn === SR) return mono;
 
-    const ratio = srIn / SR;                         // вхідних відліків на один вихідний
-    const fcN = Math.min(1, 1 / ratio) * 0.94;       // зріз як частка Найквіста входу
-    const W = Math.ceil(16 / fcN);                   // півширина ядра у вхідних відліках
+    const ratio = srIn / SR;
+    const fcN = Math.min(1, 1 / ratio) * 0.94;
+    const W = Math.ceil(16 / fcN);
     const RES = 128;
     const table = new Float32Array(2 * W * RES + 1);
     for (let k = 0; k < table.length; k++) {
@@ -413,17 +378,14 @@
     return analyzeMono(mono, progress);
   }
 
-  // ---------------------------------------------------------------- grid ----
-  /** Сітка для заданого BPM: підлаштовує фазу, знаходить 1-шу долю такту (downbeat). */
   function grid(A, bpm, opts) {
     opts = opts || {};
     const shift = ((opts.shift || 0) % 4 + 4) % 4;
-    const fit = fitGrid(A.bt, bpm, bpm, 1, 0, undefined); // фіксований BPM, пошук фази
+    const fit = fitGrid(A.bt, bpm, bpm, 1, 0, undefined);
     const periodF = 60 * FPS / bpm;
     const beatSec = 60 / bpm;
-    const phaseSec = frameToTime(fit.phase);                // час першої долі (k=0), завжди > 0
+    const phaseSec = frameToTime(fit.phase);
 
-    // середня сила kick/snare по позиціях долі в такті (k mod 4)
     const sums = { kick: [0, 0, 0, 0], snare: [0, 0, 0, 0], cnt: [0, 0, 0, 0] };
     let k = 0;
     for (let pos = fit.phase; pos < A.on.nF - 3; pos += periodF, k++) {
@@ -442,11 +404,9 @@
       const s = 1.0 * kM[p] + 0.5 * kM[(p + 2) & 3] + 0.7 * sM[(p + 1) & 3] + 0.7 * sM[(p + 3) & 3];
       if (s > bestS) { bestS = s; p0 = p; }
     }
-    // перший такт починається з долі k = p (серед перших чотирьох), з урахуванням ручного зсуву
     const p = (p0 + shift) & 3;
     const barSec = beatSec * 4;
     let dSec = phaseSec + p * beatSec;
-    // перший такт може починатись трохи «до» початку файлу (downbeat рівно в 0 с) — тоді сітка стартує з від'ємного часу
     while (dSec - barSec >= -0.25) dSec -= barSec;
     return {
       bpm, beatSec, barSec, phaseSec, downbeatPhase: p0, shift,
@@ -455,13 +415,11 @@
     };
   }
 
-  /** Підлаштувати BPM навколо значення (після ÷2 / ×2 / ручної правки). */
   function refine(A, bpm, rel) {
     const r = refineTempo(A.bt, bpm, rel || 0.01);
     return r.bpm;
   }
 
-  // --------------------------------------------------------------- drums ----
   function maxIn(env, a, b) {
     let m = 0;
     for (let i = Math.max(0, a); i <= Math.min(env.length - 1, b); i++) if (env[i] > m) m = env[i];
@@ -478,8 +436,6 @@
     const gap = { kick: new Float32Array(nSteps), snare: new Float32Array(nSteps), hat: new Float32Array(nSteps) };
     const noiseN = scaledByP99(A.on.noise);
     const halfF = stepF / 2, wg = Math.max(1, Math.round(0.2 * stepF));
-    // рівень «між кроками»: максимум у вікнах на пів-кроку лівіше й правіше (удар лишає після себе майже нуль флюсу,
-    // а тривалий звук — однаковий рівень скрізь, тому контрасту не дає)
     const between = (env, f) => Math.max(
       maxIn(env, Math.round(f - halfF) - wg, Math.round(f - halfF) + wg),
       maxIn(env, Math.round(f + halfF) - wg, Math.round(f + halfF) + wg));
@@ -495,10 +451,8 @@
       gap.snare[i] = between(A.nrm.snare, f);
       gap.hat[i] = between(A.nrm.hat, f);
     }
-    // Чи є що аналізувати у смузі взагалі: абсолютний рівень флюсу (у «порожній» смузі він на порядок нижчий).
-    // Піковість p99/медіана тут не годиться: тривалі гармонічні звуки (пад, гітара, вокал) тримають смугу «зайнятою».
     const present = {
-      kick: true, // низька смуга не відрізняє kick від баса — вирішує користувач
+      kick: true,
       snare: percentile(A.on.noise, 0.99) >= 0.006,
       hat: percentile(A.on.hat, 0.99) >= 0.01
     };
@@ -506,7 +460,6 @@
     const thr = {};
     const p95 = {};
     for (const k of Object.keys(vals)) {
-      // поріг відраховується від «підлоги» (p10), а не від нуля: у щільному міксі фон не нульовий
       p95[k] = Math.max(1e-6, percentile(vals[k], 0.95));
       const floor = Math.min(percentile(vals[k], 0.10), 0.8 * p95[k]);
       thr[k] = floor + thrFrac[k] * (p95[k] - floor);
@@ -520,9 +473,6 @@
     };
     for (let i = 0; i < nSteps; i++) {
       if (vals.kick[i] > thr.kick && stands('kick', i)) hits.kick[i] = 1;
-      // малий: геометричне середнє «тіло×шум» І окремо справжній шум (kick шуму майже не дає)
-      // + малий має бути помітно сильнішим за низ у цей момент (у справжнього малого витік kick ≈ 0.2 від його рівня);
-      //   інакше це kick/бас, до якого просто домішаний хет
       if (present.snare && vals.snare[i] > thr.snare && vals.noise[i] > thr.noise && stands('snare', i) && vals.kick[i] < 0.6 * vals.snare[i]) hits.snare[i] = 1;
       if (present.hat && vals.hat[i] > thr.hat && stands('hat', i)) {
         const f = centers[i];
@@ -530,7 +480,6 @@
         let tail = 0, c = 0;
         for (let d = 3; d <= 9; d++) { const j = f + d; if (j < A.on.nF) { tail += A.on.hatE[j]; c++; } }
         const ratio = pk > 0 && c ? (tail / c) / pk : 0;
-        // на кроках малого його власний шумовий хвіст схожий на відкритий хет — поріг суворіший
         const openThr = hits.snare[i] ? 0.35 : 0.12;
         if (ratio > openThr) hits.ohat[i] = 1; else hits.hihat[i] = 1;
       }
@@ -563,7 +512,6 @@
       return { bars: barsN, L, cycles, active: active.length, prob, cons, consistency: uni ? inter / uni : 0 };
     };
     const folds = [1, 2, 4].map(fold).filter(Boolean);
-    // найкоротший цикл, консистентність якого в межах 3% від найкращої серед усіх варіантів
     let chosen = folds[folds.length - 1];
     if (folds.length) {
       const ref = Math.max.apply(null, folds.map(f => f.consistency));
@@ -578,7 +526,6 @@
       result.bars = chosen.bars;
       result.pattern = {};
       for (const nm of names) result.pattern[nm] = Array.from(chosen.cons[nm]).map(v => !!v);
-      // у kick/малого не буває понад ~45% заповнених кроків — це означає, що детектор спрацював на фон
       for (const nm of ['kick', 'snare']) {
         const dens = result.pattern[nm].filter(Boolean).length / result.pattern[nm].length;
         if (dens > 0.45) { result.pattern[nm] = result.pattern[nm].map(() => false); result.presence[nm] = false; }
@@ -589,7 +536,6 @@
     return result;
   }
 
-  // --------------------------------------------------------------- chords ----
   function chords(A, G) {
     const { data, energy, nF } = A.chroma;
     const times = f => (f * HOP2 + N2 / 2) / SR;
@@ -620,8 +566,6 @@
       scores.sort((a, b) => b.s - a.s);
       perBar.push({ nc: false, root: scores[0].root, minor: scores[0].minor, label: chordLabel(scores[0].root, scores[0].minor), sim: scores[0].s, scores });
     }
-    // згортка в цикл із 4 тактів (або менше, якщо трек короткий)
-    // у студії піано-рол підтримує цикл 1/2/4 такти
     const loopBars = G.totalBars >= 4 ? 4 : G.totalBars >= 2 ? 2 : 1;
     const loop = [];
     for (let p = 0; p < loopBars; p++) {

@@ -1,4 +1,3 @@
-// InkBeat Studio plugin: Bit Crusher (effect)
 InkBeatPlugins.register({
   id: 'bit-crusher',
   type: 'effect',

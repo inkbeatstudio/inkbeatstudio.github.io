@@ -1,9 +1,3 @@
-#!/usr/bin/env node
-/*
- * Тест рушія аналізу на синтетичному треку з відомою правдою.
- *   node tools/test_engine.js path/to/track.wav path/to/track.json
- * WAV 16 біт, будь-яка частота й кількість каналів (як у браузері: моно-мікс + ресемплінг до 22.05 кГц).
- */
 const fs = require('fs');
 const path = require('path');
 const A = require(path.join(__dirname, '..', 'app', 'pages', 'analyzer', 'engine.js'));
@@ -48,7 +42,6 @@ function readWav(file) {
   console.log(`акорди по тактах: збіглося ${barsOk}/${Math.min(C.perBar.length, truth.bars)}`);
 
   console.log(`ударні: цикл ${D.bars} такт(и), консистентність ${fmt(D.fold && D.fold.consistency)}, правда ${truth.drumLoopBars} такт(и)`);
-  // порівняння патерну з правдою (по циклу довжини 2 такти)
   const L = 16 * (D.bars || 0);
   if (D.pattern && D.bars) {
     let tp = 0, fp = 0, fn = 0;
@@ -60,7 +53,6 @@ function readWav(file) {
         loop.forEach(s => { truthBits[inst][b * 16 + s] = true; });
       }
     }
-    // правда має період 2 такти; якщо знайдено цикл у 1 такт — порівнюємо з першим тактом
     for (const inst of Object.keys(truthBits)) {
       let line = '';
       for (let s = 0; s < L; s++) {

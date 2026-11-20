@@ -1,6 +1,4 @@
 @echo off
-REM Збірка InkBeat Studio Desktop в один .exe для Windows.
-REM Запускати НА Windows (у CMD або PowerShell), в цій же теці.
 
 cd /d "%~dp0"
 
