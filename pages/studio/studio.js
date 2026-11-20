@@ -23,7 +23,7 @@
       titleZoomOut: 'Зменшити', titleZoomIn: 'Збільшити',
       hintDrop: 'Перетягніть аудіофайли сюди, або на конкретну доріжку — можна додавати кілька сегментів на одну доріжку та редагувати кожен окремо.',
       labelBars: 'Такти', labelSwing: 'Свінг', labelPreset: 'Пресет', optChoose: '— Обрати —', labelKit: 'Кіт',
-      btnClear: 'Очистити', btnRandom: 'Рандом', labelInstrument: 'Інструмент',
+      btnClear: 'Очистити', btnRandom: 'Рандом', labelInstrument: 'Інструмент', labelLegato: 'Легато (довгі ноти)',
       fxCompressor: 'Компресор', fxDistortion: 'Дисторшн', fxSidechain: 'Sidechain (за кіком)', fxLimiter: 'Лімітер (майстер)', fxAnalyser: 'Аналізатор спектра',
       fxTargetLabel: 'Застосувати ефекти до', fxTargetMasterOpt: 'Майстер (весь мікс)',
       fxTargetHintMaster: 'Ці ефекти лягають на весь мікс одразу', fxTargetHintTrack: 'Ці ефекти лягають лише на цю доріжку. Sidechain і лімітер завжди керують майстер-шиною.',
@@ -86,7 +86,7 @@
       titleZoomOut: 'Zoom out', titleZoomIn: 'Zoom in',
       hintDrop: 'Drag audio files here, or onto a specific track — you can add multiple segments to one track and edit each one separately.',
       labelBars: 'Bars', labelSwing: 'Swing', labelPreset: 'Preset', optChoose: '— Choose —', labelKit: 'Kit',
-      btnClear: 'Clear', btnRandom: 'Random', labelInstrument: 'Instrument',
+      btnClear: 'Clear', btnRandom: 'Random', labelInstrument: 'Instrument', labelLegato: 'Legato (long notes)',
       fxCompressor: 'Compressor', fxDistortion: 'Distortion', fxSidechain: 'Sidechain (from kick)', fxLimiter: 'Limiter (master)', fxAnalyser: 'Spectrum Analyzer',
       fxTargetLabel: 'Apply effects to', fxTargetMasterOpt: 'Master (whole mix)',
       fxTargetHintMaster: 'These effects sit on the entire mix at once', fxTargetHintTrack: 'These effects apply to this track only. Sidechain and the limiter always control the master bus.',
@@ -206,6 +206,8 @@
     melody: {},
     melodyBars: 2,
     melodyInstrument: 'bass',
+    melodyLegato: false,
+    melodyFirstStep: -1,
     isPlaying: false,
     isLooping: false,
     metronomeOn: false,
@@ -625,6 +627,11 @@
 
   function totalSteps() { return state.seqBars * 16; }
   function melodyTotalSteps() { return state.melodyBars * 16; }
+  function melodyRunLen(midi, i, steps) {
+    let n = 1;
+    while (i + n < steps && state.melody[midi][i + n]) n++;
+    return n;
+  }
   function stepDuration() { return (60 / state.bpm) / 4; }
 
   function clipDuration(clip) {
@@ -647,6 +654,7 @@
     state.originTime = actx.currentTime - state.playbackPosition;
     state.nextStepTime = state.originTime + Math.ceil(state.playbackPosition / stepDuration()) * stepDuration();
     state.currentStepIndex = Math.round((state.nextStepTime - state.originTime) / stepDuration());
+    state.melodyFirstStep = state.currentStepIndex;
 
     scheduleTrackSources();
     state.schedulerTimer = setInterval(schedulerTick, LOOKAHEAD_MS);
@@ -777,7 +785,13 @@
       });
 
       PIANO_NOTES.forEach(n => {
-        if (state.melody[n.midi][melodyStep]) {
+        if (!state.melody[n.midi][melodyStep]) return;
+        if (state.melodyLegato) {
+          const cont = melodyStep > 0 && state.melody[n.midi][melodyStep - 1];
+          if (cont && state.currentStepIndex !== state.melodyFirstStep) return;
+          const run = melodyRunLen(n.midi, melodyStep, melodyTotalSteps());
+          playSynthNote(actx, state.melodyTrack.nodes.gain, midiToFreq(n.midi), t, dur * run * 0.98, state.melodyInstrument);
+        } else {
           playSynthNote(actx, state.melodyTrack.nodes.gain, midiToFreq(n.midi), t, dur * 0.92, state.melodyInstrument);
         }
       });
@@ -2224,7 +2238,7 @@
       })),
       nextTrackId: state.nextTrackId, nextClipId: state.nextClipId,
       bpm: state.bpm, seqBars: state.seqBars, seqSwing: state.seqSwing, kit: state.kit,
-      pattern: state.pattern, melody: state.melody, melodyBars: state.melodyBars, melodyInstrument: state.melodyInstrument,
+      pattern: state.pattern, melody: state.melody, melodyBars: state.melodyBars, melodyInstrument: state.melodyInstrument, melodyLegato: state.melodyLegato,
       seqTrack: { volume: state.seqTrack.volume, pan: state.seqTrack.pan, mute: state.seqTrack.mute, solo: state.seqTrack.solo },
       melodyTrack: { volume: state.melodyTrack.volume, pan: state.melodyTrack.pan, mute: state.melodyTrack.mute, solo: state.melodyTrack.solo },
       fx: state.fx, sidechain: state.sidechain, masterVolume: state.masterVolume,
@@ -2249,7 +2263,7 @@
     state.nextTrackId = d.nextTrackId; state.nextClipId = d.nextClipId || state.nextClipId;
     state.bpm = d.bpm; state.seqBars = d.seqBars; state.seqSwing = d.seqSwing; state.kit = d.kit || 'modern';
     state.pattern = d.pattern; state.melody = d.melody || state.melody;
-    state.melodyBars = d.melodyBars || 2; state.melodyInstrument = d.melodyInstrument || 'bass';
+    state.melodyBars = d.melodyBars || 2; state.melodyInstrument = d.melodyInstrument || 'bass'; state.melodyLegato = !!d.melodyLegato;
     Object.assign(state.seqTrack, d.seqTrack);
     Object.assign(state.melodyTrack, d.melodyTrack || {});
     Object.assign(state.fx, d.fx);
@@ -2267,6 +2281,7 @@
     document.getElementById('seq-kit').value = state.kit;
     document.getElementById('piano-bars').value = state.melodyBars;
     document.getElementById('piano-instrument').value = state.melodyInstrument;
+    { const lg = document.getElementById('piano-legato'); if (lg) lg.checked = !!state.melodyLegato; }
     document.getElementById('master-volume').value = Math.round(state.masterVolume * 100);
     renderTracks(); renderSequencer(); renderPianoRoll(); renderMixer();
   }
@@ -2346,7 +2361,7 @@
       name: state.currentProjectName,
       savedAt: new Date().toISOString(),
       bpm: state.bpm, seqBars: state.seqBars, seqSwing: state.seqSwing, kit: state.kit,
-      pattern: state.pattern, melody: state.melody, melodyBars: state.melodyBars, melodyInstrument: state.melodyInstrument,
+      pattern: state.pattern, melody: state.melody, melodyBars: state.melodyBars, melodyInstrument: state.melodyInstrument, melodyLegato: state.melodyLegato,
       fx: state.fx, sidechain: state.sidechain, masterVolume: state.masterVolume,
       limiter: state.limiter, markers: state.markers, nextMarkerId: state.nextMarkerId,
       seqTrack: { volume: state.seqTrack.volume, pan: state.seqTrack.pan, mute: state.seqTrack.mute, solo: state.seqTrack.solo },
@@ -2398,6 +2413,7 @@
     state.melody = payload.melody || state.melody;
     state.melodyBars = payload.melodyBars || 2;
     state.melodyInstrument = payload.melodyInstrument || 'bass';
+    state.melodyLegato = !!payload.melodyLegato;
     Object.assign(state.fx, payload.fx || {});
     Object.assign(state.sidechain, payload.sidechain || {});
     state.masterVolume = payload.masterVolume ?? 0.85;
@@ -2413,6 +2429,7 @@
     document.getElementById('seq-kit').value = state.kit;
     document.getElementById('piano-bars').value = state.melodyBars;
     document.getElementById('piano-instrument').value = state.melodyInstrument;
+    { const lg = document.getElementById('piano-legato'); if (lg) lg.checked = !!state.melodyLegato; }
     document.getElementById('master-volume').value = Math.round(state.masterVolume * 100);
 
     for (const trData of (payload.tracks || [])) {
@@ -2608,7 +2625,14 @@
             const t = t0 + i * stepDur;
             if (t >= dur) break;
             PIANO_NOTES.forEach(n => {
-              if (state.melody[n.midi][i]) playSynthNote(offlineCtx, meloGain, midiToFreq(n.midi), t, stepDur * 0.92, state.melodyInstrument);
+              if (!state.melody[n.midi][i]) return;
+              if (state.melodyLegato) {
+                if (i > 0 && state.melody[n.midi][i - 1]) return;
+                const run = melodyRunLen(n.midi, i, steps);
+                playSynthNote(offlineCtx, meloGain, midiToFreq(n.midi), t, stepDur * run * 0.98, state.melodyInstrument);
+              } else {
+                playSynthNote(offlineCtx, meloGain, midiToFreq(n.midi), t, stepDur * 0.92, state.melodyInstrument);
+              }
             });
           }
         }
@@ -2947,6 +2971,7 @@
 
   function wirePianoToolbar() {
     document.getElementById('piano-instrument').addEventListener('change', e => { state.melodyInstrument = e.target.value; });
+    document.getElementById('piano-legato').addEventListener('change', e => { state.melodyLegato = e.target.checked; });
     document.getElementById('piano-bars').addEventListener('change', e => {
       commit();
       state.melodyBars = +e.target.value;
