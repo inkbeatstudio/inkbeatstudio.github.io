@@ -43,9 +43,10 @@
       <select id="an-mode">
         <option value="fast" data-i18n="modeFast">Швидкий — без моделей, офлайн</option>
         <option value="accurate" data-i18n="modeAccurate">Точний — модель нот (довше, офлайн)</option>
-        <option value="max" disabled data-i18n="modeMax">Максимум — розділення на стеми, десктоп (скоро)</option>
+        <option value="max" data-i18n="modeMax">Максимум — окремі доріжки (стеми)</option>
       </select>
     </div>
+    <p class="an-hint" id="an-max-hint" data-i18n="maxHint" hidden>Вибери одразу всі доріжки.</p>
 
     <label class="an-drop" id="an-drop" tabindex="0">
       <input type="file" id="an-file" accept="audio/*,.mp3,.wav,.ogg,.m4a,.flac,.aac" hidden/>
@@ -219,6 +220,7 @@
         <label class="an-check"><input type="checkbox" id="an-opt-bass" checked/> <span data-i18n="optBass">Бас → шар «Бас»</span></label>
         <label class="an-check"><input type="checkbox" id="an-opt-comp" checked/> <span data-i18n="optComp">Ритм гітари/акордів (інакше акорд тримається весь такт)</span></label>
         <label class="an-check"><input type="checkbox" id="an-opt-lead"/> <span data-i18n="optLead">Лід-мелодія → шар «Лід» (експериментально)</span></label>
+        <label class="an-check" id="an-opt-stems-row" hidden><input type="checkbox" id="an-opt-stems" checked/> <span data-i18n="optStems">Кожна доріжка окремою доріжкою в студії</span></label>
         <label class="an-check"><input type="checkbox" id="an-opt-orig" checked/> <span data-i18n="optOrig">Додати оригінал окремою доріжкою</span></label>
         <label class="an-check"><input type="checkbox" id="an-opt-mute" checked/> <span data-i18n="optMute">Оригінал приглушений (щоб чути аранжировку)</span></label>
       </div>

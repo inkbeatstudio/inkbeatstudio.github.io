@@ -44,7 +44,7 @@
       noDrums: 'Стабільного ударного патерну не знайдено.',
       noChords: 'Акорди не визначились.',
       rowKick: 'Kick', rowSnare: 'Snare', rowHihat: 'Hi-hat', rowOhat: 'Open hat', rowClap: 'Clap', rowTom: 'Tom',
-      modeLabel: 'Режим аналізу', modeFast: 'Швидкий — без моделей, офлайн', modeAccurate: 'Точний — модель нот (довше, офлайн)', modeMax: 'Максимум — розділення на стеми, десктоп (скоро)',
+      modeLabel: 'Режим аналізу', modeFast: 'Швидкий — без моделей, офлайн', modeAccurate: 'Точний — модель нот (довше, офлайн)', modeMax: 'Максимум — окремі доріжки (стеми)', maxHint: 'Вибери одразу всі доріжки (ударні, бас, вокал, гітара, клавіші…). Мінус не потрібен — він збереться з доріжок.', optStems: 'Кожна доріжка окремою доріжкою в студії', stemsAuto: 'Мелодія не повторюється по тактах — показано відрізок треку. Змінити можна в блоці вище.', stemsTrackName: 'Доріжки', decodingStem: n => `Читаю доріжки… ${n}`,
       srcTitle: 'Звідки брати бас, гітару й лід',
       srcLoop: 'Повторюваний цикл (такти згортаються в 1, 2 або 4)', srcWindow: 'Відрізок треку як є (до 16 тактів, без згортання)',
       winFrom: 'від такту', winLen: 'довжина', winAuto: 'Підібрати автоматично',
@@ -106,7 +106,7 @@
       noDrums: 'No stable drum pattern found.',
       noChords: 'No chords detected.',
       rowKick: 'Kick', rowSnare: 'Snare', rowHihat: 'Hi-hat', rowOhat: 'Open hat', rowClap: 'Clap', rowTom: 'Tom',
-      modeLabel: 'Analysis mode', modeFast: 'Fast — no models, offline', modeAccurate: 'Accurate — note model (slower, offline)', modeMax: 'Maximum — stem separation, desktop (coming soon)',
+      modeLabel: 'Analysis mode', modeFast: 'Fast — no models, offline', modeAccurate: 'Accurate — note model (slower, offline)', modeMax: 'Maximum — separate tracks (stems)', maxHint: 'Choose all stems at once (drums, bass, vocals, guitar, keys…). No mix needed — it is built from the stems.', optStems: 'Each stem as its own track in the studio', stemsAuto: 'The melody does not repeat bar by bar — showing a segment of the track. You can change it in the block above.', stemsTrackName: 'Stems', decodingStem: n => `Reading stems… ${n}`,
       srcTitle: 'Where to take bass, guitar and lead from',
       srcLoop: 'Repeating loop (bars are folded into 1, 2 or 4)', srcWindow: 'Track section as is (up to 16 bars, no folding)',
       winFrom: 'from bar', winLen: 'length', winAuto: 'Pick automatically',
@@ -146,7 +146,7 @@
   const S = {
     ctx: null, audioBuffer: null, A: null, G: null, D: null, C: null,
     baseName: '', bpm: 120, shift: 0,
-    srcMode: 'loop', winStart: 0, winLen: 8, mode: 'fast', notes: null, ed: {}, edKey: '', stemFiles: [], stemA: null,
+    srcMode: 'loop', winStart: 0, winLen: 8, refreshSrc: null, mode: 'fast', notes: null, ed: {}, edKey: '', stemFiles: [], stemA: null,
     pattern: null, rowOn: { kick: true, snare: true, hihat: true, ohat: true, clap: true, tom: true },
     pxPerSec: 40, peaks: null, peaksPx: 0,
     playing: false, playStartCtx: 0, playStartPos: 0, src: null, clickTimer: null, nextClick: 0, raf: 0
@@ -159,6 +159,120 @@
     ['an-intro', 'an-working', 'an-result'].forEach(x => { $(x).hidden = x !== id; });
   }
   function showError(msg) { const e = $('an-error'); e.textContent = msg; e.hidden = !msg; }
+
+  async function handleFiles(list) {
+    const files = Array.from(list || []);
+    if (!files.length) return;
+    if (S.mode === 'max' || files.length > 1) return handleStemSet(files);
+    return handleFile(files[0]);
+  }
+
+  function lightBuffer(audio) {
+    const sr = 32000;
+    const n = Math.ceil(audio.length * sr / audio.sampleRate);
+    const oc = new OfflineAudioContext(1, n, sr);
+    const src = oc.createBufferSource();
+    src.buffer = audio; src.connect(oc.destination); src.start();
+    return oc.startRendering();
+  }
+
+  function stemLabel(name) {
+    return name.replace(/\.[^.]+$/, '').replace(/^\d+[_\-\s]*/, '').replace(/[_]+/g, ' ').trim() || name;
+  }
+
+  function autoWindowIfWeak() {
+    const L = S.L;
+    if (!L) return;
+    const weak = (L.lead.events.length >= 8 && !L.lead.present) || (L.bass.events.length >= 8 && L.bass.consistency < 0.4);
+    if (!weak) return;
+    S.srcMode = 'window'; S.winTouched = false;
+    S.winStart = AN.suggestWindow(L, S.G, S.winLen);
+    document.querySelectorAll('input[name="an-src"]').forEach(r => { r.checked = r.value === 'window'; });
+    if (S.refreshSrc) S.refreshSrc();
+    $('an-stem-status').textContent = ($('an-stem-status').textContent + ' ' + t('stemsAuto')).trim();
+  }
+
+  async function handleStemSet(files) {
+    showError('');
+    stopPlayback();
+    S.baseName = t('stemsTrackName');
+    $('an-working-name').textContent = files.length + ' × ' + t('stemsTrackName');
+    show('an-working');
+    setProgress(t('decoding'), 0.02);
+    try {
+      if (!S.ctx) S.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      files.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+      const items = [];
+      for (let i = 0; i < files.length; i++) {
+        setProgress(t('decodingStem', (i + 1) + '/' + files.length), 0.02 + 0.2 * i / files.length);
+        const file = files[i];
+        const buf = await file.arrayBuffer();
+        let audio;
+        try { audio = await S.ctx.decodeAudioData(buf); }
+        catch (e) { throw Object.assign(new Error('read'), { code: 'read' }); }
+        const clean = /clean/i.test(file.name);
+        items.push({ file, audio, role: clean ? 'ignore' : AN.stemRole(file.name), skip: clean });
+      }
+      const used = items.filter(f => !f.skip);
+      const n = Math.max.apply(null, used.map(f => f.audio.length));
+      const mix = S.ctx.createBuffer(2, n, used[0].audio.sampleRate);
+      used.forEach(f => {
+        for (let c = 0; c < 2; c++) {
+          const src = f.audio.getChannelData(Math.min(c, f.audio.numberOfChannels - 1)), dst = mix.getChannelData(c);
+          for (let i = 0; i < src.length; i++) dst[i] += src[i];
+        }
+      });
+      S.audioBuffer = mix;
+      S.stemFiles = items;
+      S.stemA = null; S.notes = null;
+      const stageMap = { resample: [t('stageResample'), 0.22, 0.28], onsets: [t('stageOnsets'), 0.28, 0.42], tempo: [t('stageTempo'), 0.42, 0.45], chroma: [t('stageChroma'), 0.45, 0.55], separate: [t('stageSeparate'), 0.55, 0.62], done: [t('stageFinish'), 0.62, 0.64] };
+      const mixA = await AN.analyzeBuffer(mix, (stage, p) => { const m = stageMap[stage]; if (m) setProgress(m[0], m[1] + (m[2] - m[1]) * (p || 0)); });
+      let A = mixA;
+      const dr = used.find(f => f.role === 'drums');
+      if (dr) {
+        setProgress(t('stageTempo'), 0.65);
+        const dA = await AN.analyzeBuffer(dr.audio);
+        A = Object.assign({}, mixA, { tempo: Object.assign({}, dA.tempo), bt: dA.bt, on: dA.on, nrm: dA.nrm, onP: dA.onP, nrmP: dA.nrmP });
+        A.tempo.bpm = AN.fineTempo(dA, dA.tempo.bpm);
+      }
+      S.A = A;
+      S.bpm = A.tempo.bpm; S.shift = 0; S.peaks = null;
+      setProgress(t('stageSeparate'), 0.7);
+      S.stemA = await analyzeStemGroups(p => setProgress(t('stageSeparate'), 0.7 + 0.28 * p));
+      $('an-stem-status').textContent = '';
+      recompute(true);
+      autoWindowIfWeak();
+      renderStemList();
+      $('an-result-name').textContent = files.length + ' × ' + t('stemsTrackName');
+      $('an-result-sub').textContent = t('subLine', fmtTime(A.duration), Math.round(mix.sampleRate / 100) / 10 + ' kHz');
+      $('an-opt-stems').checked = true;
+      show('an-result');
+      requestAnimationFrame(drawWave);
+    } catch (e) {
+      console.error(e);
+      let msg = t('errGeneric') + (e && e.message);
+      if (e && e.code === 'read') msg = t('errRead');
+      else if (e && e.message === 'short') msg = t('errShort');
+      else if (e && e.message === 'no-tempo') msg = t('errTempo');
+      showError(msg);
+      show('an-intro');
+    }
+  }
+
+  async function analyzeStemGroups(progress) {
+    const groups = {};
+    for (const f of S.stemFiles) {
+      if (f.role === 'ignore') continue;
+      if (!f.mono) {
+        const ch = [];
+        for (let c = 0; c < f.audio.numberOfChannels; c++) ch.push(f.audio.getChannelData(c));
+        f.mono = await AN.resampleToMono(ch, f.audio.sampleRate);
+      }
+      (groups[f.role] = groups[f.role] || []).push(f.mono);
+    }
+    const res = await AN.analyzeStems(groups, progress);
+    return Object.keys(res).length ? res : null;
+  }
 
   async function handleFile(file) {
     if (!file) return;
@@ -187,6 +301,7 @@
       S.A = A;
       S.notes = null;
       resetStems();
+      S.stemFiles = [];
       if (acc) {
         try {
           setProgress(t('stageTranscribe'), 0.4);
@@ -198,9 +313,10 @@
           showError(t('errModel'));
         }
       }
-      S.bpm = A.tempo.bpm; S.shift = 0;
+      S.bpm = AN.fineTempo(A, A.tempo.bpm); S.shift = 0;
       S.peaks = null;
       recompute(true);
+      autoWindowIfWeak();
       $('an-result-name').textContent = file.name;
       $('an-result-sub').textContent = t('subLine', fmtTime(A.duration), Math.round(audio.sampleRate / 100) / 10 + ' kHz');
       show('an-result');
@@ -240,6 +356,7 @@
     });
     $('an-stem-run').hidden = !S.stemFiles.length;
     $('an-stem-clear').hidden = !S.stemFiles.length && !S.stemA;
+    $('an-opt-stems-row').hidden = !S.stemFiles.some(f => f.audio);
   }
 
   async function runStems() {
@@ -248,20 +365,12 @@
     run.disabled = true;
     st.textContent = t('stemsBusy');
     try {
-      const groups = {};
       for (const f of S.stemFiles) {
-        if (f.role === 'ignore') continue;
-        const buf = await f.file.arrayBuffer();
-        const audio = await S.ctx.decodeAudioData(buf.slice(0));
-        const ch = [];
-        for (let c = 0; c < audio.numberOfChannels; c++) ch.push(audio.getChannelData(c));
-        const mono = await AN.resampleToMono(ch, audio.sampleRate);
-        (groups[f.role] = groups[f.role] || []).push(mono);
+        if (!f.audio) f.audio = await S.ctx.decodeAudioData((await f.file.arrayBuffer()).slice(0));
       }
-      const res = await AN.analyzeStems(groups, p => { st.textContent = t('stemsBusy') + ' ' + Math.round(p * 100) + '%'; });
-      const n = Object.keys(res).length;
-      if (!n) { st.textContent = t('stemsNone'); S.stemA = null; }
-      else { S.stemA = res; stopPlayback(); recompute(true); st.textContent = t('stemsDone', n); }
+      const res = await analyzeStemGroups(p => { st.textContent = t('stemsBusy') + ' ' + Math.round(p * 100) + '%'; });
+      if (!res) { st.textContent = t('stemsNone'); S.stemA = null; }
+      else { S.stemA = res; stopPlayback(); recompute(true); st.textContent = t('stemsDone', Object.keys(res).length); autoWindowIfWeak(); }
     } catch (e) {
       console.error(e);
       st.textContent = t('errGeneric') + (e && e.message);
@@ -636,8 +745,16 @@
       } catch (e) { }
 
       const drums = S.pattern ? { pattern: S.pattern, bars: S.D.bars } : null;
+      let stemTracks = null;
+      if ($('an-opt-stems').checked && S.stemFiles.some(f => f.audio)) {
+        stemTracks = [];
+        for (const f of S.stemFiles) {
+          if (!f.audio) continue;
+          stemTracks.push({ name: stemLabel(f.file.name), buffer: await lightBuffer(f.audio), mute: !!f.skip });
+        }
+      }
       await HO.sendToStudio({
-        baseName: S.baseName, audioBuffer: S.audioBuffer, G: S.G, key: S.A.key,
+        baseName: S.baseName, audioBuffer: S.audioBuffer, G: S.G, key: S.A.key, stemTracks,
         drums, chords: currentView().chords, bass: currentView().bass, comp: currentView().comp, lead: currentView().lead,
         options: {
           drums: $('an-opt-drums').checked, chords: $('an-opt-chords').checked,
@@ -673,13 +790,13 @@
     }));
 
     const drop = $('an-drop'), input = $('an-file');
-    input.addEventListener('change', () => { handleFile(input.files[0]); input.value = ''; });
+    input.addEventListener('change', () => { const fl = Array.from(input.files); input.value = ''; handleFiles(fl); });
     drop.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); input.click(); } });
     ['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
     ['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
-    drop.addEventListener('drop', e => handleFile(e.dataTransfer.files[0]));
+    drop.addEventListener('drop', e => handleFiles(e.dataTransfer.files));
     window.addEventListener('dragover', e => e.preventDefault());
-    window.addEventListener('drop', e => { e.preventDefault(); if (!$('an-intro').hidden && e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]); });
+    window.addEventListener('drop', e => { e.preventDefault(); if (!$('an-intro').hidden && e.dataTransfer.files.length) handleFiles(e.dataTransfer.files); });
 
     $('an-reset').addEventListener('click', () => { stopPlayback(); showError(''); show('an-intro'); });
     $('an-bpm-half').addEventListener('click', () => changeBpm(AN.refine(S.A, S.bpm / 2, 0.01)));
@@ -689,7 +806,7 @@
     $('an-shift-dn').addEventListener('click', () => { S.shift = (S.shift + 3) % 4; stopPlayback(); recompute(); });
     $('an-shift-up').addEventListener('click', () => { S.shift = (S.shift + 1) % 4; stopPlayback(); recompute(); });
 
-    $('an-mode').addEventListener('change', e => { S.mode = e.target.value; });
+    $('an-mode').addEventListener('change', e => { S.mode = e.target.value; $('an-max-hint').hidden = S.mode !== 'max'; $('an-file').multiple = S.mode === 'max'; });
 
     ['bass', 'lead'].forEach(k => {
       const cv = $('an-' + k + '-cv');
@@ -703,7 +820,7 @@
     });
 
     $('an-stem-files').addEventListener('change', e => {
-      S.stemFiles = Array.from(e.target.files).map(file => ({ file, role: AN.stemRole(file.name) }));
+      S.stemFiles = Array.from(e.target.files).map(file => ({ file, role: /clean/i.test(file.name) ? 'ignore' : AN.stemRole(file.name), skip: /clean/i.test(file.name) }));
       e.target.value = '';
       $('an-stem-status').textContent = '';
       renderStemList();
@@ -732,6 +849,7 @@
       if (S.srcMode === 'window') $('an-win-start').value = S.winStart + 1;
       if (S.A) { renderChords(); renderLayers(); }
     };
+    S.refreshSrc = refreshSrc;
     document.querySelectorAll('input[name="an-src"]').forEach(r => r.addEventListener('change', () => {
       if (!r.checked) return;
       S.srcMode = r.value;

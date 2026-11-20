@@ -420,6 +420,24 @@
     };
   }
 
+  function fineTempo(A, bpm, rel) {
+    rel = rel || 0.006;
+    const env = A.nrm.full;
+    const t = [], w = [];
+    for (let i = 2; i < env.length - 2; i++) if (env[i] > 0.35 && env[i] >= env[i - 1] && env[i] > env[i + 1]) { t.push(i / FPS); w.push(env[i]); }
+    if (t.length < 40) return bpm;
+    let best = bpm, bv = -1;
+    const lo = bpm * (1 - rel), hi = bpm * (1 + rel);
+    for (let b = lo; b <= hi; b += 0.01) {
+      const step = 60 / b / 4;
+      let c = 0, s = 0, W = 0;
+      for (let i = 0; i < t.length; i++) { const ph = 2 * Math.PI * t[i] / step; c += w[i] * Math.cos(ph); s += w[i] * Math.sin(ph); W += w[i]; }
+      const r = Math.hypot(c, s) / W;
+      if (r > bv) { bv = r; best = b; }
+    }
+    return best;
+  }
+
   function refine(A, bpm, rel) {
     const r = refineTempo(A.bt, bpm, rel || 0.01);
     return r.bpm;
@@ -870,8 +888,6 @@
   }
 
   function foldNotes(events, nSteps) {
-    const bySt = new Map();
-    events.forEach(e => bySt.set(e.s, e));
     const folds = [];
     for (const barsN of [1, 2, 4]) {
       const L = 16 * barsN, cycles = Math.floor(nSteps / L);
@@ -882,25 +898,50 @@
       const med = sorted.length ? sorted[sorted.length >> 1] : 0;
       const active = []; for (let c = 0; c < cycles; c++) if (cnt[c] >= 0.3 * med && cnt[c] > 0) active.push(c);
       if (!active.length) continue;
-      const loop = [];
-      for (let s = 0; s < L; s++) {
-        const votes = new Map();
-        for (const c of active) {
-          const e = bySt.get(c * L + s);
-          if (e) { const v = votes.get(e.midi) || { n: 0, lens: [] }; v.n++; v.lens.push(e.len); votes.set(e.midi, v); }
-        }
-        let best = null;
-        for (const [m, v] of votes) if (!best || v.n > best.v.n) best = { m, v };
-        if (best && best.v.n >= 0.5 * active.length) loop.push({ s, midi: best.m, len: Math.max(1, medianOf(best.v.lens)) });
+      const per = new Map();
+      for (const c of active) per.set(c, []);
+      for (const e of events) {
+        const c = Math.floor(e.s / L);
+        if (per.has(c)) per.get(c).push({ p: e.s - c * L, midi: e.midi, len: e.len, used: false });
       }
-      const key = (s, m) => s * 128 + m;
-      const cons = new Set(loop.map(e => key(e.s, e.midi)));
+      const byMidi = new Map();
+      for (const c of active) for (const e of per.get(c)) {
+        if (!byMidi.has(e.midi)) byMidi.set(e.midi, new Map());
+        const h = byMidi.get(e.midi);
+        h.set(e.p, (h.get(e.p) || new Set()).add(c));
+      }
+      const clusters = [];
+      for (const [midi, h] of byMidi) {
+        const order = Array.from(h.keys()).sort((x, y) => h.get(y).size - h.get(x).size || x - y);
+        for (const pos of order) {
+          const lens = [];
+          let votes = 0;
+          for (const c of active) {
+            const evs = per.get(c).filter(e => e.midi === midi && !e.used);
+            let pick = evs.find(e => e.p === pos) || evs.find(e => Math.abs(e.p - pos) === 1);
+            if (pick) { pick.used = true; votes++; lens.push(pick.len); }
+          }
+          if (votes >= 0.5 * active.length) clusters.push({ s: pos, midi, votes, len: Math.max(1, medianOf(lens)) });
+        }
+      }
+      clusters.sort((x, y) => y.votes - x.votes || x.s - y.s);
+      const taken = new Set();
+      const loop = [];
+      for (const cl of clusters) {
+        if (taken.has(cl.s)) continue;
+        taken.add(cl.s);
+        loop.push({ s: cl.s, midi: cl.midi, len: cl.len });
+      }
+      loop.sort((x, y) => x.s - y.s);
       let inter = 0, uni = 0;
       for (const c of active) {
-        const set = new Set();
-        for (let s = 0; s < L; s++) { const e = bySt.get(c * L + s); if (e) set.add(key(s, e.midi)); }
-        let i2 = 0; for (const k of set) if (cons.has(k)) i2++;
-        inter += i2; uni += set.size + cons.size - i2;
+        const evs = events.filter(e => Math.floor(e.s / L) === c).map(e => ({ p: e.s - c * L, midi: e.midi, used: false }));
+        let i2 = 0;
+        for (const le of loop) {
+          const m = evs.find(e => !e.used && e.midi === le.midi && Math.abs(e.p - le.s) <= 1);
+          if (m) { m.used = true; i2++; }
+        }
+        inter += i2; uni += evs.length + loop.length - i2;
       }
       folds.push({ bars: barsN, L, cycles, active: active.length, loop, consistency: uni ? inter / uni : 0 });
     }
@@ -1233,7 +1274,7 @@
   }
 
   root.InkBeatAnalyzer = {
-    SR, FPS, NAMES, stemRole, analyzeStems, windowLayers, suggestWindow, bassLine, compRhythm, leadLine, analyzeLayers,
+    SR, FPS, NAMES, fineTempo, stemRole, analyzeStems, windowLayers, suggestWindow, bassLine, compRhythm, leadLine, analyzeLayers,
     analyzeMono, analyzeBuffer, resampleToMono, grid, refine, drums, chords,
     frameToTime, timeToFrame, chordLabel
   };

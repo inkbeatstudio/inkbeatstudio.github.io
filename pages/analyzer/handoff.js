@@ -132,7 +132,21 @@
     const name = `${ctx.baseName} · ${Math.round(bpm * 10) / 10} BPM · ${keyShort}`;
 
     const tracks = [];
-    if (o.keepOriginal && ctx.audioBuffer) {
+    const stems = ctx.stemTracks && ctx.stemTracks.length ? ctx.stemTracks : null;
+    const COLORS = ['#B8452C', '#8D84C4', '#4CA6A8', '#D6A23A', '#6FAE5B', '#C06A9A', '#5B8BD6', '#A8794C', '#7A7A7A'];
+    if (stems) {
+      stems.forEach((st, i) => {
+        tracks.push({
+          id: i + 1, name: st.name, color: COLORS[i % COLORS.length],
+          volume: 0.85, pan: 0, mute: !!st.mute, solo: false, reverbSend: 0, eqTilt: 0,
+          clips: [{
+            id: i + 1, fileName: st.name, clipStart: 0, trimStart, trimDuration: null,
+            fadeIn: 0, fadeOut: 0, gain: 1, playbackRate: 1,
+            audio: audioBufferToWav(st.buffer, padSec)
+          }]
+        });
+      });
+    } else if (o.keepOriginal && ctx.audioBuffer) {
       tracks.push({
         id: 1, name: isEn() ? 'Original' : 'Оригінал', color: '#8D84C4',
         volume: 0.9, pan: 0, mute: !!o.muteOriginal, solo: false, reverbSend: 0, eqTilt: 0,
@@ -153,7 +167,7 @@
       layers: { chords: chordsLayer, bass: bassLayer, lead: leadLayer },
       pluginFxChain: [], pluginInstrumentParams: {},
       markers: [], nextMarkerId: 1,
-      tracks,
+      tracks, nextTrackId: tracks.length + 1, nextClipId: tracks.length + 1,
       analysis: {
         source: ctx.baseName, bpm, key: ctx.key ? ctx.key.name : null,
         firstDownbeatSec: G.d, bars: G.totalBars
